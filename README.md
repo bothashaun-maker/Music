@@ -1,112 +1,120 @@
-# YuE2 music generation on Kaggle
+# YuE2 music generation on Kaggle — native FP16 engine
 
-Download [yue2-3b-frontier-full-song-music-generation.ipynb](yue2-3b-frontier-full-song-music-generation.ipynb) using GitHub’s **Download raw file** button, then import it into a new Kaggle notebook. It is
-self-contained: no repository clone or local GPU is needed on your computer.
-Select **GPU T4 ×2** and enable Internet. Run the notebook from the top.
+[Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
+GitHub's **Download raw file**, then import it into Kaggle. Look for
+**restored native FP16 engine (revision 3)** at the top.
 
-Start with the default **30-second diagnostic**. After successful audio generation,
-change `MAX_DURATION_SECONDS` to `180`, `420`, or `480` and supply full lyrics.
-These values are maximum lengths: the model may end early or hit a cutoff.
-Seven/eight-minute quality, continuity, runtime and T4 memory usage are **not yet
-GPU-validated**. The notebook does not pad or loop audio to meet a target.
+This revision returns to the original notebook's `yue2_infer` engine. The previous
+ComfyUI implementation changed the runtime and defaults and was substantially
+slower in the uploaded Kaggle run. Revision 3 retains the original FP16 and
+CUDA-graph path, restores direct generation, and adds seven/eight-minute options.
+The original engine's reported three-minute speed is not a measured speed claim
+for this revision or for eight-minute songs.
 
-The initial implementation uses native ComfyUI with the official INT8 checkpoint.
-T4 text generation uses native FP32, with staged offloading and tiled FP32 VAE
-decoding. It uses the explicitly selected GPU; two cards are not pooled or claimed
-to be accelerated together. Cover transcription is not included in this initial
-text-to-song baseline. No public tunnel or Gradio server is required.
+## Use it
 
-## Setup fix — revision 2
+1. Select **GPU T4 ×2** and enable **Internet** in Kaggle.
+2. Run setup. It creates an isolated environment and preserves Kaggle's
+   PyTorch/CUDA and scientific packages. It bypasses `ensurepip` using the
+   previously checked pip bootstrap, and verifies native/UI imports.
+3. Run **Open the generator**, then open the printed Gradio share link.
+4. Enter your style and full, section-tagged lyrics. Select **Full Song - 7 min**
+   or **Full Song - 8 min**, then click **Generate Song**.
+5. Download the WAV/FLAC masters or **complete run ZIP** in the UI immediately,
+   or **Save Version with outputs** in Kaggle before discarding the session.
 
-The uploaded Kaggle run stopped during environment creation: Python 3.13 failed
-inside `ensurepip`, before dependency installation or model loading. The previous
-retry check also mistook the leftover Python executable for a complete environment.
+**No diagnostic song starts automatically and no repeated short test is required.**
+The default duration is three minutes; choose the duration for your actual song.
+Keep the UI cell running while generating. Its transformer can stay loaded for
+additional songs. Interrupting the UI cell stops that process; the UI Stop button
+requests cancellation at a generation boundary.
 
-Setup now creates the environment with `--without-pip`, installs a pinned,
-SHA256-verified pip 25.3 wheel locally, and verifies that pip belongs to that
-environment. Reruns repair partially created environments and preserve saved runs.
-No system package installation or manual deletion of `/kaggle/working/yue2` is needed.
+A browser/computer restart does not itself establish whether the remote Kaggle
+session survived. If a session is discarded, unsaved working files may be lost.
+A downloaded notebook containing logs is not a backup of its generated audio.
 
-**To update Kaggle:** download the revised notebook and import it into Kaggle.
-Run from the first code cell, which loads the corrected support code, then run
-setup. Rerunning only the setup cell in the old notebook will still use the old code.
-The revised setup prints `Environment ready: Python ..., local pip 25.3 (ensurepip not used).`
-The install section is labeled **Setup fix (revision 2)** so you can identify this version.
+## Restored generation settings
 
-## What is saved
+- Transformer: original `m-a-p/YuE2-3B`, FP16 on GPU 0, retained between songs.
+- AR backend: native CUDA graphs, SDPA on T4, with the original eager fallback.
+  Actual execution and throughput appear in the status panel.
+- Decoder: tiled FP32 `m-a-p/YuE2-Vae` on GPU 1.
+- Default planning: **Direct to audio**, with no ABC score generation.
+- Default acoustic solver: **16 Euler steps**; CFG **1.0**.
+- Optional score planning/editing remains available; cover transcription is disabled.
+- The native context stays at 24,576 tokens. It is not enlarged to fit a song.
 
-Each attempt gets a unique folder under `/kaggle/working/yue2/runs/`:
+At 25 music tokens per second, seven minutes requests 10,500 tokens and eight
+minutes requests 12,000. These are **maximum lengths**. The model can finish early,
+or reach the limit with an abrupt ending. The status panel and `status.json`
+report the actual duration and cutoff. Audio is never padded or looped to meet
+an advertised length. Long songs may require multiple acoustic chunks; their
+boundary times are reported for listening. Full-song continuity requires listening.
 
-- `request.json`, `api-prompt.json`: prompts, three seeds, settings and runtime identity.
-- `score.abc`, `abc_tokens.json`: score and exact token artifact when planning is used.
-- `semantic_tokens.json`: music tokens and native ending/truncation status.
-- `*_effective.json`: actual token budgets, prefixes and sampling arguments.
-- `latents.safetensors`, `latents_manifest.json`: checked acoustic latents before decoding.
-- `audio.flac`, `audio.wav`: 48 kHz stereo PCM-24 exports after finite/silence checks.
-- `stages.json`, `summary.json`: actual duration, cutoff state, acoustic boundaries,
-  observed dtype, GPU memory and any export gain.
-- `history.json`, `client-error.json`, `gpu.csv`, `server-log.txt`: execution diagnostics
-  when available (the per-run server log retains up to the final 20 MiB).
+## Storage and saved stages
 
-The runtime root also retains package versions, hardware, node schemas, and
-`server.log`. A file only appears after its stage completes. Failed/cancelled runs
-retain earlier artifacts. A header check does not establish musical completeness;
-listen to the full song, especially the outro and reported chunk boundaries.
+Runtime, dependencies, caches and model files use session-only
+`/kaggle/temp/yue2_native`; support code is under `/kaggle/temp/yue2_native_support`.
+Setup prints actual free space and requires at least 16 GiB for runtime and 2 GiB
+for output storage. Paths can share a filesystem; these checks do not establish
+a separate 50 GB quota. Existing files from older revisions are preserved.
 
-**Download the run ZIP or save a Kaggle version with outputs before stopping your
-session.** A working directory alone is not durable across all Kaggle session resets.
+Every attempt gets a unique directory under `/kaggle/working/yue2_native/runs`:
 
-## Recovery
+- `settings.json`: prompts, seeds, token budget, solver and engine/weight identity.
+- `plan.json`, `plan_manifest.json`, `prefix.npy`, `abc_tokens.npy`, and optional
+  `score.abc`: the exact saved plan, including direct generation's empty score.
+- `semantic.npy`, `semantic.json`: completed music tokens, cutoff flag and AR timing.
+- `latent.npy`, `latent_manifest.json`: completed acoustic latents and checksum,
+  saved before VAE decoding.
+- `audio.wav`, `audio.flac`: checked 48 kHz stereo PCM-24 masters.
+- `playback.wav`: PCM-16 playback copy.
+- `status.json`: measured duration, stage timings, chunk boundaries, or failure.
 
-Use the notebook's recovery cell with the directory containing `request.json`:
+Files appear as stages complete. Failed/cancelled attempts retain earlier files.
+Non-finite acoustic/audio values cause an explicit failure instead of being
+silently replaced. Exports are checked against the generated token duration and
+read back through their actual file headers. Successful runs also get a ZIP
+beside the directory; if space prevents ZIP creation, original files remain.
+The UI provides direct master-file and ZIP downloads. Package/hardware records
+and the engine log are retained under `/kaggle/working/yue2_native/runtime`.
 
-- `decode`: reuse saved latents; optionally reduce the VAE tile size.
-- `tokens`: reuse matching completed token stages and recompute acoustic synthesis.
+## Decode recovery
 
-Recovery writes into a new run folder and checks identities/checksums. Token
-recovery requires the same effective prompt, seeds, budgets, package identity and
-checkpoint. It intentionally refuses to reuse mismatched or corrupt artifacts.
-Decode recovery verifies the checkpoint and latent checksum. For a new Kaggle
-session, attach saved outputs as an input or extract the saved ZIP into working storage.
+If a run failed after `latent.npy` and `latent_manifest.json` were written, stop
+the UI cell and use the notebook's optional decode-recovery cell. It verifies
+latent checksums and matching model weights, then writes into a new run folder.
+It does not rerun planning, music-token generation or acoustic synthesis.
 
-Interrupting the generation cell asks the managed server to cancel at a native
-processing boundary. It does not promise immediate interruption of an active CUDA
-kernel. `app.stop()` terminates only this notebook's managed server. Wait for idle
-or restart before submitting another run.
+For a new Kaggle session, attach the saved ZIP as an input and extract it first;
+setup/model assets are still needed. Revision 2 ComfyUI artifacts are a different
+format and cannot be fed to this native recovery cell. Token-stage recovery after
+an acoustic failure remains a future addition; those tokens are saved for review.
 
-## Reproducibility and limitations
+## Revisions and checks
 
-- ComfyUI: `bc5f880dbdd43e426077f42ccec53bb577ffee9f`.
-- Weights: `Comfy-Org/YuE2` revision `2f76ca75e6ee094169de899cc7fc99d6887e2196`.
-- Checkpoint: `yue2_3b_int8_convrot.safetensors`, SHA256
-  `96fe199377309001ed8cd26a944baeee8cc31a20ba7c36d1d3c0a7e1f4149db6`.
-- Installation uses an isolated virtual environment inheriting Kaggle's binary
-  stack. Constraints preserve PyTorch/TorchVision/TorchAudio and the scientific
-  packages already installed. Transformers, Hub and SoundFile are pinned; other
-  dependencies follow the pinned ComfyUI requirements. Installed versions are
-  recorded; this is not a complete cross-image dependency lock.
-- Use a current Kaggle image with PyTorch >=2.8. Dependency/import/kernel failures
-  stop setup and need diagnosis; verification is never disabled.
-- Native ComfyUI controls precision, sampling, attention, acoustic chunking and
-  its decoder's loudness adjustment. The managed nodes observe ending status,
-  save recovery artifacts and validate exports. No numerical failure is replaced
-  with zero-filled audio.
-- Seven/eight-minute songs can require separate acoustic chunks. Their boundaries
-  are reported for listening; a larger duration setting does not establish continuity.
-- Models and generated outputs remain subject to their upstream license terms.
+- Inference wheel: `yue2_infer-0.1.5-py3-none-any.whl`, SHA256
+  `8801e2c0d969db02df78d2994150b4ccd86077d87c24fdb8509b1f6f31462641`.
+- Transformer revision: `8f24312f187763b9854adeec87e437e2b03bbff1`.
+- VAE revision: `152733a19ad43aa67e367f9b5503ef8075bb5126`.
+- Key compatibility pins: Transformers 4.57.6, Hub 0.36.2, Gradio 5.49.1,
+  Pillow 11.3.0. Full installed versions are recorded; this is not an entire
+  Kaggle image lock. The inference wheel is installed without replacing the
+  release's development CUDA stack over Kaggle's matched binary packages.
+- Original source: AIQUEST Academy notebook in Movies commit
+  `fcf4d45dc5dbca57b39e54311807410cdf41f737`. Attribution is retained in the source.
+  Upstream model, inference-package and component license terms apply.
 
-## Validation status
+Nine CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
+native package, Gradio 5.49.1 UI and HTTP API schema. Checks cover long token/context
+budgets, eight-minute WAV/FLAC/ZIP exports with **synthetic audio**, early endings,
+unique run preservation, planner cutoff, non-finite failure handling, decode
+recovery/tampering, and embedded source consistency. They did not run the full
+model or validate CUDA graphs, eight-minute GPU memory, speed, or musical quality.
+No Kaggle GPU time was used for these local checks.
 
-Before publication, 27 local tests passed for orchestration, graph wiring,
-truncation reporting, recovery, tamper detection, and API error/cancellation handling.
-Checks against the pinned ComfyUI source also passed. These checks used no GPU
-and do not establish successful model inference or audio quality.
-
-The setup fix also passed real environment creation, pip installation, partial-setup
-repair and repeat-run checks on Python 3.12.14 and 3.13.5. An actual failed
-`ensurepip` environment on system Python 3.13.5 was repaired successfully.
-These checks do not reproduce Kaggle's complete Python 3.13.15 image or GPU stack.
-
-The next validation must happen in Kaggle: installation, the default short
-generation, rerun, decode recovery, three minutes, then seven/eight minutes
-with memory measurements and listening checks at the outro and chunk boundaries.
+Source is in `native_yue2/`; `tools/build_fast_notebook.py` rebuilds the standalone
+notebook. `kaggle_yue2/` supplies the existing checked environment-bootstrap helpers;
+its ComfyUI installer and generation runtime are not invoked by this notebook.
+For contributors with the native dependencies installed:
+`python -m unittest discover -s tests -p test_native.py -v`.
