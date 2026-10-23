@@ -255,6 +255,7 @@ ypipe.YuE2Pipeline._load_model = patched_load_model
 
 # Runtime AR switches, read by patched_graphar_init below and set from the UI.
 AR_OPTIONS = {"fuse_projections": False}
+AR_DIAGNOSTICS = {"execution": "not_started", "fallback_reason": None}
 
 # Patch 3: Make the CUDA-graph AR decoder safe on Turing.
 # GraphAR probes for Ampere variable-length FlashAttention and would select it
@@ -263,6 +264,10 @@ _orig_graphar_init = ycgraph.GraphAR.__init__
 
 def patched_graphar_init(self, model, prefixes, max_tokens, *, capture=True,
                          attention_backend="auto", fuse_projections=False):
+    AR_DIAGNOSTICS.clear()
+    AR_DIAGNOSTICS.update(execution="prefill", fallback_reason=None,
+                          prefix_tokens=max(map(len, prefixes)), max_tokens=max_tokens,
+                          cfg_branches=len(prefixes))
     if attention_backend == "auto" and torch.cuda.is_available():
         if torch.cuda.get_device_capability(0)[0] < 8:
             attention_backend = "sdpa"
@@ -280,9 +285,11 @@ def patched_graphar_init(self, model, prefixes, max_tokens, *, capture=True,
     _orig_graphar_init(self, model, prefixes, max_tokens, capture=capture,
                        attention_backend=attention_backend,
                        fuse_projections=fuse_projections)
+    if not capture or max_tokens <= 1:
+        AR_DIAGNOSTICS["execution"] = "eager"
     print(f"[YuE2] AR decoder: attention={self.attention_backend}, "
           f"fused_projections={bool(self.fused_weights)}, "
-          f"capture={'on' if capture else 'off'}, capacity={self.capacity}")
+          f"capture_requested={capture}, capacity={self.capacity}", flush=True)
 
 ycgraph.GraphAR.__init__ = patched_graphar_init
 
@@ -294,13 +301,30 @@ _orig_graphar_capture = ycgraph.GraphAR._capture
 def patched_graphar_capture(self):
     try:
         _orig_graphar_capture(self)
+        AR_DIAGNOSTICS["execution"] = "cuda_graph" if self.graph is not None else "eager"
+        print(f"[YuE2] Actual AR execution: {AR_DIAGNOSTICS['execution']}", flush=True)
     except Exception as exc:
         print(f"[YuE2] CUDA graph capture unavailable ({exc}); falling back to eager decode.")
         self.graph = None
         self.output = None
         self.positions.copy_(self.initial_positions)
+        AR_DIAGNOSTICS.update(execution="eager", fallback_reason=str(exc))
 
 ycgraph.GraphAR._capture = patched_graphar_capture
+
+# The release calls any surviving GraphAR object 'cuda_graph', including an
+# object whose capture failed. Preserve its output and correct only that label.
+_original_generate_tokens = ypipe.generate_tokens
+def observed_generate_tokens(*args, **kwargs):
+    AR_DIAGNOSTICS.clear()
+    AR_DIAGNOSTICS.update(execution="eager", fallback_reason=None)
+    tokens, timing, truncated = _original_generate_tokens(*args, **kwargs)
+    timing = dict(timing)
+    timing["execution"] = AR_DIAGNOSTICS["execution"]
+    if AR_DIAGNOSTICS.get("fallback_reason"):
+        timing["graph_fallback_reason"] = AR_DIAGNOSTICS["fallback_reason"]
+    return tokens, timing, truncated
+ypipe.generate_tokens = observed_generate_tokens
 
 # Patch 4: Length-aware attention tiling for the NAR flow-matching pass.
 # T4 has no FlashAttention, so SDPA can materialize the full [heads, Q, K] score
@@ -851,7 +875,7 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
             abc_sampling_kwargs = {"max_tokens": 1200 if cot_mode == "full" else 800}
 
             print(f"\n[YuE2] Step 1/4: Symbolic score plan (CoT: {cot_mode})...")
-            progress(0.05, desc="Step 1/4: Planning symbolic score...")
+            progress(None, desc="Preparing prompt / optional score (not audio generation progress)")
             t0 = time.perf_counter()
             plan = pipe.plan(
                 style=cleaned_style,
@@ -886,12 +910,48 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
                 return None, abc_output, status_msg, None, None
 
             print(f"\n[YuE2] Step 2/4: Acoustic semantic tokens (limit {target_max_tokens})...")
-            progress(0.25, desc=f"Step 2/4: Semantic tokens (max {target_max_tokens})...")
+            progress(None, desc=f"AR load/prefill: {len(plan.prefix)} prompt tokens; budget {target_max_tokens}")
+            print(f"[YuE2] AR preflight: prefix={len(plan.prefix)}, budget={target_max_tokens}, "
+                  f"context={len(plan.prefix) + target_max_tokens}, CFG={plan.request.guidance}", flush=True)
             t0 = time.perf_counter()
+            live_tokens = []
+            live = {"last_report": t0, "first_token_at": None}
+            def report_music_token(phase, token):
+                if phase != "semantic":
+                    return
+                now = time.perf_counter()
+                if live["first_token_at"] is None:
+                    live["first_token_at"] = now
+                if yproto.CODEC_OFFSET <= token < yproto.CODEC_OFFSET + yproto.CODEC_SIZE:
+                    live_tokens.append(int(token) - yproto.CODEC_OFFSET)
+                if len(live_tokens) != 1 and now - live["last_report"] < 5 and token != yproto.MUSIC_END:
+                    return
+                elapsed = now - t0
+                decode_time = now - live["first_token_at"]
+                rate = (len(live_tokens) - 1) / decode_time if decode_time > 0 and len(live_tokens) > 1 else None
+                snapshot = {
+                    "status": "partial_tokens_only", "content_tokens": len(live_tokens),
+                    "token_budget": target_max_tokens, "represented_audio_seconds": len(live_tokens) / 25,
+                    "elapsed_seconds": elapsed, "decode_tokens_per_second": rate,
+                    "time_to_first_token_seconds": live["first_token_at"] - t0,
+                    "prefix_tokens": len(plan.prefix), "ar": dict(AR_DIAGNOSTICS),
+                }
+                write_json(output_dir / "semantic-progress.json", snapshot)
+                partial = output_dir / "semantic.partial.writing"
+                with partial.open("wb") as stream:
+                    np.save(stream, np.asarray(live_tokens, dtype=np.int32), allow_pickle=False)
+                os.replace(partial, output_dir / "semantic.partial.npy")
+                speed = f"{rate:.1f} token/s" if rate is not None else "measuring token rate"
+                label = (f"Music tokens {len(live_tokens)}/{target_max_tokens} (budget); "
+                         f"{len(live_tokens)/25:.1f}s audio represented; {speed}; "
+                         f"execution={AR_DIAGNOSTICS.get('execution')}")
+                progress((len(live_tokens), target_max_tokens), desc=label)
+                print(f"[YuE2 live] {label}; elapsed={elapsed:.1f}s", flush=True)
+                live["last_report"] = now
             semantic = pipe.generate_semantic(
                 plan,
                 sampling={"max_tokens": target_max_tokens},
-                cancelled=_cancelled
+                cancelled=_cancelled, on_token=report_music_token
             )
             semantic_seconds = time.perf_counter() - t0
             np.save(output_dir / "semantic.npy", np.asarray(semantic.tokens, dtype=np.int32), allow_pickle=False)
@@ -916,7 +976,7 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
                 torch.cuda.empty_cache()
 
             print(f"\n[YuE2] Step 3/4: Acoustic flow matching ({ode_steps} {method_clean} steps)...")
-            progress(0.6, desc=f"Step 3/4: Flow matching ({ode_steps} {method_clean} steps)...")
+            progress(None, desc=f"Music tokens completed; acoustic synthesis ({ode_steps} {method_clean} steps)")
             t0 = time.perf_counter()
             latents = pipe.synthesize(semantic, cancelled=_cancelled)
             synth_seconds = time.perf_counter() - t0
@@ -933,7 +993,7 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
                 torch.cuda.empty_cache()
 
             print(f"\n[YuE2] Step 4/4: Decoding 48 kHz stereo audio on {pipe.vae_device}...")
-            progress(0.9, desc="Step 4/4: Decoding 48 kHz stereo audio...")
+            progress(None, desc="Acoustic synthesis completed; decoding stereo audio")
             t0 = time.perf_counter()
             audio = pipe.decode(latents)
             decode_seconds = time.perf_counter() - t0

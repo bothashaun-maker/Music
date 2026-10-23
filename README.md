@@ -2,14 +2,33 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 3)** at the top.
+**restored native FP16 engine (revision 4)** at the top.
 
 This revision returns to the original notebook's `yue2_infer` engine. The previous
 ComfyUI implementation changed the runtime and defaults and was substantially
-slower in the uploaded Kaggle run. Revision 3 retains the original FP16 and
+slower in the uploaded Kaggle run. The native version retains the original FP16 and
 CUDA-graph path, restores direct generation, and adds seven/eight-minute options.
 The original engine's reported three-minute speed is not a measured speed claim
 for this revision or for eight-minute songs.
+
+## Live progress correction (revision 4)
+
+Earlier native UI progress used fixed stage markers: 25% meant semantic token
+sampling had started, not that one quarter of the song had been generated.
+Revision 4 replaces that marker with actual token counts, token rate, time to
+first token, and prompt-token count. Acoustic synthesis and VAE decoding display
+stage labels instead of invented overall percentages.
+
+The inference package also labeled a surviving GraphAR object `cuda_graph` after
+capture failed. Execution reporting now records actual capture success or eager
+fallback and its reason. Live reports are saved to `semantic-progress.json`;
+`semantic.partial.npy` checkpoints partial codec tokens every five seconds.
+Partial files are diagnostic artifacts and cannot be used by decode recovery.
+
+**These reporting changes do not establish a speed improvement.** They do not
+update an already-running process. Diagnose slow runs using the existing engine
+log's token rate, prompt/capacity, and capture/fallback lines before spending more
+GPU time on a new run.
 
 ## Use it
 
@@ -105,11 +124,12 @@ an acoustic failure remains a future addition; those tokens are saved for review
   `fcf4d45dc5dbca57b39e54311807410cdf41f737`. Attribution is retained in the source.
   Upstream model, inference-package and component license terms apply.
 
-Nine CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
+Eleven CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
 native package, Gradio 5.49.1 UI and HTTP API schema. Checks cover long token/context
 budgets, eight-minute WAV/FLAC/ZIP exports with **synthetic audio**, early endings,
 unique run preservation, planner cutoff, non-finite failure handling, decode
-recovery/tampering, and embedded source consistency. They did not run the full
+recovery/tampering, live token checkpoints, truthful capture-fallback labels,
+and embedded source consistency. They did not run the full
 model or validate CUDA graphs, eight-minute GPU memory, speed, or musical quality.
 No Kaggle GPU time was used for these local checks.
 

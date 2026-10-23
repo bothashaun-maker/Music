@@ -53,7 +53,7 @@ def build():
     print("Setup completed. Run the next cell to open the original native engine UI.")
     '''.replace('PAYLOAD', payload)
     cells = [cell('markdown', '''
-        # YuE2 on Kaggle — restored native FP16 engine (revision 3)
+        # YuE2 on Kaggle — restored native FP16 engine (revision 4)
 
         Select **GPU T4 ×2** and enable Internet. This restores the original
         `yue2_infer 0.1.5` engine: FP16 transformer on GPU 0, CUDA-graph AR decoding

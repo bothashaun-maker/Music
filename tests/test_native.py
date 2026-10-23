@@ -45,6 +45,11 @@ class SyntheticPipe:
         self.semantic_calls += 1
         self.budget = sampling['max_tokens']
         frames = self.frames or self.budget
+        if getattr(self, 'emit_tokens', False):
+            for _ in range(frames):
+                kw['on_token']('semantic', protocol.CODEC_OFFSET)
+            if frames < self.budget:
+                kw['on_token']('semantic', protocol.MUSIC_END)
         return native.SemanticResult(plan, [0] * frames,
             {'execution': 'synthetic_cpu_test', 'prefix_tokens': len(plan.prefix)},
             frames == self.budget)
@@ -187,6 +192,40 @@ class NativeTests(unittest.TestCase):
                                  velocity=lambda state, t: torch.full_like(state, float('nan')))
         with self.assertRaisesRegex(FloatingPointError, 'Non-finite'):
             solver(engine, steps=1)
+
+    def test_live_progress_uses_real_tokens_and_saves_partial_checkpoint(self):
+        self.pipe.frames = 25
+        self.pipe.emit_tokens = True
+        events = []
+        result = self.generate(progress=lambda value, desc: events.append((value, desc)))
+        directory = Path(result[0]).parent
+        saved = np.load(directory / 'semantic.partial.npy', allow_pickle=False)
+        self.assertEqual(saved.tolist(), [0] * 25)
+        snapshot = json.loads((directory / 'semantic-progress.json').read_text())
+        self.assertEqual(snapshot['content_tokens'], 25)
+        self.assertEqual(snapshot['token_budget'], 12000)
+        self.assertEqual(snapshot['represented_audio_seconds'], 1)
+        self.assertIsNotNone(snapshot['decode_tokens_per_second'])
+        self.assertIn(((25, 12000), unittest.mock.ANY), events)
+        self.assertFalse(any(value in (.25, .6, .9) for value, _ in events))
+
+    def test_failed_capture_resets_state_and_reports_actual_eager_execution(self):
+        obj = SimpleNamespace(graph=object(), output=object(),
+                              positions=torch.tensor([99]), initial_positions=torch.tensor([1]))
+        with patch.dict(self.scope, _orig_graphar_capture=lambda obj: (_ for _ in ()).throw(RuntimeError('capture refused'))):
+            self.scope['patched_graphar_capture'](obj)
+        self.assertIsNone(obj.graph)
+        self.assertEqual(obj.positions.tolist(), [1])
+        self.assertEqual(self.scope['AR_DIAGNOSTICS']['execution'], 'eager')
+        def wrongly_labeled_release_result():
+            self.scope['AR_DIAGNOSTICS'].update(execution='eager', fallback_reason='capture refused')
+            return [1], {'execution': 'cuda_graph'}, False
+        with patch.dict(self.scope, _original_generate_tokens=wrongly_labeled_release_result):
+            tokens, timing, cutoff = self.scope['observed_generate_tokens']()
+        self.assertEqual(tokens, [1])
+        self.assertFalse(cutoff)
+        self.assertEqual(timing['execution'], 'eager')
+        self.assertEqual(timing['graph_fallback_reason'], 'capture refused')
 
     def test_notebook_embeds_exact_sources_and_no_automatic_generation(self):
         import sys
