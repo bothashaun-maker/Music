@@ -96,14 +96,14 @@ class NativeTests(unittest.TestCase):
 
     def test_real_ui_defaults_and_native_revision(self):
         self.assertEqual(self.scope['cot_selector'].value, 'off')
-        self.assertEqual(self.scope['duration_selector'].value, 4500)
+        self.assertEqual(self.scope['duration_selector'].value, 12000)
         self.assertEqual(self.scope['ode_steps_slider'].value, 16)
         self.assertEqual(self.scope['ode_method_selector'].value, 'euler')
         self.assertEqual(self.load_kwargs['backend'], 'torch')
         self.assertFalse(self.load_kwargs['offload_ar'])
         self.assertEqual(self.load_kwargs['revision'], '8f24312f187763b9854adeec87e437e2b03bbff1')
-        self.assertIn(('Full Song - 7 min', 10500), self.scope['DURATION_CHOICES'])
-        self.assertIn(('Full Song - 8 min', 12000), self.scope['DURATION_CHOICES'])
+        self.assertIn(('Up to 7 min', 10500), self.scope['DURATION_CHOICES'])
+        self.assertIn(('Up to 8 min', 12000), self.scope['DURATION_CHOICES'])
 
     def test_real_ui_http_config_and_api_schema(self):
         from fastapi.testclient import TestClient
@@ -138,6 +138,7 @@ class NativeTests(unittest.TestCase):
         report = json.loads((directory / 'status.json').read_text())
         self.assertEqual(report['actual_seconds'], 480)
         self.assertTrue(report['semantic_truncated'])
+        self.assertEqual(report['ending_reason'], 'token_limit')
         self.assertIn('ending may be abrupt', status)
         self.assertTrue((directory / 'latent_manifest.json').exists())
         with zipfile.ZipFile(archive) as z:
@@ -153,6 +154,17 @@ class NativeTests(unittest.TestCase):
         self.assertEqual(report['actual_seconds'], 1)
         self.assertEqual(report['max_seconds'], 420)
         self.assertFalse(report['semantic_truncated'])
+        self.assertEqual(report['ending_reason'], 'model_end_token')
+
+    def test_unspecified_ceiling_uses_eight_minutes_and_unknown_label_is_rejected(self):
+        self.pipe.frames = 25
+        result = self.generate(budget=None)
+        self.assertEqual(self.pipe.budget, 12000)
+        self.assertIn('Natural model ending', result[2])
+        self.assertEqual(self.pipe.semantic_calls, 1)
+        with self.assertRaises(gr.Error):
+            self.generate(budget='unrecognized duration')
+        self.assertEqual(self.pipe.semantic_calls, 1)
 
     def test_failed_decode_keeps_latents_and_recovers_without_tokens(self):
         self.pipe.frames = 25

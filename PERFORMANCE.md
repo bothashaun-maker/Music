@@ -56,7 +56,7 @@ Confirmed selections and native fallbacks are reported. Only the native modules'
 functional namespaces are wrapped; global `torch.nn.functional` is unchanged.
 
 Eight attention tests passed on CPU, including seven numerical shape/mask
-subcases and emulated dispatch-control tests. Eleven native/UI/export/recovery
+subcases and emulated dispatch-control tests. Twelve native/UI/export/recovery
 checks also passed. No actual T4 acceleration, graph compatibility, memory peak,
 long-song acoustic quality or completion time has been validated for this change.
 The earlier three-minute/under-two-minute claim lacks a comparable saved run log.

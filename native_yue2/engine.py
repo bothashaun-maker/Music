@@ -783,15 +783,15 @@ FRAMES_PER_SECOND = 48000 // 1920
 # Short display text: the long "(~1 min, 1500 tokens)" form overflowed the
 # dropdown in a narrow column and collided with the caret glyph.
 DURATION_CHOICES = [
-    ("Quick Preview - 1 min", 1500),
-    ("Standard Song - 2 min", 3000),
-    ("Full Song - 3 min", 4500),
-    ("Full Song - 6 min", 9000),
-    ("Full Song - 7 min", 10500),
-    ("Full Song - 8 min", 12000),
+    ("Up to 1 min", 1500),
+    ("Up to 2 min", 3000),
+    ("Up to 3 min", 4500),
+    ("Up to 6 min", 9000),
+    ("Up to 7 min", 10500),
+    ("Up to 8 min", 12000),
 ]
 DURATION_MAP = dict(DURATION_CHOICES)
-DEFAULT_DURATION = 4500
+DEFAULT_DURATION = 12000  # Eight-minute safety ceiling; natural EOS remains enabled.
 
 # Gradio cannot interrupt a running Python callback, so the Stop button sets a
 # flag that the pipeline polls between steps via its `cancelled` hook.
@@ -845,9 +845,11 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
         notes.append("Score only requires a planning stage, so the mode was switched from 'off' to 'melody score'.")
 
     if isinstance(duration_target, str):
-        target_max_tokens = DURATION_MAP.get(duration_target, 3000)
+        if duration_target not in DURATION_MAP:
+            raise gr.Error("Unknown safety ceiling. Select a value from the duration menu.")
+        target_max_tokens = DURATION_MAP[duration_target]
     else:
-        target_max_tokens = int(duration_target or 3000)
+        target_max_tokens = DEFAULT_DURATION if duration_target is None else int(duration_target)
     if target_max_tokens not in {1500, 3000, 4500, 9000, 10500, 12000}:
         raise gr.Error("Select a supported song duration (1, 2, 3, 6, 7 or 8 minutes)")
     method_clean = "euler" if "euler" in str(ode_method).lower() else "midpoint"
@@ -1055,6 +1057,7 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
                 "status": "audio_saved_with_cutoff" if semantic.truncated else "audio_saved_natural_end",
                 "max_seconds": target_max_tokens / 25, "actual_seconds": audio_duration,
                 "semantic_truncated": semantic.truncated, "abc_truncated": plan.truncated,
+                "ending_reason": "token_limit" if semantic.truncated else "model_end_token",
                 "timing": {"planning": plan_seconds, "semantic": semantic_seconds,
                            "acoustic": synth_seconds, "vae": decode_seconds, "total": total_time},
                 "ar_timing": semantic.timing, "attention_dispatch": dict(ATTENTION_STATUS),
@@ -1064,9 +1067,9 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
             }
             write_json(output_dir / "status.json", report)
             if semantic.truncated:
-                status_msg += "\nDuration/token limit reached; ending may be abrupt."
-            if audio_duration < target_max_tokens / 25 - 1:
-                status_msg += "\nThe model ended below the selected maximum. No padding or looping was added."
+                status_msg += "\nSafety/token limit reached; ending may be abrupt. This is a cutoff, not a model ending."
+            else:
+                status_msg += "\nNatural model ending. The song ended below the safety ceiling or at its own end token."
             if report["boundary_seconds"]:
                 status_msg += f"\nListen for seams at these seconds: {report['boundary_seconds']}"
             import shutil
@@ -1084,7 +1087,8 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
             status_msg += f"\n       {flac_path}"
             status_msg += f"\n{header_note}"
 
-            progress(1.0, desc="Generation completed successfully!")
+            progress(1.0, desc="Audio exported with token-limit cutoff" if semantic.truncated
+                     else "Audio exported after the model's natural ending")
             status_msg += "\nDownload the ZIP now, or Save Version with outputs before ending the Kaggle session."
             return str(preview_path), abc_output, status_msg, [str(wav_path), str(flac_path)], archive_path
 
@@ -1431,7 +1435,8 @@ with gr.Blocks(**blocks_kwargs) as demo:
                 )
                 with gr.Row():
                     duration_selector = gr.Dropdown(
-                        label="⏱️ Target Song Duration",
+                        label="⏱️ Maximum song length (safety ceiling)",
+                        info="The model chooses its ending from your prompt and lyrics. This ceiling can cut it off if reached.",
                         choices=DURATION_CHOICES,
                         value=DEFAULT_DURATION,
                         interactive=True,

@@ -2,7 +2,7 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 5)** at the top.
+**restored native FP16 engine (revision 6)** at the top.
 
 This revision returns to the original notebook's `yue2_infer` engine. The previous
 ComfyUI implementation changed the runtime and defaults and was substantially
@@ -10,6 +10,21 @@ slower in the uploaded Kaggle run. The native version retains the original FP16 
 CUDA-graph path, restores direct generation, and adds seven/eight-minute options.
 The original engine's reported three-minute speed is not a measured speed claim
 for this revision or for eight-minute songs.
+
+## Natural endings and safety ceilings (revision 6)
+
+The model should end the song from its prompt and lyrics; it does not need to
+fill a selected length. A natural four-minute ending under a six-minute ceiling
+is normal behavior. Hitting the ceiling without an end token is a different
+condition: a cutoff that may interrupt the song.
+
+The UI now calls this setting **Maximum song length (safety ceiling)**, with
+**Up to 8 min** selected by default. Clear/reset and unspecified API duration
+also use that ceiling. Unknown labels are rejected instead of silently selecting
+a shorter budget. Earlier 1/2/3-minute ceilings remain available only when selected.
+Natural end tokens remain enabled; minimum duration, padding and looping were
+not added. Export status and `status.json` explicitly distinguish `model_end_token`
+from `token_limit`; a cutoff is not labeled successful song completion.
 
 ## T4 attention candidate fix (revision 5)
 
@@ -63,13 +78,15 @@ GPU time on a new run.
    PyTorch/CUDA and scientific packages. It bypasses `ensurepip` using the
    previously checked pip bootstrap, and verifies native/UI imports.
 3. Run **Open the generator**, then open the printed Gradio share link.
-4. Enter your style and full, section-tagged lyrics. Select **Full Song - 7 min**
-   or **Full Song - 8 min**, then click **Generate Song**.
+4. Enter your style and full, section-tagged lyrics. Leave **Up to 8 min** as
+   the safety ceiling, or select a different ceiling, then click **Generate Song**.
 5. Download the WAV/FLAC masters or **complete run ZIP** in the UI immediately,
    or **Save Version with outputs** in Kaggle before discarding the session.
 
 **No diagnostic song starts automatically and no repeated short test is required.**
-The default duration is three minutes; choose the duration for your actual song.
+The default is an eight-minute safety ceiling, not a target duration. The model
+chooses its ending from the prompt and lyrics and may naturally finish earlier.
+A lower selected ceiling can cut the song off if reached.
 Keep the UI cell running while generating. Its transformer can stay loaded for
 additional songs. Interrupting the UI cell stops that process; the UI Stop button
 requests cancellation at a generation boundary.
@@ -150,7 +167,7 @@ an acoustic failure remains a future addition; those tokens are saved for review
   `fcf4d45dc5dbca57b39e54311807410cdf41f737`. Attribution is retained in the source.
   Upstream model, inference-package and component license terms apply.
 
-Nineteen CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
+Twenty CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
 native package, Gradio 5.49.1 UI and HTTP API schema. Checks cover long token/context
 budgets, eight-minute WAV/FLAC/ZIP exports with **synthetic audio**, early endings,
 unique run preservation, planner cutoff, non-finite failure handling, decode

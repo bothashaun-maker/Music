@@ -53,16 +53,17 @@ def build():
     print("Setup completed. Run the next cell to open the original native engine UI.")
     '''.replace('PAYLOAD', payload)
     cells = [cell('markdown', '''
-        # YuE2 on Kaggle — restored native FP16 engine (revision 5)
+        # YuE2 on Kaggle — restored native FP16 engine (revision 6)
 
         Select **GPU T4 ×2** and enable Internet. This restores the original
         `yue2_infer 0.1.5` engine: FP16 transformer on GPU 0, CUDA-graph AR decoding
         with SDPA, and tiled FP32 VAE on GPU 1. Default generation uses **Direct to
-        audio**, **16 Euler steps**, CFG **1.0**, and a **3-minute maximum**.
-        The duration menu includes **7 minutes** and **8 minutes**.
+        audio**, **16 Euler steps**, CFG **1.0**, and an **8-minute safety ceiling**.
+        The model chooses a natural ending from your prompt and lyrics. It does
+        not have to fill the ceiling. A token-limit cutoff is reported separately.
 
         **No diagnostic song runs automatically.** Run setup and open the UI,
-        enter your full song lyrics and style, choose your duration, then click
+        enter your full song lyrics and style, leave or adjust the safety ceiling, then click
         Generate Song. Optional score planning remains off unless you select it.
         Cover transcription is disabled in this version.
 
@@ -91,8 +92,10 @@ def build():
         The cell stays running while the UI is available. Reuse it for additional
         songs so the transformer can stay loaded. A stopped cell ends this process.
 
-        In the UI select **Full Song - 7 min** or **Full Song - 8 min** when ready.
-        Supply complete lyrics with sections, instrumental passages and an outro.
+        The UI defaults to **Up to 8 min**. This allows seven/eight-minute songs
+        while preserving natural shorter endings. Supply complete lyrics with
+        sections, instrumental passages and an outro. A lower selected ceiling
+        can cut a song off; it does not tell the model to finish there.
         The original generation defaults are restored; no speed is promised for
         long songs. The status panel reports actual AR execution and stage times.
         '''), cell('code', '''
