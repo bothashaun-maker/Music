@@ -47,6 +47,14 @@ import yue2.sampling as ysampling
 import yue2.modeling_yue2 as ymodel
 import yue2.protocol as yproto
 import yue2.progress as yprogress
+
+# T4 cannot use the native GQA FlashAttention path. Offer an equivalent layout
+# to the efficient backend, retaining the original path if unsupported.
+from native_yue2.attention import FunctionalProxy, STATUS as ATTENTION_STATUS
+if os.environ.get("YUE2_NATIVE_ATTENTION", "efficient_grouped") == "efficient_grouped":
+    ycgraph.F = FunctionalProxy()
+    ynar.F = FunctionalProxy()
+    ymodel.F = FunctionalProxy()
 # Defensive tqdm & Gradio monkeypatch protection
 import tqdm.std
 import tqdm.notebook
@@ -935,6 +943,7 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
                     "elapsed_seconds": elapsed, "decode_tokens_per_second": rate,
                     "time_to_first_token_seconds": live["first_token_at"] - t0,
                     "prefix_tokens": len(plan.prefix), "ar": dict(AR_DIAGNOSTICS),
+                    "attention_dispatch": dict(ATTENTION_STATUS),
                 }
                 write_json(output_dir / "semantic-progress.json", snapshot)
                 partial = output_dir / "semantic.partial.writing"
@@ -970,6 +979,7 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
                            f"prefix={t.get('prefix_tokens')} "
                            f"prefill={t.get('prefill_seconds', 0):.1f}s\n")
             print(f"[YuE2] AR timing: {t}")
+            status_msg += f"         attention dispatch (process totals): {dict(ATTENTION_STATUS)}\n"
 
             gc.collect()
             if torch.cuda.is_available():
@@ -1047,7 +1057,8 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
                 "semantic_truncated": semantic.truncated, "abc_truncated": plan.truncated,
                 "timing": {"planning": plan_seconds, "semantic": semantic_seconds,
                            "acoustic": synth_seconds, "vae": decode_seconds, "total": total_time},
-                "ar_timing": semantic.timing, "acoustic_ranges": pipe.last_acoustic_ranges,
+                "ar_timing": semantic.timing, "attention_dispatch": dict(ATTENTION_STATUS),
+                "acoustic_ranges": pipe.last_acoustic_ranges,
                 "boundary_seconds": [b / 25 for _, b in pipe.last_acoustic_ranges[:-1]],
                 "files": ["audio.wav", "audio.flac", "playback.wav"],
             }

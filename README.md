@@ -2,7 +2,7 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 4)** at the top.
+**restored native FP16 engine (revision 5)** at the top.
 
 This revision returns to the original notebook's `yue2_infer` engine. The previous
 ComfyUI implementation changed the runtime and defaults and was substantially
@@ -10,6 +10,32 @@ slower in the uploaded Kaggle run. The native version retains the original FP16 
 CUDA-graph path, restores direct generation, and adds seven/eight-minute options.
 The original engine's reported three-minute speed is not a measured speed claim
 for this revision or for eight-minute songs.
+
+## T4 attention candidate fix (revision 5)
+
+The uploaded native run measured 715.42 seconds for 5,977 AR outputs (8.35 tokens/s),
+about 277 seconds for 16 acoustic steps, and about 7.5 seconds for VAE decoding.
+There was no recorded capture-failure message. It generated 5,976 music tokens,
+representing 239.04 seconds, before a natural ending despite the six-minute maximum.
+
+Source inspection identified a slow-kernel restriction: the release's CUDA
+`enable_gqa=True` path cannot use memory-efficient attention. PyTorch 2.11 requires
+SM80+ for FlashAttention/cuDNN SDPA, while T4 is SM75, leaving the math path.
+This identifies a backend restriction; there is no per-kernel GPU profile here.
+
+Revision 5 offers mathematically equivalent grouped-head views to ordinary SDPA,
+which can use the memory-efficient kernel. It checks eligibility and a real first
+kernel call, records confirmed selection, and retains native attention for
+unsupported shapes. It changes neither weights/precision, token budgets nor
+solver settings. No global Torch function is patched. Backend counters are
+process totals, included in live reports and completed-run status.
+
+**The performance benefit on T4 has not been measured.** Numerical equivalence
+passed CPU checks for decode, CFG, causal prefill, acoustic chunks and masks.
+Dispatch eligibility/cache/refusal tests use emulated CPU control flow, not CUDA.
+Different attention kernels may change floating-point results and seeded songs.
+Set `native_env["YUE2_NATIVE_ATTENTION"] = "native"` before launch to retain the
+original attention implementation. See [PERFORMANCE.md](PERFORMANCE.md).
 
 ## Live progress correction (revision 4)
 
@@ -124,11 +150,12 @@ an acoustic failure remains a future addition; those tokens are saved for review
   `fcf4d45dc5dbca57b39e54311807410cdf41f737`. Attribution is retained in the source.
   Upstream model, inference-package and component license terms apply.
 
-Eleven CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
+Nineteen CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
 native package, Gradio 5.49.1 UI and HTTP API schema. Checks cover long token/context
 budgets, eight-minute WAV/FLAC/ZIP exports with **synthetic audio**, early endings,
 unique run preservation, planner cutoff, non-finite failure handling, decode
 recovery/tampering, live token checkpoints, truthful capture-fallback labels,
+equivalent grouped attention and its eligibility/cache/fallback control,
 and embedded source consistency. They did not run the full
 model or validate CUDA graphs, eight-minute GPU memory, speed, or musical quality.
 No Kaggle GPU time was used for these local checks.
@@ -137,4 +164,5 @@ Source is in `native_yue2/`; `tools/build_fast_notebook.py` rebuilds the standal
 notebook. `kaggle_yue2/` supplies the existing checked environment-bootstrap helpers;
 its ComfyUI installer and generation runtime are not invoked by this notebook.
 For contributors with the native dependencies installed:
-`python -m unittest discover -s tests -p test_native.py -v`.
+`python -m unittest discover -s tests -p test_native.py -v` and
+`python -m unittest discover -s tests -p test_attention.py -v`.

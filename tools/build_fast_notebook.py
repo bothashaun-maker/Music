@@ -53,7 +53,7 @@ def build():
     print("Setup completed. Run the next cell to open the original native engine UI.")
     '''.replace('PAYLOAD', payload)
     cells = [cell('markdown', '''
-        # YuE2 on Kaggle — restored native FP16 engine (revision 4)
+        # YuE2 on Kaggle — restored native FP16 engine (revision 5)
 
         Select **GPU T4 ×2** and enable Internet. This restores the original
         `yue2_infer 0.1.5` engine: FP16 transformer on GPU 0, CUDA-graph AR decoding
@@ -65,6 +65,12 @@ def build():
         enter your full song lyrics and style, choose your duration, then click
         Generate Song. Optional score planning remains off unless you select it.
         Cover transcription is disabled in this version.
+
+        **T4 attention change:** equivalent grouped-head views make PyTorch's
+        memory-efficient kernel eligible, instead of the native T4 GQA math path.
+        The first supported CUDA dispatch is verified and logged. Unsupported
+        shapes retain native attention and are reported. CPU equivalence checks
+        passed; actual T4 speed improvement has not been measured.
 
         Durations are maximums. A natural early ending or token cutoff is reported.
         Long acoustic generations may span multiple chunks; listen at the reported
