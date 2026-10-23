@@ -16,6 +16,23 @@ decoding. It uses the explicitly selected GPU; two cards are not pooled or claim
 to be accelerated together. Cover transcription is not included in this initial
 text-to-song baseline. No public tunnel or Gradio server is required.
 
+## Setup fix — revision 2
+
+The uploaded Kaggle run stopped during environment creation: Python 3.13 failed
+inside `ensurepip`, before dependency installation or model loading. The previous
+retry check also mistook the leftover Python executable for a complete environment.
+
+Setup now creates the environment with `--without-pip`, installs a pinned,
+SHA256-verified pip 25.3 wheel locally, and verifies that pip belongs to that
+environment. Reruns repair partially created environments and preserve saved runs.
+No system package installation or manual deletion of `/kaggle/working/yue2` is needed.
+
+**To update Kaggle:** download the revised notebook and import it into Kaggle.
+Run from the first code cell, which loads the corrected support code, then run
+setup. Rerunning only the setup cell in the old notebook will still use the old code.
+The revised setup prints `Environment ready: Python ..., local pip 25.3 (ensurepip not used).`
+The install section is labeled **Setup fix (revision 2)** so you can identify this version.
+
 ## What is saved
 
 Each attempt gets a unique folder under `/kaggle/working/yue2/runs/`:
@@ -80,10 +97,15 @@ or restart before submitting another run.
 
 ## Validation status
 
-Before publication, 25 local tests passed for orchestration, graph wiring,
+Before publication, 27 local tests passed for orchestration, graph wiring,
 truncation reporting, recovery, tamper detection, and API error/cancellation handling.
 Checks against the pinned ComfyUI source also passed. These checks used no GPU
 and do not establish successful model inference or audio quality.
+
+The setup fix also passed real environment creation, pip installation, partial-setup
+repair and repeat-run checks on Python 3.12.14 and 3.13.5. An actual failed
+`ensurepip` environment on system Python 3.13.5 was repaired successfully.
+These checks do not reproduce Kaggle's complete Python 3.13.15 image or GPU stack.
 
 The next validation must happen in Kaggle: installation, the default short
 generation, rerun, decode recovery, three minutes, then seven/eight minutes
