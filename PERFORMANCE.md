@@ -56,8 +56,22 @@ Confirmed selections and native fallbacks are reported. Only the native modules'
 functional namespaces are wrapped; global `torch.nn.functional` is unchanged.
 
 Eight attention tests passed on CPU, including seven numerical shape/mask
-subcases and emulated dispatch-control tests. Twelve native/UI/export/recovery
+subcases and emulated dispatch-control tests. Fourteen native/UI/export/recovery
 checks also passed. No actual T4 acceleration, graph compatibility, memory peak,
 long-song acoustic quality or completion time has been validated for this change.
 The earlier three-minute/under-two-minute claim lacks a comparable saved run log.
 No repeat Kaggle diagnostic generation was performed or requested for these checks.
+
+
+## Later OOM screenshot and process ownership
+
+The later error reported another process using 7.03 GiB and the failing process
+using 7.52 GiB on the same 14.56 GiB GPU, with approximately 11 MiB free. Only
+about 14 MiB was reserved but unallocated. The evidence supports competing GPU
+allocations; it does not identify the other process as a particular application.
+It does not demonstrate an OOM caused solely by the new attention layout.
+
+Revision 7 verifies/locks its engine processes, cleans known prior copies,
+checks free/reusable GPU memory before model work, and records process snapshots
+on OOM. Eight real CPU process tests and two additional synthetic native tests
+cover that behavior. Actual remote cleanup and T4 peak memory remain unverified.

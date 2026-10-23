@@ -63,6 +63,9 @@ class SyntheticPipe:
             raise RuntimeError('synthetic decoder failure')
         return np.full((len(latents) * 1920, 2), .125, dtype=np.float32)
 
+    def close(self):
+        self.closed = True
+
 
 class NativeTests(unittest.TestCase):
     @classmethod
@@ -165,6 +168,28 @@ class NativeTests(unittest.TestCase):
         with self.assertRaises(gr.Error):
             self.generate(budget='unrecognized duration')
         self.assertEqual(self.pipe.semantic_calls, 1)
+
+    def test_competing_gpu_allocation_stops_before_token_generation(self):
+        from unittest.mock import patch
+        with patch.dict(self.scope, IS_MANAGED_ENGINE=True), \
+             patch('native_yue2.process.check_gpu_room', side_effect=RuntimeError('GPU 0 occupied by another process')):
+            result = self.generate()
+        self.assertIsNone(result[0])
+        self.assertIn('occupied by another process', result[2])
+        self.assertEqual(self.pipe.semantic_calls, 0)
+
+    def test_oom_saves_gpu_snapshot_and_closes_failed_pipeline(self):
+        report = {'devices': [], 'applications': [{'pid':48,'gpu_uuid':'gpu0','used_mib':'7200'}]}
+        self.pipe.frames = 25
+        before = set(Path(self.scratch.name).iterdir())
+        with patch.object(self.pipe,'decode',side_effect=torch.OutOfMemoryError('synthetic CUDA OOM')), \
+             patch('native_yue2.process.gpu_report',return_value=report):
+            result = self.generate()
+        failed = next(p for p in set(Path(self.scratch.name).iterdir()) - before if p.is_dir())
+        self.assertTrue(self.pipe.closed)
+        self.assertTrue((failed/'latent.npy').exists())
+        self.assertEqual(json.loads((failed/'gpu-memory-at-error.json').read_text()),report)
+        self.assertIn('Do not retry',result[2])
 
     def test_failed_decode_keeps_latents_and_recovers_without_tokens(self):
         self.pipe.frames = 25

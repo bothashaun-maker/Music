@@ -2,7 +2,7 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 6)** at the top.
+**restored native FP16 engine (revision 7)** at the top.
 
 This revision returns to the original notebook's `yue2_infer` engine. The previous
 ComfyUI implementation changed the runtime and defaults and was substantially
@@ -10,6 +10,43 @@ slower in the uploaded Kaggle run. The native version retains the original FP16 
 CUDA-graph path, restores direct generation, and adds seven/eight-minute options.
 The original engine's reported three-minute speed is not a measured speed claim
 for this revision or for eight-minute songs.
+
+## Duplicate-engine and GPU-memory protection (revision 7)
+
+The reported CUDA OOM showed approximately 7.03 GiB held by another process and
+7.52 GiB held by the failing process, leaving only about 11 MiB free on GPU 0.
+That is GPU-memory competition; the screenshot does not identify the other
+process's application. It is not evidence that the audio model ran on a local PC.
+The second T4's memory is separate and cannot cover GPU 0's allocations.
+
+Before loading another model, setup and launch close only verified prior native
+engines using the same exact script and output-root environment. Verification
+includes UID, PID start time and boot identity, with PID handles where available.
+Older revisions without an owner file are also found by their exact script and
+output root. An original `YuE2Pipeline` still in this notebook kernel is closed,
+along with its original UI. Other models and unverified processes are not killed.
+A lifetime process lock prevents two managed engines loading concurrently.
+
+A GPU-memory/process preflight runs before setup/launch and each generation.
+It requires a conservative 12 GiB available/reusable on GPU 0 and 4 GiB on GPU 1;
+this is a startup guard, not proof every long-song memory peak fits. The current
+engine's resident allocation is counted as reusable for subsequent songs.
+Unrecognized GPU users are reported and startup/generation stops early.
+A CUDA OOM records `gpu-memory-at-error.json` and closes this failed engine's
+models. These changes do not reduce quality, token ceilings or precision.
+
+**For the currently failed attempt:** interrupt its generator/UI cell to stop
+that failed process. Keep the saved run folder. Use the updated setup in the
+same retained session before another generation; inspect any reported unknown
+GPU process rather than retrying Generate. This update cannot clear memory in
+your remote session until you execute it. No outputs or saved stages are deleted.
+Decode recovery still requires completed `latent.npy` and its manifest; a failure
+before those files exist cannot be recovered by the decode cell.
+
+Eight real CPU child-process checks passed for surviving/legacy engines, lock
+contention, PID identity, preserving unrelated processes/files and low-memory
+startup guards. Two additional synthetic native tests cover pre-generation memory
+failure and OOM diagnostics/model release. No Kaggle GPU generation was used.
 
 ## Natural endings and safety ceilings (revision 6)
 
@@ -132,6 +169,7 @@ Every attempt gets a unique directory under `/kaggle/working/yue2_native/runs`:
 - `audio.wav`, `audio.flac`: checked 48 kHz stereo PCM-24 masters.
 - `playback.wav`: PCM-16 playback copy.
 - `status.json`: measured duration, stage timings, chunk boundaries, or failure.
+- `gpu-memory-at-error.json`: GPU/process snapshot if a CUDA OOM occurs.
 
 Files appear as stages complete. Failed/cancelled attempts retain earlier files.
 Non-finite acoustic/audio values cause an explicit failure instead of being
@@ -167,11 +205,12 @@ an acoustic failure remains a future addition; those tokens are saved for review
   `fcf4d45dc5dbca57b39e54311807410cdf41f737`. Attribution is retained in the source.
   Upstream model, inference-package and component license terms apply.
 
-Twenty CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
+Thirty CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
 native package, Gradio 5.49.1 UI and HTTP API schema. Checks cover long token/context
 budgets, eight-minute WAV/FLAC/ZIP exports with **synthetic audio**, early endings,
 unique run preservation, planner cutoff, non-finite failure handling, decode
 recovery/tampering, live token checkpoints, truthful capture-fallback labels,
+real CPU process ownership/locking and synthetic GPU-memory guard/OOM handling,
 equivalent grouped attention and its eligibility/cache/fallback control,
 and embedded source consistency. They did not run the full
 model or validate CUDA graphs, eight-minute GPU memory, speed, or musical quality.
@@ -182,4 +221,5 @@ notebook. `kaggle_yue2/` supplies the existing checked environment-bootstrap hel
 its ComfyUI installer and generation runtime are not invoked by this notebook.
 For contributors with the native dependencies installed:
 `python -m unittest discover -s tests -p test_native.py -v` and
-`python -m unittest discover -s tests -p test_attention.py -v`.
+`python -m unittest discover -s tests -p test_attention.py -v` and
+`python -m unittest discover -s tests -p test_process.py -v`.

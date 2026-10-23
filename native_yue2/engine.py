@@ -1,3 +1,11 @@
+# Acquire ownership before importing/loading any model or starting the UI.
+IS_MANAGED_ENGINE = __name__ == "__main__"
+if IS_MANAGED_ENGINE:
+    import os
+    from native_yue2.process import acquire_engine_lock
+    _engine_process_lock = acquire_engine_lock(
+        os.environ["YUE2_RUNTIME_ROOT"], __file__, os.environ["YUE2_OUTPUT_ROOT"])
+
 COVER_MELODY_READY = False
 COVER_LYRICS_READY = False
 # Based on the original AIQUEST Academy Kaggle notebook in Movies commit fcf4d45.
@@ -870,6 +878,9 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
         status_msg += f"Note: {note}\n"
 
     try:
+        if IS_MANAGED_ENGINE:
+            from native_yue2.process import check_gpu_room
+            check_gpu_room(include_pid=os.getpid())
         with torch.inference_mode():
             import dataclasses
             pipe.generation_config = dataclasses.replace(
@@ -1103,6 +1114,14 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         err_msg = f"Generation error: {str(err)}"
+        if isinstance(err, torch.OutOfMemoryError):
+            from native_yue2.process import gpu_report
+            try:
+                write_json(output_dir / "gpu-memory-at-error.json", gpu_report())
+            except Exception as report_error:
+                write_json(output_dir / "gpu-memory-at-error.json", {"report_error": str(report_error)})
+            pipe.close()  # Release this failed engine's model; saved stages remain.
+            err_msg += "\nCUDA memory exhausted. GPU process details were saved. Do not retry while another model occupies the card."
         print(err_msg)
         write_json(output_dir / "status.json", {"status": "failed", "error": str(err)})
         return None, "", err_msg + f"\nSaved stages: {output_dir}", None, None

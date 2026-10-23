@@ -34,7 +34,7 @@ def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_nativ
                 'TORCHINDUCTOR_CACHE_DIR': str(runtime.root / 'cache/inductor'),
                 'TRITON_CACHE_DIR': str(runtime.root / 'cache/triton'),
                 'GRADIO_TEMP_DIR': str(temp / 'gradio'),
-                'YUE2_OUTPUT_ROOT': str(outputs), 'PIP_NO_CACHE_DIR': '1',
+                'YUE2_OUTPUT_ROOT': str(outputs), 'YUE2_RUNTIME_ROOT': str(runtime.root), 'PIP_NO_CACHE_DIR': '1',
                 'GRADIO_ANALYTICS_ENABLED': 'False'})
     for label, path in [('runtime', runtime.root), ('outputs', outputs)]:
         free = shutil.disk_usage(path).free / 2**30
@@ -43,6 +43,9 @@ def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_nativ
         if free < needed:
             raise RuntimeError(f'{path} needs at least {needed} GiB free; found {free:.1f}')
     print('Runtime/model files are temporary. Only song artifacts belong in saved Kaggle outputs.', flush=True)
+    from .process import stop_owned, check_gpu_room
+    stop_owned(runtime.root, Path(__file__).with_name('engine.py'), outputs)
+    check_gpu_room()
     runtime.prepare_environment()
     constraints = []
     for name in ('torch', 'torchvision', 'torchaudio', 'numpy', 'scipy', 'numba', 'llvmlite'):

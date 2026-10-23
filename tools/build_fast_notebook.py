@@ -34,6 +34,24 @@ def build():
         except Exception:
             native_process.kill()
             native_process.wait(timeout=10)
+    # Close only the original YuE2 pipeline if a previous notebook left it
+    # inside this kernel. Other model variables/processes are not cleared.
+    legacy_pipe = globals().get("pipe")
+    if (legacy_pipe is not None and legacy_pipe.__class__.__module__ == "yue2.pipeline"
+            and legacy_pipe.__class__.__name__ == "YuE2Pipeline"):
+        if isinstance(globals().get("CANCEL"), dict):
+            CANCEL["stop"] = True
+        legacy_demo = globals().get("demo")
+        if legacy_demo is not None and legacy_demo.__class__.__module__.startswith("gradio."):
+            legacy_demo.close()
+        legacy_pipe.close()
+        globals().pop("pipe", None)
+        import gc
+        gc.collect()
+        torch_module = sys.modules.get("torch")
+        if torch_module is not None and torch_module.cuda.is_initialized():
+            torch_module.cuda.empty_cache()
+        print("Closed the previous in-kernel YuE2 pipeline; saved song files remain.")
     support = Path("/kaggle/temp/yue2_native_support")
     support.mkdir(parents=True, exist_ok=True)
     payload = "PAYLOAD"
@@ -53,7 +71,7 @@ def build():
     print("Setup completed. Run the next cell to open the original native engine UI.")
     '''.replace('PAYLOAD', payload)
     cells = [cell('markdown', '''
-        # YuE2 on Kaggle — restored native FP16 engine (revision 6)
+        # YuE2 on Kaggle — restored native FP16 engine (revision 7)
 
         Select **GPU T4 ×2** and enable Internet. This restores the original
         `yue2_infer 0.1.5` engine: FP16 transformer on GPU 0, CUDA-graph AR decoding
@@ -83,6 +101,13 @@ def build():
         setup prints actual free space rather than assuming a separate 50 GB quota.
         Old notebook caches and files are preserved.
 
+        **Process protection:** setup and launch stop only verified older engines
+        using this script/output root, including survivors of a kernel restart.
+        A process lock prevents two managed engines from loading together. GPU
+        memory is checked before loading and before generation. An unrecognized
+        GPU process is reported and left running; setup stops before generation.
+        CUDA OOM saves GPU process details and releases the failed engine's model.
+
         **After generation, download the complete run ZIP in the UI, or Save
         Version with outputs in Kaggle before ending the session.** A saved draft
         or a notebook download containing logs does not preserve audio files.
@@ -103,10 +128,8 @@ def build():
         engine = support / "native_yue2/engine.py"
         log_path = Path(OUTPUTS).parent / "runtime/engine.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        native_process = subprocess.Popen(
-            [native_python, "-u", str(engine)], env=native_env,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1,
-        )
+        from native_yue2.process import start_engine
+        native_process = start_engine(native_python, engine, native_env, ROOT, OUTPUTS)
         try:
             with log_path.open("a") as log:
                 for line in native_process.stdout:
