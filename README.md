@@ -2,7 +2,7 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 7)** at the top.
+**restored native FP16 engine (revision 8)** at the top.
 
 This revision returns to the original notebook's `yue2_infer` engine. The previous
 ComfyUI implementation changed the runtime and defaults and was substantially
@@ -10,6 +10,62 @@ slower in the uploaded Kaggle run. The native version retains the original FP16 
 CUDA-graph path, restores direct generation, and adds seven/eight-minute options.
 The original engine's reported three-minute speed is not a measured speed claim
 for this revision or for eight-minute songs.
+
+## Cover / restyle a song you already created (revision 8)
+
+The **Cover / restyle my existing song** panel is restored and visible in the UI.
+Its previous hidden state and disabled handler were implementation omissions.
+
+1. Upload your existing song as WAV, FLAC or MP3.
+2. Paste your original words into **Song Lyrics** below the panel. By default,
+   they are kept unchanged. Enable **Transcribe lyrics too** only if you need ASR.
+3. Click **Analyze melody for cover**. Wait for the extracted score to fill
+   **Custom ABC** and select **Melody score, then audio**. Download the analysis ZIP.
+4. Enter the new genre, instruments or vocal direction in **Music Style**, check
+   the lyrics and score, then click **Generate Song**.
+
+YuE2's native API does not accept a source audio recording directly. This workflow
+extracts a melody-only ABC score using SheetSage2 and regenerates from that score,
+your lyrics and the new style. Melody extraction is approximate: exact voice,
+timing, instrumentation and arrangement are not guaranteed to match the recording.
+It is not a voice-cloning or waveform-editing feature.
+
+**First analysis downloads SheetSage2 and its pinned MERT parent**; optional lyric
+transcription downloads Whisper large-v3-turbo. Setup installs only their small
+support dependencies while preserving Kaggle's Torch/TorchAudio/scientific stack.
+FFmpeg and the image-matched TorchAudio are checked. The pinned SheetSage2 API
+normally defaults to BF16; this version explicitly loads/transcribes in FP32 for
+T4. Whisper uses FP16 on T4. The upstream long-song transcription uses overlapping
+windows; no manual five-minute crop is applied by this notebook.
+
+Cover analysis and song generation share one GPU queue. Melody and ASR models
+are released sequentially and after analysis, and a cached VAE is moved to CPU
+before analysis. Generated-song work releases any remaining transcribers first.
+The default workflow avoids a Whisper download/analysis when you already have
+the words. Stop requests are observed at transcription progress boundaries.
+
+Analysis files are under `/kaggle/working/yue2_native/cover_sources/<id>` with a
+ZIP beside the folder. They include the source filename/checksum, model revisions,
+score, lyrics, status and any upstream MIDI/event/window exports. The uploaded
+waveform itself is not duplicated in this ZIP. Matching unchanged cover-score
+provenance is copied into the generated run as `cover_source.json`. Save/download
+the analysis ZIP and resulting song ZIP before ending the session. To reuse an
+extracted melody without repeating transcription, paste its `score.abc` into
+Custom ABC and select Melody score mode.
+
+Nine new CPU cover-workflow tests pass for the visible upload controls/shared
+queue, original words, optional ASR and resampling, partial failure/cancellation,
+model release, analysis ZIP and generated-run provenance. The pinned remote
+SheetSage2 class was also imported and constructed with a tiny random-weight
+configuration on Python 3.13.5/Transformers 4.57.6, without downloading its model
+weights. These checks do **not** validate full GPU transcription, fidelity,
+long-song accuracy, runtime or memory peaks.
+
+SheetSage2 revision: `eab522a8168e8b8b8c4856bf8609cd86198f01fe`.
+Its config pins MERT parent `d8ba1c745e733b3908ce6ad16ebeb17ac7600a42` and the
+remote loader checks parent code/weight hashes. Whisper revision:
+`41f01f3fe87f28c78e2fbf8b568835947dd65ed9`. SheetSage2's upstream model license is
+CC-BY-NC-4.0; consult its and MERT's model cards for applicable terms.
 
 ## Duplicate-engine and GPU-memory protection (revision 7)
 
@@ -140,7 +196,8 @@ A downloaded notebook containing logs is not a backup of its generated audio.
 - Decoder: tiled FP32 `m-a-p/YuE2-Vae` on GPU 1.
 - Default planning: **Direct to audio**, with no ABC score generation.
 - Default acoustic solver: **16 Euler steps**; CFG **1.0**.
-- Optional score planning/editing remains available; cover transcription is disabled.
+- Optional score planning/editing and upload-based cover transcription are available.
+  Original lyrics are preserved unless optional lyric transcription is selected.
 - The native context stays at 24,576 tokens. It is not enlarged to fit a song.
 
 At 25 music tokens per second, seven minutes requests 10,500 tokens and eight
@@ -198,19 +255,20 @@ an acoustic failure remains a future addition; those tokens are saved for review
 - Transformer revision: `8f24312f187763b9854adeec87e437e2b03bbff1`.
 - VAE revision: `152733a19ad43aa67e367f9b5503ef8075bb5126`.
 - Key compatibility pins: Transformers 4.57.6, Hub 0.36.2, Gradio 5.49.1,
-  Pillow 11.3.0. Full installed versions are recorded; this is not an entire
+  Pillow 11.3.0, mir_eval 0.8.2, pretty_midi 0.2.10 and mido 1.3.3. Full installed versions are recorded; this is not an entire
   Kaggle image lock. The inference wheel is installed without replacing the
   release's development CUDA stack over Kaggle's matched binary packages.
 - Original source: AIQUEST Academy notebook in Movies commit
   `fcf4d45dc5dbca57b39e54311807410cdf41f737`. Attribution is retained in the source.
   Upstream model, inference-package and component license terms apply.
 
-Thirty CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
+Thirty-nine CPU checks passed on Python 3.13.5 and PyTorch 2.11.0 CPU, using the real
 native package, Gradio 5.49.1 UI and HTTP API schema. Checks cover long token/context
 budgets, eight-minute WAV/FLAC/ZIP exports with **synthetic audio**, early endings,
 unique run preservation, planner cutoff, non-finite failure handling, decode
 recovery/tampering, live token checkpoints, truthful capture-fallback labels,
 real CPU process ownership/locking and synthetic GPU-memory guard/OOM handling,
+cover controls, lyric preservation/ASR paths, analysis cleanup/ZIP and provenance,
 equivalent grouped attention and its eligibility/cache/fallback control,
 and embedded source consistency. They did not run the full
 model or validate CUDA graphs, eight-minute GPU memory, speed, or musical quality.

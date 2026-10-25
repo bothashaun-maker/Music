@@ -6,8 +6,6 @@ if IS_MANAGED_ENGINE:
     _engine_process_lock = acquire_engine_lock(
         os.environ["YUE2_RUNTIME_ROOT"], __file__, os.environ["YUE2_OUTPUT_ROOT"])
 
-COVER_MELODY_READY = False
-COVER_LYRICS_READY = False
 # Based on the original AIQUEST Academy Kaggle notebook in Movies commit fcf4d45.
 # Restores its native FP16/CUDA-graph engine; extends duration and output handling.
 # === Cell 2: Runtime Engine, Model Load & AIQUEST Gradio UI ===
@@ -647,24 +645,12 @@ A new horizon will be found!"""
 # 4. Music Generation Engine Function
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-# Cover support: turning a source song into symbolic inputs
-# -----------------------------------------------------------------------------
-# YuE2 accepts no audio anywhere in its API, so a "cover" is produced by
-# transcribing the source into the two symbolic inputs it does accept:
-#   SheetSage2   -> the melody, as an ABC score   (0.21 GB)
-#   Whisper      -> the lyrics, as text           (1.6 GB, via transformers)
-# Generation is then the ordinary abc= path: pipe.plan(abc=<score>, cot="melody")
-# with your own style prompt, which is what makes it a cover rather than a copy.
-#
-# Each loads lazily and independently onto cuda:1, which holds only the VAE and
-# has room to spare, and stays resident so a second analysis is instant. The
-# melody half is the one a cover needs; lyrics can always be typed by hand.
+# Cover support: transcribe user audio into the symbolic inputs YuE2 accepts.
 COVER_MODELS = {"sheetsage": None, "asr": None}
-
+COVER_STATE = {}
 COVER_LANGUAGES = ["Auto-detect", "en", "zh", "ja", "ko", "es", "fr", "de", "ru", "it", "pt"]
-
-# m-a-p/SheetSage2 main as of this notebook. Set to None to track main instead.
 SHEETSAGE2_REVISION = "eab522a8168e8b8b8c4856bf8609cd86198f01fe"
+WHISPER_REVISION = "41f01f3fe87f28c78e2fbf8b568835947dd65ed9"
 
 
 def _analysis_device():
@@ -673,49 +659,53 @@ def _analysis_device():
     return torch.device("cuda:1") if torch.cuda.device_count() >= 2 else torch.device("cuda:0")
 
 
+def release_cover_models():
+    # Remove references, not model files. Downloads remain cached for later use.
+    for name in COVER_MODELS:
+        loaded = COVER_MODELS[name]
+        model = getattr(loaded, "model", loaded) if loaded is not None else None
+        if callable(getattr(model, "to", None)):
+            try:
+                model.to("cpu")
+            except RuntimeError as exc:
+                print(f"[Cover] Model offload warning: {exc}", flush=True)
+        COVER_MODELS[name] = None
+    loaded = model = None
+    gc.collect()
+    if torch.cuda.is_available():
+        with torch.cuda.device(_analysis_device()):
+            torch.cuda.empty_cache()
+
+
 def load_melody_transcriber():
-    """SheetSage2. Its remote modeling code imports mir_eval and pretty_midi."""
     if COVER_MODELS["sheetsage"] is None:
         from transformers import AutoModel
         device = _analysis_device()
-        print(f"[Cover] Loading SheetSage2 melody transcriber on {device}...")
-        # Pinned revision: this repo ships executable remote code, so pin what
-        # runs rather than tracking main. Update deliberately, not silently.
+        print(f"[Cover] Loading SheetSage2/MERT on {device} in FP32...", flush=True)
+        # The pinned remote implementation merges its pinned MERT adapter in
+        # FP32. Its transcribe API must also receive dtype='fp32' on T4.
         COVER_MODELS["sheetsage"] = AutoModel.from_pretrained(
-            "m-a-p/SheetSage2",
-            trust_remote_code=True,
-            revision=SHEETSAGE2_REVISION,
+            "m-a-p/SheetSage2", trust_remote_code=True,
+            revision=SHEETSAGE2_REVISION, code_revision=SHEETSAGE2_REVISION,
+            cache_dir=os.environ["HF_HUB_CACHE"], torch_dtype=torch.float32,
+            attn_implementation="sdpa",
         ).eval().to(device)
     return COVER_MODELS["sheetsage"]
 
 
 def load_lyric_transcriber():
-    """Whisper via transformers, in FP16: Turing has no native bfloat16.
-
-    large-v3-turbo is ~1.6 GB in FP16 and strongly multilingual, which suits
-    song lyrics. transformers is already required by YuE2, so this adds no
-    dependency that could conflict with the image's numpy/numba stack.
-    """
     if COVER_MODELS["asr"] is None:
         from transformers import pipeline
         device = _analysis_device()
-        print(f"[Cover] Loading Whisper large-v3-turbo on {device}...")
         COVER_MODELS["asr"] = pipeline(
-            "automatic-speech-recognition",
-            model="openai/whisper-large-v3-turbo",
-            torch_dtype=torch.float16,
-            device=device,
-            chunk_length_s=30,
+            "automatic-speech-recognition", model="openai/whisper-large-v3-turbo",
+            revision=WHISPER_REVISION, torch_dtype=torch.float16 if device.type == "cuda" else torch.float32,
+            device=device, chunk_length_s=30,
         )
     return COVER_MODELS["asr"]
 
 
 def _load_audio_16k(path):
-    """Read any soundfile-readable audio as mono 16 kHz float32.
-
-    Doing this here avoids librosa entirely, and avoids handing the pipeline a
-    path (which would route it through an ffmpeg subprocess instead).
-    """
     data, sr = sf.read(str(path), dtype="float32", always_2d=True)
     mono = data.mean(axis=1)
     if sr != 16000:
@@ -723,65 +713,107 @@ def _load_audio_16k(path):
         from scipy.signal import resample_poly
         g = gcd(int(sr), 16000)
         mono = resample_poly(mono, 16000 // g, int(sr) // g).astype(np.float32)
+    if not np.isfinite(mono).all() or not len(mono):
+        raise ValueError("Source audio must be nonempty and finite")
     return mono
 
 
-def analyze_cover_source(audio_path, language, current_lyrics):
-    """Transcribe an uploaded song into a melody-only ABC score plus its lyrics.
-
-    The melody is what a cover actually needs, so a lyric failure is reported
-    rather than raised: the existing lyrics are kept and you can type your own.
-    """
-    raise gr.Error("Cover transcription is disabled in this generation-only version.")
-    if not audio_path:
-        raise gr.Error("Upload a source song first.")
-
-    # --- Melody: required ---
+def analyze_cover_source(audio_path, language, current_lyrics, transcribe_lyrics=False,
+                         progress=gr.Progress(track_tqdm=False)):
+    if not audio_path or not Path(audio_path).is_file():
+        raise gr.Error("Upload the WAV, FLAC or MP3 of your song first.")
+    import uuid, shutil
+    from yue2.storage import write_json, sha256_file
+    cover_root = Path(os.environ.get("YUE2_COVER_ROOT", str(Path(os.environ["YUE2_OUTPUT_ROOT"]).parent / "cover_sources")))
+    directory = cover_root / uuid.uuid4().hex[:12]
+    directory.mkdir(parents=True, exist_ok=False)
+    CANCEL["stop"] = False
+    model = asr = None
+    abc_score = None
+    lyrics_out = current_lyrics or ""
+    metadata = {"source_name": Path(audio_path).name, "source_sha256": sha256_file(audio_path),
+                "sheetsage_revision": SHEETSAGE2_REVISION, "whisper_revision": WHISPER_REVISION,
+                "transcribe_lyrics": bool(transcribe_lyrics), "melody_dtype": "float32",
+                "status": "analyzing"}
+    write_json(directory / "source.json", metadata)
+    def report(fields):
+        if _cancelled():
+            raise InterruptedError("Cover analysis stopped")
+        progress(None, desc="Cover melody: " + str(fields))
+        print("[Cover]", fields, flush=True)
     try:
-        sheetsage = load_melody_transcriber()
-        # melody_only keeps the vocal and instrumental lines but drops chords,
-        # which is the form YuE2's planner expects as an external score.
-        result = sheetsage.transcribe(audio_path, melody_only=True)
+        # The same Gradio concurrency group also serializes Generate, so the
+        # transcribers cannot collide with acoustic/VAE work in this process.
+        release_cover_models()
+        if getattr(pipe, "_vae", None) is not None:
+            pipe._vae.to("cpu")
+        if IS_MANAGED_ENGINE:
+            from native_yue2.process import check_gpu_room
+            check_gpu_room(include_pid=os.getpid())
+        progress(None, desc="Loading melody transcriber (downloads only on first use)")
+        model = load_melody_transcriber()
+        result = model.transcribe(str(audio_path), output_dir=str(directory),
+                                  melody_only=True, dtype="fp32", progress=report)
+        if _cancelled():
+            raise InterruptedError("Cover analysis stopped")
         abc_score = (result or {}).get("abc")
-    except ImportError as exc:
-        raise gr.Error(
-            "Melody transcription is not installed. See Cell 1's output: it reports "
-            f"each half of cover support separately. ({exc})"
-        ) from exc
+        if not isinstance(abc_score, str) or not abc_score.strip():
+            raise ValueError("No usable melody score was extracted")
+        abc_score = abc_score.strip()
+        (directory / "score.abc").write_text(abc_score)
+        if isinstance(result, dict):
+            metadata["source_seconds"] = result.get("duration_seconds")
+        model = result = None
+        release_cover_models()  # Melody and Whisper are never retained together.
+        note = "Original lyrics kept; edit/paste your words in Song Lyrics."
+        if transcribe_lyrics:
+            try:
+                progress(None, desc="Transcribing lyrics (optional Whisper download on first use)")
+                asr = load_lyric_transcriber()
+                generate_kwargs = {} if language == "Auto-detect" else {"language": language}
+                try:
+                    source = {"array": _load_audio_16k(audio_path), "sampling_rate": 16000}
+                except (ValueError, RuntimeError, OSError):
+                    source = str(audio_path)  # FFmpeg fallback for supported containers.
+                transcript = (asr(source, generate_kwargs=generate_kwargs).get("text") or "").strip()
+                if _cancelled():
+                    raise InterruptedError("Cover analysis stopped after the current lyric transcription call")
+                if transcript:
+                    lyrics_out = transcript
+                    note = "Lyrics transcribed; check every line and restore section tags."
+                else:
+                    note = "No sung words detected; existing lyrics kept."
+            except InterruptedError:
+                raise
+            except Exception as exc:
+                note = f"Melody saved, but lyric transcription failed ({exc}); existing lyrics kept."
+        (directory / "lyrics.txt").write_text(lyrics_out)
+        metadata.update(status="melody_ready", lyrics_note=note)
+        write_json(directory / "source.json", metadata)
+        archive = shutil.make_archive(str(directory), "zip", root_dir=directory)
+        COVER_STATE.clear()
+        COVER_STATE.update(abc=abc_score, metadata=metadata, directory=str(directory))
+        status = ("Melody score ready. " + note +
+                  " Write the new style, check Custom ABC and Melody score mode, then Generate Song. "
+                  "This uses an extracted score and may differ from the original recording. "
+                  "Download the cover-analysis ZIP to preserve the score.")
+        progress(1.0, desc="Cover score ready; transcription models released")
+        return abc_score, lyrics_out, "melody", status, archive
+    except InterruptedError as exc:
+        metadata.update(status="cancelled")
+        write_json(directory / "source.json", metadata)
+        message = str(exc)
+        exc.__traceback__ = None
+        raise gr.Error(f"{message}. Partial files: {directory}") from None
     except Exception as exc:
-        raise gr.Error(f"Melody transcription failed: {exc}") from exc
-
-    if not abc_score:
-        raise gr.Error("SheetSage2 produced no melody for this audio. "
-                       "Try a cleaner recording or a longer excerpt.")
-
-    # --- Lyrics: optional ---
-    transcript = None
-    lyric_note = ""
-    try:
-        asr = load_lyric_transcriber()
-        generate_kwargs = {} if language == "Auto-detect" else {"language": language}
-        try:
-            audio_input = _load_audio_16k(audio_path)
-        except Exception:
-            # soundfile cannot read every container; let the pipeline try ffmpeg.
-            audio_input = str(audio_path)
-        asr_result = asr(audio_input, generate_kwargs=generate_kwargs)
-        transcript = (asr_result.get("text") or "").strip()
-        if not transcript:
-            lyric_note = " No lyrics were detected, so the Lyrics box is unchanged."
-    except ImportError:
-        lyric_note = (" Lyric transcription is not installed, so the Lyrics box is "
-                      "unchanged: type or paste the words yourself.")
-    except Exception as exc:
-        lyric_note = f" Lyric transcription failed ({exc}); the Lyrics box is unchanged."
-
-    lyrics_out = transcript if transcript else (current_lyrics or "")
-    status = ("Melody extracted." + lyric_note +
-              " Add section tags such as [Verse] and [Chorus] to the lyrics, write the "
-              "style you want the cover to take, then Generate.")
-    # Planning must be on for an external score to attach to.
-    return abc_score, lyrics_out, "melody", status
+        metadata.update(status="failed", error=str(exc))
+        write_json(directory / "source.json", metadata)
+        message = str(exc)
+        exc.__traceback__ = None
+        raise gr.Error(f"Cover melody analysis failed: {message}. Partial files: {directory}") from None
+    finally:
+        model = asr = None
+        release_cover_models()
 
 
 # Latent frames run at 48000 / 1920 = 25 frames per second, so the token budget
@@ -871,6 +903,9 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
         "model_weights": pipe.weights,
     })
 
+    if cleaned_abc and COVER_STATE.get("abc") == cleaned_abc:
+        write_json(output_dir / "cover_source.json", COVER_STATE["metadata"])
+
     start_time = time.perf_counter()
     status_msg = (f"YuE2-3B on {pipe.device} (CUDA graphs) | Seed {current_seed} | "
                   f"CoT {cot_mode} | {method_clean.title()} x {int(ode_steps)}\n")
@@ -878,6 +913,7 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
         status_msg += f"Note: {note}\n"
 
     try:
+        release_cover_models()
         if IS_MANAGED_ENGINE:
             from native_yue2.process import check_gpu_room
             check_gpu_room(include_pid=os.getpid())
@@ -1399,14 +1435,14 @@ with gr.Blocks(**blocks_kwargs) as demo:
     with gr.Row():
         with gr.Column(scale=6):
             with gr.Group(elem_classes=["card-group"]):
-                with gr.Accordion("🎤 Cover an existing song (optional)", open=False, visible=False):
+                with gr.Accordion("🎤 Cover / restyle my existing song", open=True) as cover_panel:
                     gr.Markdown(
-                        "YuE2 takes no audio directly. Upload a source song and it is "
-                        "transcribed into a **melody score** (SheetSage2) and **lyrics** "
-                        "(Whisper). Then write the style you want the cover to take and "
-                        "generate.\n\n"
-                        "*First run downloads the transcription models onto `cuda:1`: "
-                        "0.2 GB for melody, 1.6 GB for lyrics.*"
+                        "Upload your existing WAV, FLAC or MP3. **Paste your original lyrics below**, "
+                        "then Analyze melody. The extracted melody fills Custom ABC and selects "
+                        "Melody score mode. Write your new style and Generate Song.\n\n"
+                        "Optional lyric transcription downloads Whisper only when checked. Melody "
+                        "analysis downloads SheetSage2 and its MERT parent on first use. This is "
+                        "score-guided regeneration; exact timing, voice and arrangement may change."
                     )
                     with gr.Row():
                         cover_audio = gr.Audio(
@@ -1420,7 +1456,9 @@ with gr.Blocks(**blocks_kwargs) as demo:
                                 choices=COVER_LANGUAGES,
                                 value="Auto-detect"
                             )
-                            analyze_btn = gr.Button("🔍 Analyze source song", variant="secondary")
+                            cover_transcribe_lyrics = gr.Checkbox(label="Transcribe lyrics too (optional model download)", value=False)
+                            analyze_btn = gr.Button("🔍 Analyze melody for cover", variant="secondary")
+                    cover_download = gr.File(label="Download cover score / analysis ZIP")
                     cover_status = gr.Textbox(
                         label="Analysis status",
                         lines=2,
@@ -1558,10 +1596,11 @@ with gr.Blocks(**blocks_kwargs) as demo:
 
     # Cover: fills the ABC score, the lyrics and the planning mode from the
     # uploaded song, leaving the style prompt for the user to write.
-    analyze_btn.click(
+    cover_event = analyze_btn.click(
         fn=analyze_cover_source,
-        inputs=[cover_audio, cover_language, lyrics_input],
-        outputs=[abc_input, lyrics_input, cot_selector, cover_status]
+        inputs=[cover_audio, cover_language, lyrics_input, cover_transcribe_lyrics],
+        outputs=[abc_input, lyrics_input, cot_selector, cover_status, cover_download],
+        concurrency_id="yue2_gpu", concurrency_limit=1
     )
 
     # Editing loop: yue2_infer 0.1.5 has no audio input, so the supported way to
@@ -1594,11 +1633,12 @@ with gr.Blocks(**blocks_kwargs) as demo:
     gen_event = gen_btn.click(
         fn=generate_music,
         inputs=[style_input, lyrics_input, cot_selector, duration_selector, abc_input, seed_input, ode_steps_slider, ode_method_selector, cfg_scale_slider, fuse_checkbox, score_only_checkbox],
-        outputs=[audio_output, score_output, status_output, master_download, archive_download]
+        outputs=[audio_output, score_output, status_output, master_download, archive_download],
+        concurrency_id="yue2_gpu", concurrency_limit=1
     )
     # queue=False so the stop request is served immediately, rather than queueing
     # behind the generation it is meant to interrupt.
-    stop_btn.click(fn=request_stop, outputs=[status_output], queue=False, cancels=[gen_event])
+    stop_btn.click(fn=request_stop, outputs=[status_output], queue=False, cancels=[gen_event, cover_event])
 
     # Branded Footer
     gr.HTML("""

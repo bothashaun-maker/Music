@@ -71,7 +71,7 @@ def build():
     print("Setup completed. Run the next cell to open the original native engine UI.")
     '''.replace('PAYLOAD', payload)
     cells = [cell('markdown', '''
-        # YuE2 on Kaggle — restored native FP16 engine (revision 7)
+        # YuE2 on Kaggle — restored native FP16 engine (revision 8)
 
         Select **GPU T4 ×2** and enable Internet. This restores the original
         `yue2_infer 0.1.5` engine: FP16 transformer on GPU 0, CUDA-graph AR decoding
@@ -83,7 +83,16 @@ def build():
         **No diagnostic song runs automatically.** Run setup and open the UI,
         enter your full song lyrics and style, leave or adjust the safety ceiling, then click
         Generate Song. Optional score planning remains off unless you select it.
-        Cover transcription is disabled in this version.
+        **Cover your own song:** open **Cover / restyle my existing song** in the
+        UI, upload its WAV/FLAC/MP3, paste your original lyrics, and click
+        **Analyze melody for cover**. The score fills Custom ABC and selects
+        Melody score mode. Enter the new style, then Generate Song. Optional
+        **Transcribe lyrics too** uses Whisper when needed. Extracted-score
+        regeneration can change timing, voice and arrangement; it is not exact
+        audio-to-audio copying. Melody analysis lazily downloads SheetSage2 and
+        its MERT parent; Whisper downloads only if requested. Download the
+        cover-analysis ZIP to retain the editable score. Transcription models
+        are unloaded after analysis and GPU jobs share one queue.
 
         **T4 attention change:** equivalent grouped-head views make PyTorch's
         memory-efficient kernel eligible, instead of the native T4 GQA math path.

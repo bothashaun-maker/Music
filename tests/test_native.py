@@ -7,7 +7,7 @@ import os
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 import zipfile
 import zlib
 
@@ -73,6 +73,8 @@ class NativeTests(unittest.TestCase):
         cls.scratch = tempfile.TemporaryDirectory(prefix='native-yue2-check-')
         cls.previous_env = os.environ.copy()
         os.environ['YUE2_OUTPUT_ROOT'] = cls.scratch.name
+        os.environ['YUE2_COVER_ROOT'] = str(Path(cls.scratch.name) / 'cover_sources')
+        Path(os.environ['YUE2_COVER_ROOT']).mkdir()
         os.environ['HF_HUB_CACHE'] = str(Path(cls.scratch.name) / 'unused-cache')
         fake = SimpleNamespace(device='cuda:0', vae_device='cuda:1')
         cls.scope = {'__file__': str(ENGINE), '__name__': 'native_engine_check'}
@@ -90,6 +92,9 @@ class NativeTests(unittest.TestCase):
     def setUp(self):
         self.pipe = SyntheticPipe()
         self.scope['pipe'] = self.pipe
+        self.scope['COVER_STATE'].clear()
+        for name in self.scope['COVER_MODELS']:
+            self.scope['COVER_MODELS'][name] = None
 
     def generate(self, budget=12000, **kw):
         args = dict(style='rock', lyrics='[Verse]\nHome', cot_mode='off', duration_target=budget,
@@ -170,7 +175,7 @@ class NativeTests(unittest.TestCase):
         self.assertEqual(self.pipe.semantic_calls, 1)
 
     def test_competing_gpu_allocation_stops_before_token_generation(self):
-        from unittest.mock import patch
+        from unittest.mock import patch, Mock
         with patch.dict(self.scope, IS_MANAGED_ENGINE=True), \
              patch('native_yue2.process.check_gpu_room', side_effect=RuntimeError('GPU 0 occupied by another process')):
             result = self.generate()
@@ -263,6 +268,115 @@ class NativeTests(unittest.TestCase):
         self.assertFalse(cutoff)
         self.assertEqual(timing['execution'], 'eager')
         self.assertEqual(timing['graph_fallback_reason'], 'capture refused')
+
+    def cover_fixture(self):
+        source = Path(self.scratch.name) / 'cover-input.wav'
+        sf.write(source, np.full((48000,2), .125, dtype=np.float32), 48000)
+        score = "X:1\nM:4/4\nK:C\nC D E F |\n"
+        model = SimpleNamespace(transcribe=Mock(return_value={'abc':score,'duration_seconds':1.0}),to=Mock())
+        def load():
+            self.scope['COVER_MODELS']['sheetsage'] = model
+            return model
+        return source, score, model, load
+
+    def test_cover_ui_is_visible_and_shares_gpu_queue(self):
+        self.assertTrue(self.scope['cover_panel'].visible)
+        self.assertTrue(self.scope['cover_panel'].open)
+        self.assertEqual(self.scope['cover_audio'].sources,['upload'])
+        self.assertFalse(self.scope['cover_transcribe_lyrics'].value)
+        functions = {fn.fn.__name__:fn for fn in self.scope['demo'].fns.values() if fn.fn is not None}
+        self.assertEqual(functions['analyze_cover_source'].concurrency_id,'yue2_gpu')
+        self.assertEqual(functions['generate_music'].concurrency_id,'yue2_gpu')
+
+    def test_cover_preserves_original_lyrics_and_exports_score_without_asr(self):
+        source, score, model, load = self.cover_fixture()
+        words = '[Verse]\nMy original words'
+        with patch.dict(self.scope,load_melody_transcriber=load,load_lyric_transcriber=Mock(side_effect=AssertionError('ASR must be opt-in'))):
+            abc, lyrics, mode, status, archive = self.scope['analyze_cover_source'](str(source),'Auto-detect',words)
+        self.assertEqual((abc,lyrics,mode),(score.strip(),words,'melody'))
+        self.assertEqual(model.transcribe.call_args.kwargs['dtype'],'fp32')
+        self.assertTrue(model.transcribe.call_args.kwargs['melody_only'])
+        model.to.assert_called_with('cpu')
+        self.assertTrue(all(v is None for v in self.scope['COVER_MODELS'].values()))
+        with zipfile.ZipFile(archive) as z:
+            self.assertTrue({'score.abc','source.json','lyrics.txt'} <= set(z.namelist()))
+            self.assertEqual(z.read('lyrics.txt').decode(),words)
+            self.assertEqual(json.loads(z.read('source.json'))['status'],'melody_ready')
+        self.assertIn('Original lyrics kept',status)
+
+    def test_cover_optional_asr_uses_language_and_real_resampling(self):
+        source, score, model, load = self.cover_fixture()
+        asr = Mock(return_value={'text':'Newly transcribed words'})
+        def load_asr():
+            self.scope['COVER_MODELS']['asr'] = asr
+            return asr
+        with patch.dict(self.scope,load_melody_transcriber=load,load_lyric_transcriber=load_asr):
+            result = self.scope['analyze_cover_source'](str(source),'en','original',True)
+        self.assertEqual(result[1],'Newly transcribed words')
+        audio = asr.call_args.args[0]
+        self.assertEqual(audio['sampling_rate'],16000)
+        self.assertEqual(len(audio['array']),16000)
+        self.assertEqual(asr.call_args.kwargs['generate_kwargs'],{'language':'en'})
+        self.assertTrue(all(v is None for v in self.scope['COVER_MODELS'].values()))
+
+    def test_cover_optional_asr_failure_keeps_melody_and_original_lyrics(self):
+        source, score, model, load = self.cover_fixture()
+        with patch.dict(self.scope,load_melody_transcriber=load,load_lyric_transcriber=Mock(side_effect=RuntimeError('ASR unavailable'))):
+            result = self.scope['analyze_cover_source'](str(source),'Auto-detect','original',True)
+        self.assertEqual(result[0],score.strip())
+        self.assertEqual(result[1],'original')
+        self.assertIn('lyric transcription failed',result[3])
+        self.assertTrue(Path(result[4]).is_file())
+
+    def test_cover_melody_failure_saves_error_and_releases_models(self):
+        source, score, model, load = self.cover_fixture()
+        model.transcribe.side_effect = RuntimeError('synthetic melody error')
+        base = Path(os.environ['YUE2_COVER_ROOT'])
+        before = set(base.iterdir())
+        with patch.dict(self.scope,load_melody_transcriber=load):
+            with self.assertRaisesRegex(gr.Error,'synthetic melody error'):
+                self.scope['analyze_cover_source'](str(source),'Auto-detect','original')
+        failed = next(p for p in set(base.iterdir())-before if p.is_dir())
+        self.assertEqual(json.loads((failed/'source.json').read_text())['status'],'failed')
+        self.assertTrue(all(v is None for v in self.scope['COVER_MODELS'].values()))
+
+    def test_cover_cancellation_releases_models_and_preserves_partial_metadata(self):
+        source, score, model, load = self.cover_fixture()
+        def cancel(*args, **kwargs):
+            self.scope['CANCEL']['stop'] = True
+            kwargs['progress']({'stage':'encoding'})
+        model.transcribe.side_effect = cancel
+        with patch.dict(self.scope,load_melody_transcriber=load):
+            with self.assertRaisesRegex(gr.Error,'stopped'):
+                self.scope['analyze_cover_source'](str(source),'Auto-detect','original')
+        self.assertTrue(all(v is None for v in self.scope['COVER_MODELS'].values()))
+
+    def test_cover_score_generation_retains_provenance(self):
+        self.pipe.frames = 25
+        score = 'X:1\nK:C\nC D E F |'
+        metadata = {'source_sha256':'synthetic-hash','status':'melody_ready'}
+        self.scope['COVER_STATE'].update(abc=score,metadata=metadata)
+        result = self.generate(cot_mode='melody',abc_score=score)
+        directory = Path(result[0]).parent
+        self.assertEqual(json.loads((directory/'cover_source.json').read_text()),metadata)
+        with zipfile.ZipFile(result[4]) as z:
+            self.assertIn('cover_source.json',z.namelist())
+
+    def test_cover_stop_during_asr_is_observed_before_publishing_success(self):
+        source, score, model, load = self.cover_fixture()
+        def stop_after_asr(*args, **kwargs):
+            self.scope['CANCEL']['stop'] = True
+            return {'text':'words'}
+        asr = Mock(side_effect=stop_after_asr)
+        with patch.dict(self.scope,load_melody_transcriber=load,load_lyric_transcriber=lambda:asr):
+            with self.assertRaisesRegex(gr.Error,'stopped'):
+                self.scope['analyze_cover_source'](str(source),'Auto-detect','original',True)
+        self.assertTrue(all(v is None for v in self.scope['COVER_MODELS'].values()))
+
+    def test_cover_rejects_missing_upload_before_loading_models(self):
+        with patch.dict(self.scope,load_melody_transcriber=Mock(side_effect=AssertionError('must not load'))):
+            with self.assertRaisesRegex(gr.Error,'Upload'):
+                self.scope['analyze_cover_source'](None,'Auto-detect','original')
 
     def test_notebook_embeds_exact_sources_and_no_automatic_generation(self):
         import sys

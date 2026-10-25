@@ -15,7 +15,8 @@ MODEL_REVISION = '8f24312f187763b9854adeec87e437e2b03bbff1'
 WHEEL_SHA256 = '8801e2c0d969db02df78d2994150b4ccd86077d87c24fdb8509b1f6f31462641'
 REQUIREMENTS = ['transformers==4.57.6', 'huggingface-hub==0.36.2', 'gradio==5.49.1',
                 'pillow==11.3.0', 'soundfile==0.13.1', 'accelerate==1.13.0',
-                'tiktoken==0.12.0', 'safetensors>=0.7.0']
+                'tiktoken==0.12.0', 'safetensors>=0.7.0',
+                'mir_eval==0.8.2', 'pretty_midi==0.2.10', 'mido==1.3.3']
 
 
 def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_native/runs'):
@@ -34,6 +35,7 @@ def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_nativ
                 'TORCHINDUCTOR_CACHE_DIR': str(runtime.root / 'cache/inductor'),
                 'TRITON_CACHE_DIR': str(runtime.root / 'cache/triton'),
                 'GRADIO_TEMP_DIR': str(temp / 'gradio'),
+                'YUE2_COVER_ROOT': str(outputs.parent / 'cover_sources'),
                 'YUE2_OUTPUT_ROOT': str(outputs), 'YUE2_RUNTIME_ROOT': str(runtime.root), 'PIP_NO_CACHE_DIR': '1',
                 'GRADIO_ANALYTICS_ENABLED': 'False'})
     for label, path in [('runtime', runtime.root), ('outputs', outputs)]:
@@ -53,6 +55,10 @@ def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_nativ
             constraints.append(f'{name}=={importlib.metadata.version(name)}')
         except importlib.metadata.PackageNotFoundError:
             pass
+    if shutil.which('ffmpeg') is None:
+        raise RuntimeError('FFmpeg is required for cover audio decoding; select a Kaggle image that includes it')
+    if not any(p.startswith('torchaudio==') for p in constraints):
+        raise RuntimeError('Cover transcription needs the image-matched TorchAudio; use a current Kaggle GPU image')
     if not any(p.startswith('torch==') for p in constraints):
         raise RuntimeError('Select the Kaggle GPU image; its preinstalled PyTorch is required')
     constraint = runtime.root / 'kaggle-constraints.txt'
@@ -77,6 +83,10 @@ def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_nativ
     probe = '''
 import json, torch, gradio, transformers, huggingface_hub
 import yue2.pipeline, yue2.cuda_graph, yue2.nar, yue2.modeling_vae
+import torchaudio, scipy, mir_eval, pretty_midi, mido
+from transformers.models.bart.modeling_bart import BartDecoder
+import inspect
+assert 'embed_tokens' in inspect.signature(BartDecoder).parameters, 'SheetSage2 requires the pinned BartDecoder API'
 assert torch.cuda.is_available(), 'Select GPU T4 x2 in Kaggle settings'
 assert torch.cuda.device_count() >= 2, 'This restored configuration requires GPU T4 x2'
 assert transformers.__version__ == '4.57.6'
