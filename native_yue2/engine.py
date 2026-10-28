@@ -493,7 +493,7 @@ print("All Turing T4 runtime patches applied successfully.")
 # -----------------------------------------------------------------------------
 # backend="torch" (not "torch-eager") is what enables the CUDA-graph AR decoder
 # in yue2/pipeline.py::_generate. Patch 3 keeps that path safe on Turing.
-print("\nInitializing YuE2 Pipeline from Hugging Face Hub (m-a-p/YuE2-3B)...")
+print("\nInitializing YuE2 pipeline from pinned model assets...")
 try:
     pipe = ypipe.YuE2Pipeline.from_pretrained(
         "m-a-p/YuE2-3B",
@@ -501,6 +501,7 @@ try:
         revision="8f24312f187763b9854adeec87e437e2b03bbff1",
         vae_revision="152733a19ad43aa67e367f9b5503ef8075bb5126",
         cache_dir=os.environ["HF_HUB_CACHE"],
+        local_files_only=os.environ.get("HF_HUB_OFFLINE") == "1",
         backend="torch",
         offload_ar=False,
         progress=True
@@ -688,6 +689,7 @@ def load_melody_transcriber():
             "m-a-p/SheetSage2", trust_remote_code=True,
             revision=SHEETSAGE2_REVISION, code_revision=SHEETSAGE2_REVISION,
             cache_dir=os.environ["HF_HUB_CACHE"], torch_dtype=torch.float32,
+            local_files_only=os.environ.get("HF_HUB_OFFLINE") == "1",
             attn_implementation="sdpa",
         ).eval().to(device)
     return COVER_MODELS["sheetsage"]
@@ -750,7 +752,7 @@ def analyze_cover_source(audio_path, language, current_lyrics, transcribe_lyrics
         if IS_MANAGED_ENGINE:
             from native_yue2.process import check_gpu_room
             check_gpu_room(include_pid=os.getpid())
-        progress(None, desc="Loading melody transcriber (downloads only on first use)")
+        progress(None, desc="Loading saved melody transcriber")
         model = load_melody_transcriber()
         result = model.transcribe(str(audio_path), output_dir=str(directory),
                                   melody_only=True, dtype="fp32", progress=report)
@@ -768,7 +770,7 @@ def analyze_cover_source(audio_path, language, current_lyrics, transcribe_lyrics
         note = "Original lyrics kept; edit/paste your words in Song Lyrics."
         if transcribe_lyrics:
             try:
-                progress(None, desc="Transcribing lyrics (optional Whisper download on first use)")
+                progress(None, desc="Transcribing lyrics with the saved Whisper model")
                 asr = load_lyric_transcriber()
                 generate_kwargs = {} if language == "Auto-detect" else {"language": language}
                 try:
@@ -1440,8 +1442,8 @@ with gr.Blocks(**blocks_kwargs) as demo:
                         "Upload your existing WAV, FLAC or MP3. **Paste your original lyrics below**, "
                         "then Analyze melody. The extracted melody fills Custom ABC and selects "
                         "Melody score mode. Write your new style and Generate Song.\n\n"
-                        "Optional lyric transcription downloads Whisper only when checked. Melody "
-                        "analysis downloads SheetSage2 and its MERT parent on first use. This is "
+                        "Optional lyric transcription loads Whisper only when checked. Melody "
+                        "analysis loads saved SheetSage2 and its MERT parent. This is "
                         "score-guided regeneration; exact timing, voice and arrangement may change."
                     )
                     with gr.Row():
@@ -1456,7 +1458,7 @@ with gr.Blocks(**blocks_kwargs) as demo:
                                 choices=COVER_LANGUAGES,
                                 value="Auto-detect"
                             )
-                            cover_transcribe_lyrics = gr.Checkbox(label="Transcribe lyrics too (optional model download)", value=False)
+                            cover_transcribe_lyrics = gr.Checkbox(label="Transcribe lyrics too (optional Whisper analysis)", value=False)
                             analyze_btn = gr.Button("🔍 Analyze melody for cover", variant="secondary")
                     cover_download = gr.File(label="Download cover score / analysis ZIP")
                     cover_status = gr.Textbox(

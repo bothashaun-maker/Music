@@ -67,13 +67,27 @@ def build():
     from native_yue2.setup import install
     ROOT = "/kaggle/temp/yue2_native"
     OUTPUTS = "/kaggle/working/yue2_native/runs"
-    native_python, native_env = install(ROOT, OUTPUTS)
+    ASSET_DATASET = "auto"  # Attach saved YuE2 assets with Add Input. No download fallback.
+    native_python, native_env = install(ROOT, OUTPUTS, assets=ASSET_DATASET)
     print("Setup completed. Run the next cell to open the original native engine UI.")
     '''.replace('PAYLOAD', payload)
     cells = [cell('markdown', '''
-        # YuE2 on Kaggle — restored native FP16 engine (revision 8)
+        # YuE2 on Kaggle — restored native FP16 engine (revision 9)
 
-        Select **GPU T4 ×2** and enable Internet. This restores the original
+        **First time:** run `yue2-build-kaggle-assets.ipynb` once on Kaggle with
+        Internet and **no GPU**, then save its outputs as a private dataset.
+        Add that dataset to this notebook with **Add Input**. You can also attach
+        the saved builder notebook's output directly. Nothing large needs to be
+        downloaded to your PC or uploaded from your PC.
+
+        **Every music session:** attach that saved input, select **GPU T4 ×2**
+        and enable Internet for the Gradio share link. Setup reads weights from
+        `/kaggle/input` and installs dependencies from saved local wheels.
+        Missing/incompatible assets cause an early error, never a replacement
+        download. Keep the same Kaggle Python/image version as the builder;
+        upgrades can require rebuilding the dependency bundle.
+
+        This restores the original
         `yue2_infer 0.1.5` engine: FP16 transformer on GPU 0, CUDA-graph AR decoding
         with SDPA, and tiled FP32 VAE on GPU 1. Default generation uses **Direct to
         audio**, **16 Euler steps**, CFG **1.0**, and an **8-minute safety ceiling**.
@@ -89,8 +103,8 @@ def build():
         Melody score mode. Enter the new style, then Generate Song. Optional
         **Transcribe lyrics too** uses Whisper when needed. Extracted-score
         regeneration can change timing, voice and arrangement; it is not exact
-        audio-to-audio copying. Melody analysis lazily downloads SheetSage2 and
-        its MERT parent; Whisper downloads only if requested. Download the
+        audio-to-audio copying. Melody analysis reads SheetSage2 and its MERT
+        parent from the saved dataset; optional Whisper is included there too. Download the
         cover-analysis ZIP to retain the editable score. Transcription models
         are unloaded after analysis and GPU jobs share one queue.
 
@@ -104,7 +118,8 @@ def build():
         Long acoustic generations may span multiple chunks; listen at the reported
         boundaries. Seven/eight-minute performance and continuity remain unverified.
 
-        Runtime and model files use session-only `/kaggle/temp/yue2_native`.
+        The small installed environment uses session-only `/kaggle/temp/yue2_native`.
+        Large models stay in the attached read-only Kaggle input dataset.
         Song audio, exact tokens and recovery latents use
         `/kaggle/working/yue2_native/runs`. The paths may share underlying storage;
         setup prints actual free space rather than assuming a separate 50 GB quota.
@@ -121,8 +136,9 @@ def build():
         Version with outputs in Kaggle before ending the session.** A saved draft
         or a notebook download containing logs does not preserve audio files.
         '''), cell('code', bootstrap), cell('markdown', '''
-        **Open the generator.** This cell downloads the original full-precision
-        model assets on first launch and prints a Gradio share link. Open that link.
+        **Open the generator.** This cell loads the saved full-precision
+        model assets and prints a Gradio share link. Open that link.
+        Model-host and pip network downloads are disabled in this process.
         The cell stays running while the UI is available. Reuse it for additional
         songs so the transformer can stay loaded. A stopped cell ends this process.
 
@@ -184,7 +200,7 @@ def build():
         model weights, and decodes to a new folder without regenerating music
         tokens or the acoustic latents. For a new session, attach the saved run ZIP
         as a Kaggle input and extract it first. Setup and the original model files
-        are still required. ComfyUI artifacts from revision 2 use a different format.
+        from the attached dataset are still required. ComfyUI artifacts from revision 2 use a different format.
         '''), cell('code', '''
         RECOVER_RUN = None  # Folder containing latent.npy and latent_manifest.json
         if RECOVER_RUN:
@@ -210,7 +226,101 @@ def build():
     }, 'nbformat': 4, 'nbformat_minor': 4}
 
 
+def build_asset_notebook():
+    files = {}
+    for directory in ('kaggle_yue2', 'native_yue2'):
+        for p in sorted((ROOT / directory).glob('*.py')):
+            files[str(p.relative_to(ROOT))] = p.read_text()
+    payload = base64.b64encode(zlib.compress(json.dumps(files).encode(), 9)).decode()
+    bootstrap = """
+    import base64, json, os, sys, zlib, subprocess
+    from pathlib import Path
+    support = Path("/kaggle/temp/yue2_asset_builder_support")
+    support.mkdir(parents=True, exist_ok=True)
+    payload = "PAYLOAD"
+    for relative, contents in json.loads(zlib.decompress(base64.b64decode(payload))).items():
+        path = support / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(contents)
+    for name in list(sys.modules):
+        if name.split(".")[0] in {"native_yue2", "kaggle_yue2"}:
+            del sys.modules[name]
+    if str(support) not in sys.path:
+        sys.path.insert(0, str(support))
+    from native_yue2.setup import install
+    BUILDER_ROOT = "/kaggle/temp/yue2_asset_builder"
+    ASSET_OUTPUT = "/kaggle/working/yue2-assets"
+    native_python, native_env = install(
+        BUILDER_ROOT, "/kaggle/temp/yue2_asset_builder_records/runs",
+        assets=None, require_gpu=False)
+    subprocess.run([native_python, "-u", "-m", "native_yue2.assets",
+                    "--build", ASSET_OUTPUT, "--runtime-root", BUILDER_ROOT],
+                   env=native_env, check=True)
+    """.replace('PAYLOAD', payload)
+    cells = [cell('markdown', """
+        # YuE2 — save Kaggle assets once (revision 9)
+
+        **Internet ON; accelerator None.** No GPU model or song is run.
+        Downloads go directly to Kaggle, not through your home connection.
+        This saves the pinned YuE2/VAE, SheetSage2/MERT, optional Whisper,
+        Python overlay wheels, bootstrap pip and Gradio tunnel executable.
+        Weights are saved once without a duplicate Hub blobs tree.
+
+        Keep this notebook **private**. Use **Save Version → Save & Run All**
+        with outputs to build and preserve `/kaggle/working/yue2-assets` in one
+        saved run. Wait for **COMPLETE** in its logs. No test song follows.
+        You do not need to run it interactively first and repeat the download.
+        In your music notebook choose **Add Input → Notebook Output Files**
+        and select the completed saved builder version. That is already reusable
+        Kaggle storage; you do not need to download/re-upload any files.
+
+        If you specifically want a named **Dataset**, use the optional publish
+        cell below from this Kaggle session. It uploads directly from Kaggle to
+        your account and creates a **private** dataset. The normal generator
+        accepts either the dataset or saved notebook output automatically.
+
+        Keep the same Python minor version and preinstalled scientific package
+        versions in builder and generator. If Kaggle changes the image, the
+        generator explains the mismatch before any model work. Rebuilding on
+        the new image may be necessary. This is not a portable copy of all CUDA.
+        Enough output storage for all models is required; an interrupted build
+        has no complete assets.json and cannot be mistaken for a finished bundle.
+        Model licenses/cards are retained; upstream terms still apply.
+        """), cell('code', bootstrap), cell('markdown', """
+        **Optional: create a named private dataset, directly from Kaggle.**
+        Set DATASET_HANDLE to `your-kaggle-username/yue2-music-assets` and run
+        the next cell. Leave it as None if using saved notebook outputs instead.
+        KaggleHub needs your Kaggle account authentication. If it requests a
+        token, configure Kaggle authentication privately; never paste credentials
+        into this notebook. New datasets are private by default in this API;
+        choose a new unused slug to avoid updating an older public dataset.
+        After upload, attach it using **Add Input → Your Datasets**. Keep the
+        dataset private. No model files travel through your home computer.
+        """), cell('code', """
+        DATASET_HANDLE = None  # Example: "janpierrrewiet/yue2-music-assets"
+        if DATASET_HANDLE:
+            from native_yue2.assets import validate_assets
+            validate_assets(ASSET_OUTPUT, full=True)
+            import kagglehub
+            if not hasattr(kagglehub, "dataset_upload"):
+                raise RuntimeError("This Kaggle image needs a newer KaggleHub for dataset_upload. "
+                                   "Use saved notebook outputs now, or update KaggleHub in this builder only.")
+            kagglehub.dataset_upload(
+                DATASET_HANDLE, ASSET_OUTPUT,
+                version_notes="Pinned YuE2 music + cover models and offline dependency wheels")
+            print(f"Saved: https://www.kaggle.com/datasets/{DATASET_HANDLE}. Keep this dataset private.")
+        """)]
+    return {'cells': cells, 'metadata': {
+        'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'},
+        'language_info': {'name': 'python'},
+        'kaggle': {'isGpuEnabled': False, 'isInternetEnabled': True},
+    }, 'nbformat': 4, 'nbformat_minor': 4}
+
+
 if __name__ == '__main__':
     output = ROOT / 'yue2-3b-frontier-full-song-music-generation.ipynb'
     output.write_text(json.dumps(build(), indent=1, ensure_ascii=False) + '\n')
     print(output)
+    assets = ROOT / 'yue2-build-kaggle-assets.ipynb'
+    assets.write_text(json.dumps(build_asset_notebook(), indent=1, ensure_ascii=False) + '\n')
+    print(assets)

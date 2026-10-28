@@ -2,7 +2,36 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 8)** at the top.
+**restored native FP16 engine (revision 9)** at the top.
+
+## Save model downloads once — revision 9
+
+Use [the asset-builder notebook](yue2-build-kaggle-assets.ipynb) **once on Kaggle**,
+with Internet enabled and accelerator **None**. It downloads the music/VAE,
+SheetSage2/MERT and Whisper weights, dependency wheels, pip and the Gradio tunnel
+binary into `/kaggle/working/yue2-assets`. It does not generate a test song or load
+a GPU model. The large transfers are between Kaggle and the model hosts, not
+through your PC.
+
+**Save Version with outputs.** Attach that saved notebook output to the music
+notebook using **Add Input → Notebook Output Files**. For a named private Dataset,
+the builder includes an optional `kagglehub.dataset_upload` cell: set your own
+`username/dataset-slug` and authenticate your Kaggle account privately. Uploads
+run directly on Kaggle. Keep the source notebook and dataset private.
+
+The generator automatically discovers one attached bundle. It installs its small
+Python overlay from saved wheels and reads large weights directly from
+`/kaggle/input`; it does not copy weights into temporary storage. Hub/Transformers
+are forced into offline mode, pip uses `--no-index`, and the share executable is
+copied locally for execution. Missing, corrupted or incompatible assets stop
+setup; **there is no silent download fallback**. Generation defaults, quality,
+precision and token ceilings are unchanged.
+
+Read [KAGGLE_DATASET.md](KAGGLE_DATASET.md) for exact first-run/reuse steps,
+image compatibility and validation limits. The Gradio share link still needs
+Internet; source-song uploads and final audio downloads still use normal browser
+bandwidth. Kaggle image/dependency changes or future model revisions may require
+one rebuild, so “never download again” is not an unlimited compatibility promise.
 
 This revision returns to the original notebook's `yue2_infer` engine. The previous
 ComfyUI implementation changed the runtime and defaults and was substantially
@@ -30,8 +59,8 @@ your lyrics and the new style. Melody extraction is approximate: exact voice,
 timing, instrumentation and arrangement are not guaranteed to match the recording.
 It is not a voice-cloning or waveform-editing feature.
 
-**First analysis downloads SheetSage2 and its pinned MERT parent**; optional lyric
-transcription downloads Whisper large-v3-turbo. Setup installs only their small
+**Revision 9 loads SheetSage2, its pinned MERT parent and optional Whisper from
+the attached saved dataset.** Setup installs only their small
 support dependencies while preserving Kaggle's Torch/TorchAudio/scientific stack.
 FFmpeg and the image-matched TorchAudio are checked. The pinned SheetSage2 API
 normally defaults to BF16; this version explicitly loads/transcribes in FP32 for
@@ -41,7 +70,7 @@ windows; no manual five-minute crop is applied by this notebook.
 Cover analysis and song generation share one GPU queue. Melody and ASR models
 are released sequentially and after analysis, and a cached VAE is moved to CPU
 before analysis. Generated-song work releases any remaining transcribers first.
-The default workflow avoids a Whisper download/analysis when you already have
+The default workflow avoids a Whisper analysis when you already have
 the words. Stop requests are observed at transcription progress boundaries.
 
 Analysis files are under `/kaggle/working/yue2_native/cover_sources/<id>` with a

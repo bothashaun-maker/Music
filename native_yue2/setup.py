@@ -19,7 +19,8 @@ REQUIREMENTS = ['transformers==4.57.6', 'huggingface-hub==0.36.2', 'gradio==5.49
                 'mir_eval==0.8.2', 'pretty_midi==0.2.10', 'mido==1.3.3']
 
 
-def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_native/runs'):
+def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_native/runs',
+            *, assets='auto', require_gpu=True):
     runtime = KaggleYuE2(root)
     outputs = Path(outputs).resolve()
     outputs.mkdir(parents=True, exist_ok=True)
@@ -38,16 +39,22 @@ def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_nativ
                 'YUE2_COVER_ROOT': str(outputs.parent / 'cover_sources'),
                 'YUE2_OUTPUT_ROOT': str(outputs), 'YUE2_RUNTIME_ROOT': str(runtime.root), 'PIP_NO_CACHE_DIR': '1',
                 'GRADIO_ANALYTICS_ENABLED': 'False'})
+    from .assets import find_assets, activate_assets
+    dataset = find_assets(assets)
+    if dataset is not None:
+        env = activate_assets(dataset, runtime.root, env)
+        print(f'Using saved Kaggle assets: {dataset}; model/package downloads disabled.', flush=True)
     for label, path in [('runtime', runtime.root), ('outputs', outputs)]:
         free = shutil.disk_usage(path).free / 2**30
         print(f'{label}: {path}; {free:.1f} GiB free', flush=True)
-        needed = 16 if label == 'runtime' else 2
+        needed = (3 if dataset is not None else 16) if label == 'runtime' else 2
         if free < needed:
             raise RuntimeError(f'{path} needs at least {needed} GiB free; found {free:.1f}')
-    print('Runtime/model files are temporary. Only song artifacts belong in saved Kaggle outputs.', flush=True)
+    print('Saved input models stay read-only; the session overlay is temporary. Song outputs must be saved.', flush=True)
     from .process import stop_owned, check_gpu_room
-    stop_owned(runtime.root, Path(__file__).with_name('engine.py'), outputs)
-    check_gpu_room()
+    if require_gpu:
+        stop_owned(runtime.root, Path(__file__).with_name('engine.py'), outputs)
+        check_gpu_room()
     runtime.prepare_environment()
     constraints = []
     for name in ('torch', 'torchvision', 'torchaudio', 'numpy', 'scipy', 'numba', 'llvmlite'):
@@ -63,8 +70,13 @@ def install(root='/kaggle/temp/yue2_native', outputs='/kaggle/working/yue2_nativ
         raise RuntimeError('Select the Kaggle GPU image; its preinstalled PyTorch is required')
     constraint = runtime.root / 'kaggle-constraints.txt'
     constraint.write_text('\n'.join(constraints) + '\n')
-    command([runtime.python, '-m', 'pip', 'install', '--no-cache-dir', '-c', constraint, *REQUIREMENTS], env=env)
+    offline = ['--no-index', '--find-links', dataset / 'wheelhouse',
+               '-r', dataset / 'overlay-requirements.txt'] if dataset is not None else []
+    command([runtime.python, '-m', 'pip', 'install', '--no-cache-dir', *offline,
+             '-c', constraint, *REQUIREMENTS], env=env)
     wheel = runtime.root / 'yue2_infer-0.1.5-py3-none-any.whl'
+    if dataset is not None:
+        shutil.copyfile(dataset / 'wheelhouse' / wheel.name, wheel)
     if not wheel.exists():
         partial = wheel.with_suffix('.part')
         try:
@@ -87,14 +99,16 @@ import torchaudio, scipy, mir_eval, pretty_midi, mido
 from transformers.models.bart.modeling_bart import BartDecoder
 import inspect
 assert 'embed_tokens' in inspect.signature(BartDecoder).parameters, 'SheetSage2 requires the pinned BartDecoder API'
-assert torch.cuda.is_available(), 'Select GPU T4 x2 in Kaggle settings'
-assert torch.cuda.device_count() >= 2, 'This restored configuration requires GPU T4 x2'
+if REQUIRE_GPU:
+    assert torch.cuda.is_available(), 'Select GPU T4 x2 in Kaggle settings'
+    assert torch.cuda.device_count() >= 2, 'This restored configuration requires GPU T4 x2'
 assert transformers.__version__ == '4.57.6'
 assert gradio.__version__ == '5.49.1'
 print(json.dumps({'torch': torch.__version__, 'transformers': transformers.__version__,
  'gradio': gradio.__version__, 'hub': huggingface_hub.__version__,
  'gpus': [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]}))
 '''
+    probe = probe.replace('REQUIRE_GPU', repr(require_gpu))
     result = command([runtime.python, '-c', probe], env=env, capture=True)
     print(result.stdout, flush=True)
     (runtime.root / 'hardware.json').write_text(result.stdout)
