@@ -72,7 +72,7 @@ def build():
     print("Setup completed. Run the next cell to open the original native engine UI.")
     '''.replace('PAYLOAD', payload)
     cells = [cell('markdown', '''
-        # YuE2 on Kaggle — restored native FP16 engine (revision 9)
+        # YuE2 on Kaggle — restored native FP16 engine (revision 10)
 
         **First time:** run `yue2-build-kaggle-assets.ipynb` once on Kaggle with
         Internet and **no GPU**, then save its outputs as a private dataset.
@@ -81,7 +81,7 @@ def build():
         downloaded to your PC or uploaded from your PC.
 
         **Every music session:** attach that saved input, select **GPU T4 ×2**
-        and enable Internet for the Gradio share link. Setup reads weights from
+        and enable Internet for the Gradio and optional Cloudflare links. Setup reads weights from
         `/kaggle/input` and installs dependencies from saved local wheels.
         Missing/incompatible assets cause an early error, never a replacement
         download. Keep the same Kaggle Python/image version as the builder;
@@ -137,8 +137,19 @@ def build():
         or a notebook download containing logs does not preserve audio files.
         '''), cell('code', bootstrap), cell('markdown', '''
         **Open the generator.** This cell loads the saved full-precision
-        model assets and prints a Gradio share link. Open that link.
-        Model-host and pip network downloads are disabled in this process.
+        model assets and prints the existing **Gradio link** plus an additional
+        **Cloudflare link**, as the original notebook did. Both reach the same
+        interface, uploaded files and engine. Your existing asset dataset works;
+        no rebuild is needed. The optional Cloudflare executable is downloaded
+        to Kaggle once per session if it is not already cached. Models and Python
+        packages still load from your dataset, with network downloads disabled.
+
+        Use the Cloudflare link as an alternative route for your unchanged WAV.
+        Quick Tunnels do not guarantee availability or SSE live-progress support;
+        a Cloudflare link is not proof the 75 MB upload issue is fixed. The
+        original Gradio link remains available. Neither route starts generation.
+        If Cloudflare fails, its error is printed and the Gradio app keeps running.
+        A temporary link grants access to the UI; keep it private.
         The cell stays running while the UI is available. Reuse it for additional
         songs so the transformer can stay loaded. A stopped cell ends this process.
 
@@ -148,8 +159,16 @@ def build():
         can cut a song off; it does not tell the model to finish there.
         The original generation defaults are restored; no speed is promised for
         long songs. The status panel reports actual AR execution and stage times.
-        '''), cell('code', '''
-        import subprocess
+        '''), cell('code', r'''
+        import subprocess, re
+        from native_yue2.tunnel import CloudflareAccess
+        if "cloudflare_access" in globals():
+            cloudflare_access.close()
+        ENABLE_CLOUDFLARE = True  # Additional link; the existing Gradio link stays available.
+        cloudflare_access = CloudflareAccess(
+            ROOT, assets=native_env.get("YUE2_ASSET_DATASET"),
+            log=Path(OUTPUTS).parent / "runtime/cloudflared.log")
+        cloudflare_attempted = False
         engine = support / "native_yue2/engine.py"
         log_path = Path(OUTPUTS).parent / "runtime/engine.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -161,9 +180,21 @@ def build():
                     log.write(line)
                     log.flush()
                     print(line, end="", flush=True)
+                    local = re.search(r"Running on local URL:\s+http://127\.0\.0\.1:(\d+)", line)
+                    if ENABLE_CLOUDFLARE and local and not cloudflare_attempted:
+                        cloudflare_attempted = True
+                        try:
+                            link = cloudflare_access.start(int(local.group(1)), env=native_env)
+                            print(f"\nAdditional Cloudflare link: {link}", flush=True)
+                            print("The Gradio share link remains available. Both use the same engine.", flush=True)
+                            print("Temporary Cloudflare links may not stream live Gradio progress reliably. "
+                                  "Keep both links available; neither starts a song automatically.", flush=True)
+                        except Exception as exc:
+                            print(f"Cloudflare is unavailable: {exc}\nThe Gradio link is still available.", flush=True)
             if native_process.wait() != 0:
                 raise RuntimeError(f"Native engine stopped. Inspect {log_path}")
         finally:
+            cloudflare_access.close()
             if native_process.poll() is None:
                 native_process.terminate()
                 try:

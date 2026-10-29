@@ -2,7 +2,29 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 9)** at the top.
+**restored native FP16 engine (revision 10)** at the top.
+
+## Cloudflare access restored — revision 10
+
+The generator cell now prints an additional Cloudflare Quick Tunnel link to the
+same existing Gradio interface. The original Gradio share link remains enabled.
+No Cloudflare account/domain is required. This restores the original notebook's
+two-route access pattern without changing model loading, audio formats, generation
+settings or dataset selection. Existing revision 9 asset datasets remain usable;
+no rebuild/upload is needed. The official, pinned, SHA256-checked `cloudflared`
+2026.10.3 executable is fetched on Kaggle if not already cached. Tunnel failure
+prints its log and leaves the original Gradio route available. The sidecar exits
+when the cell is stopped or its notebook parent exits. Set `ENABLE_CLOUDFLARE =
+False` in the generator cell to use only the preexisting share link.
+
+Quick Tunnels do not guarantee availability or SSE live-progress support. A link
+is not proof the reported upload interruption is resolved. Keep the original WAV;
+no conversion is required by this update. Eight CPU lifecycle/checksum tests and
+the twelve asset checks passed. A real Gradio 5.49.1 local upload of an unchanged
+75 MiB synthetic WAV plus a queued result passed checksum/size verification with
+no GPU. The development environment refused the external Cloudflare connection;
+the separate unrestricted-network check was cancelled. Public-tunnel upload and
+full ABC inference therefore remain unverified. No Kaggle GPU quota was used.
 
 ## Save model downloads once — revision 9
 
