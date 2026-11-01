@@ -2,7 +2,30 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 10)** at the top.
+**restored native FP16 engine (revision 11)** at the top.
+
+## Startup state recovery — revision 11
+
+The uploaded `music-creation.ipynb` recorded `ModuleNotFoundError: native_yue2`
+in the generator cell, with no successful setup completion marker in its saved
+outputs. The generator had execution count 1, while the setup count was absent;
+that is consistent with missing state after a kernel restart, but the notebook
+does not establish why setup stopped. The pip conflict warnings are not this
+Python import exception and are not evidence that a song generation failed.
+
+Setup now marks its state incomplete before starting and complete only after its
+existing installation/probe finishes. Before importing notebook support modules,
+the generator cell checks that state and the required files/variables. If state
+is unavailable, it runs an embedded exact copy of the existing setup; completed
+setup is reused and its import path restored. Setup failures still stop startup.
+No package pins, model formats, sampling behavior, audio formats, access routes
+or dataset schema changed. Existing `yue2-music-assets` needs no rebuild.
+
+Six CPU regression checks passed for fresh/interrupted/completed kernel state,
+removed environments, setup failures and completion ordering. Eleven asset
+checks passed; the optional real-Hub integration check was skipped because that
+package is absent from this test environment. Both notebooks parse and embed the
+current sources. No GPU generation or live Kaggle execution was performed.
 
 ## Cloudflare access restored — revision 10
 

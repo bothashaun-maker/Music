@@ -23,6 +23,7 @@ def build():
             files[str(p.relative_to(ROOT))] = p.read_text()
     payload = base64.b64encode(zlib.compress(json.dumps(files).encode(), 9)).decode()
     bootstrap = '''
+    _YUE2_SETUP_READY = False
     import base64, json, os, sys, zlib
     from pathlib import Path
     if "app" in globals():
@@ -69,10 +70,11 @@ def build():
     OUTPUTS = "/kaggle/working/yue2_native/runs"
     ASSET_DATASET = "auto"  # Attach saved YuE2 assets with Add Input. No download fallback.
     native_python, native_env = install(ROOT, OUTPUTS, assets=ASSET_DATASET)
+    _YUE2_SETUP_READY = True
     print("Setup completed. Run the next cell to open the original native engine UI.")
     '''.replace('PAYLOAD', payload)
     cells = [cell('markdown', '''
-        # YuE2 on Kaggle — restored native FP16 engine (revision 10)
+        # YuE2 on Kaggle — restored native FP16 engine (revision 11)
 
         **First time:** run `yue2-build-kaggle-assets.ipynb` once on Kaggle with
         Internet and **no GPU**, then save its outputs as a private dataset.
@@ -136,7 +138,11 @@ def build():
         Version with outputs in Kaggle before ending the session.** A saved draft
         or a notebook download containing logs does not preserve audio files.
         '''), cell('code', bootstrap), cell('markdown', '''
-        **Open the generator.** This cell loads the saved full-precision
+        **Open the generator.** If setup was interrupted or Kaggle restarted
+        the kernel, this cell completes the same setup automatically before
+        importing its support modules. Already completed setup is reused.
+        A setup error stops here before any model or tunnel is started.
+        This cell loads the saved full-precision
         model assets and prints the existing **Gradio link** plus an additional
         **Cloudflare link**, as the original notebook did. Both reach the same
         interface, uploaded files and engine. Your existing asset dataset works;
@@ -250,6 +256,29 @@ def build():
         Source and checks are included in the Music repository for review.
         '''),
     ]
+    # The generator may be run first, or after Kaggle restarts the kernel.
+    # Embed the same setup verbatim, so it cannot import notebook modules before
+    # reconstructing them. A completed setup in this kernel is reused.
+    setup_source = ''.join(cells[1]['source'])
+    packed_setup = base64.b64encode(zlib.compress(setup_source.encode(), 9)).decode()
+    guard = textwrap.dedent("""
+        import base64, sys, zlib
+        from pathlib import Path
+        _support_path = Path("/kaggle/temp/yue2_native_support")
+        _setup_available = (
+            globals().get("_YUE2_SETUP_READY") is True
+            and all(name in globals() for name in ("native_python", "native_env", "ROOT", "OUTPUTS", "support"))
+            and Path(globals().get("native_python", "/missing-yue2-python")).is_file()
+            and (_support_path / "native_yue2/tunnel.py").is_file()
+        )
+        if not _setup_available:
+            print("Setup state is missing or incomplete in this kernel. Completing setup from the attached dataset first.", flush=True)
+            exec(zlib.decompress(base64.b64decode("PACKED_SETUP")).decode(), globals())
+        if str(_support_path) not in sys.path:
+            sys.path.insert(0, str(_support_path))
+        # Setup verified; start the existing generator and optional tunnel below.
+    """).replace('PACKED_SETUP', packed_setup).lstrip()
+    cells[3]['source'] = (guard + ''.join(cells[3]['source'])).splitlines(keepends=True)
     return {'cells': cells, 'metadata': {
         'kernelspec': {'display_name': 'Python 3', 'language': 'python', 'name': 'python3'},
         'language_info': {'name': 'python'},
