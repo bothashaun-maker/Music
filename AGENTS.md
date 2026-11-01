@@ -10,3 +10,7 @@
   validation limits honestly. Do not push music changes to Movies.
 - Source: native_yue2/; builder: tools/build_fast_notebook.py.
 - Give concise instructions, one step at a time when guiding the user's screen.
+
+- Revision 12 uses one independent startup cell and native_yue2/launch.py. Keep
+  file-list and optional-recovery controls usable from empty notebook globals.
+  Preserve startup.log and startup-status.json for diagnosing interrupted setup.

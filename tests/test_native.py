@@ -388,7 +388,7 @@ class NativeTests(unittest.TestCase):
             if c['cell_type'] == 'code':
                 ast.parse(''.join(c['source']))
                 self.assertFalse(c['outputs'])
-        tree = ast.parse(''.join(nb['cells'][1]['source']))
+        tree = ast.parse(''.join(next(c for c in nb['cells'] if c['cell_type'] == 'code')['source']))
         encoded = next(n.value.value for n in tree.body if isinstance(n, ast.Assign)
                        and any(isinstance(t, ast.Name) and t.id == 'payload' for t in n.targets))
         files = json.loads(zlib.decompress(base64.b64decode(encoded)))

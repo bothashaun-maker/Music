@@ -35,9 +35,9 @@ Kaggle session were available to this engineer to create that dataset for you.
 ## Every music session
 
 1. Import the updated [music notebook](yue2-3b-frontier-full-song-music-generation.ipynb),
-   revision **9**. Attach your saved dataset or builder output using **Add Input**.
+   revision **12**. Attach your saved dataset or builder output using **Add Input**.
 2. Select **GPU T4 ×2**. Enable Internet for the existing Gradio share link.
-3. Run setup. It prints **Using saved Kaggle assets**. Open the generator and
+3. Run the single startup code cell. It prints **Using saved Kaggle assets** and opens the generator.
    create or cover your song as before. There is no test song.
 4. Preserve generated songs with Save Version including outputs, or download
    only the audio/run ZIP you want. The asset dataset does not save new songs.

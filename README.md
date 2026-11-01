@@ -2,7 +2,34 @@
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
-**restored native FP16 engine (revision 11)** at the top.
+**restored native FP16 engine (revision 12)** at the top.
+
+## Independent single-cell startup — revision 12
+
+The uploaded revision 11 `music-creation2.ipynb` recorded `NameError: Path is not
+defined` in the saved-song listing. Its startup output again ended during package
+installation, with no setup completion or generator link recorded. The notebook
+does not establish the cause of that interruption. Revision 11's extra setup
+check did not eliminate dependence on live notebook variables in auxiliary cells.
+
+There is now ONE startup code cell. It extracts the bundled source and supervises
+an independent setup/launch process, rather than passing setup globals between
+notebook cells. That process installs the same saved wheels, starts the unchanged
+engine and offers the same Gradio/optional Cloudflare routes. Stopping the cell
+signals its owned process group; launcher cleanup closes its tunnel and engine.
+Linux parent-death signalling binds the launcher to the notebook kernel.
+The file-list cell has its own imports and output location and starts no GPU job.
+Optional recovery selects a saved latent folder, then uses the same startup cell.
+Full output persists in `runtime/startup.log`, with phase/error information in
+`runtime/startup-status.json`. These files distinguish setup from engine failures.
+
+Seven CPU startup/auxiliary/worker checks passed, including generated startup
+from empty globals, empty-kernel file listing, setup failure before model startup,
+engine failure and preservation of Gradio when Cloudflare fails. Eight tunnel
+checks and eleven asset checks passed; optional real-Hub integration was skipped
+because its dependency is absent. No actual Kaggle setup/GPU inference or live
+Cloudflare transfer was performed here. Existing asset datasets need no rebuild;
+model loading/sampling, formats and dependency versions have not been changed.
 
 ## Startup state recovery — revision 11
 
