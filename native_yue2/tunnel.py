@@ -60,13 +60,13 @@ class CloudflareAccess:
         self.url = None
         atexit.register(self.close)
 
-    def start(self, port, *, timeout=60, env=None):
+    def start(self, port, *, timeout=60, env=None, health_path='/config'):
         self.close()
         port = int(port)
         if not 1 <= port <= 65535:
             raise ValueError('Invalid local UI port')
         # The engine prints its local URL after binding the real Gradio port.
-        with urllib.request.urlopen(f'http://127.0.0.1:{port}/config', timeout=10) as response:
+        with urllib.request.urlopen(f'http://127.0.0.1:{port}{health_path}', timeout=10) as response:
             if response.status != 200:
                 raise RuntimeError('Local Gradio app is not ready')
         binary = ensure_binary(self.root, self.assets)

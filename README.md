@@ -1,5 +1,12 @@
 # YuE2 music generation on Kaggle — native FP16 engine
 
+**Standard ComfyUI canvas:** [YuE2_ComfyUI_Kaggle.ipynb](YuE2_ComfyUI_Kaggle.ipynb).
+This is the new interface requested: connected generation-stage nodes, normal
+Comfy controls/audio preview, and a separate WAV-to-ABC canvas. It reuses your
+existing `yue2-music-assets` and the native FP16 engine. Read
+[COMFY_CANVAS.md](COMFY_CANVAS.md) for startup, software installation and validation.
+The earlier Gradio notebook below remains a fallback.
+
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
 **restored native FP16 engine (revision 12)** at the top.

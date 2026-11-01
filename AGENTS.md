@@ -14,3 +14,10 @@
 - Revision 12 uses one independent startup cell and native_yue2/launch.py. Keep
   file-list and optional-recovery controls usable from empty notebook globals.
   Preserve startup.log and startup-status.json for diagnosing interrupted setup.
+
+- Latest user request: the standard ComfyUI canvas, with no AIQUEST Gradio wrapper.
+  Use YuE2_ComfyUI_Kaggle.ipynb and tools/build_comfy_notebook.py for that interface.
+  Preserve the existing native FP16 engine and current model dataset; do not switch
+  back to the earlier Comfy INT8/FP32 generation runtime. The old UI remains only
+  as a fallback. Native stage nodes live in comfy_yue2/; never flatten the graph
+  into one wrapper node. A headless guard skips Gradio construction in this mode.

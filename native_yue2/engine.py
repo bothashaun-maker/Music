@@ -1164,10 +1164,12 @@ def generate_music(style, lyrics, cot_mode, duration_target, abc_score, seed, od
         write_json(output_dir / "status.json", {"status": "failed", "error": str(err)})
         return None, "", err_msg + f"\nSaved stages: {output_dir}", None, None
 
-# -----------------------------------------------------------------------------
-# 5. AIQUEST Academy Modern Gradio UI
-# -----------------------------------------------------------------------------
-CUSTOM_CSS = """
+# Import the native engine without constructing its optional Gradio interface.
+if os.environ.get("YUE2_HEADLESS") != "1":
+    # -----------------------------------------------------------------------------
+    # 5. AIQUEST Academy Modern Gradio UI
+    # -----------------------------------------------------------------------------
+    CUSTOM_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800&display=swap');
 
 body, .gradio-container {
@@ -1358,54 +1360,54 @@ body, .gradio-container {
 }
 """
 
-# Cleanly close any lingering Gradio instances from previous runs in this kernel
-try:
-    gr.close_all()
-except Exception:
-    pass
+    # Cleanly close any lingering Gradio instances from previous runs in this kernel
+    try:
+        gr.close_all()
+    except Exception:
+        pass
 
-# gr.themes.Soft fills block labels with the primary hue in dark mode
-# (block_label_background_fill_dark), which turns every field label into a solid
-# purple slab. Flatten those tokens back to plain text. Theme tokens are the
-# supported way to do this; blanket CSS over Gradio's internal label markup
-# risks breaking the widgets themselves.
-modern_theme = gr.themes.Soft(
-    primary_hue="indigo",
-    secondary_hue="purple",
-    neutral_hue="slate",
-    font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"]
-)
-try:
-    modern_theme = modern_theme.set(
-        block_label_background_fill="transparent",
-        block_label_background_fill_dark="transparent",
-        block_label_border_width="0px",
-        block_label_text_color="*neutral_600",
-        block_label_text_color_dark="*neutral_200",
-        block_label_text_weight="600",
-        block_title_background_fill="transparent",
-        block_title_background_fill_dark="transparent",
-        block_title_text_color="*neutral_700",
-        block_title_text_color_dark="*neutral_200",
-        block_title_text_weight="600",
+    # gr.themes.Soft fills block labels with the primary hue in dark mode
+    # (block_label_background_fill_dark), which turns every field label into a solid
+    # purple slab. Flatten those tokens back to plain text. Theme tokens are the
+    # supported way to do this; blanket CSS over Gradio's internal label markup
+    # risks breaking the widgets themselves.
+    modern_theme = gr.themes.Soft(
+        primary_hue="indigo",
+        secondary_hue="purple",
+        neutral_hue="slate",
+        font=[gr.themes.GoogleFont("Inter"), "ui-sans-serif", "system-ui", "sans-serif"]
     )
-except Exception as theme_err:
-    print(f"Theme token override skipped ({theme_err}); CSS fallback still applies.")
+    try:
+        modern_theme = modern_theme.set(
+            block_label_background_fill="transparent",
+            block_label_background_fill_dark="transparent",
+            block_label_border_width="0px",
+            block_label_text_color="*neutral_600",
+            block_label_text_color_dark="*neutral_200",
+            block_label_text_weight="600",
+            block_title_background_fill="transparent",
+            block_title_background_fill_dark="transparent",
+            block_title_text_color="*neutral_700",
+            block_title_text_color_dark="*neutral_200",
+            block_title_text_weight="600",
+        )
+    except Exception as theme_err:
+        print(f"Theme token override skipped ({theme_err}); CSS fallback still applies.")
 
-# Seamless cross-version Gradio 4/5/6 theme & CSS compatibility
-import inspect
-launch_params = inspect.signature(gr.Blocks.launch).parameters
-blocks_params = inspect.signature(gr.Blocks.__init__).parameters
+    # Seamless cross-version Gradio 4/5/6 theme & CSS compatibility
+    import inspect
+    launch_params = inspect.signature(gr.Blocks.launch).parameters
+    blocks_params = inspect.signature(gr.Blocks.__init__).parameters
 
-blocks_kwargs = {"title": "YuE2-3B Music Generator - AIQUEST Academy"}
-if "theme" in blocks_params and "theme" not in launch_params:
-    blocks_kwargs["theme"] = modern_theme
-if "css" in blocks_params and "css" not in launch_params:
-    blocks_kwargs["css"] = CUSTOM_CSS
+    blocks_kwargs = {"title": "YuE2-3B Music Generator - AIQUEST Academy"}
+    if "theme" in blocks_params and "theme" not in launch_params:
+        blocks_kwargs["theme"] = modern_theme
+    if "css" in blocks_params and "css" not in launch_params:
+        blocks_kwargs["css"] = CUSTOM_CSS
 
-with gr.Blocks(**blocks_kwargs) as demo:
-    # Header Banner
-    gr.HTML("""
+    with gr.Blocks(**blocks_kwargs) as demo:
+        # Header Banner
+        gr.HTML("""
     <div class='brand-header'>
         <h1 class='brand-title'>🎵 YuE2-3B - Frontier Full-Song Music Generator</h1>
         <p class='brand-subtitle'>Kaggle Dual T4 Edition (GPU T4 x2) - Engineered by <strong>AIQUEST Academy</strong></p>
@@ -1426,224 +1428,224 @@ with gr.Blocks(**blocks_kwargs) as demo:
     </div>
     """)
 
-    with gr.Row():
-        preset_dropdown = gr.Dropdown(
-            label="✨ Quick Preset Selection (Optional: Choose a ready-to-play song)",
-            choices=list(PRESETS.keys()),
-            value=None,
-            interactive=True
-        )
+        with gr.Row():
+            preset_dropdown = gr.Dropdown(
+                label="✨ Quick Preset Selection (Optional: Choose a ready-to-play song)",
+                choices=list(PRESETS.keys()),
+                value=None,
+                interactive=True
+            )
 
-    with gr.Row():
-        with gr.Column(scale=6):
-            with gr.Group(elem_classes=["card-group"]):
-                with gr.Accordion("🎤 Cover / restyle my existing song", open=True) as cover_panel:
-                    gr.Markdown(
-                        "Upload your existing WAV, FLAC or MP3. **Paste your original lyrics below**, "
-                        "then Analyze melody. The extracted melody fills Custom ABC and selects "
-                        "Melody score mode. Write your new style and Generate Song.\n\n"
-                        "Optional lyric transcription loads Whisper only when checked. Melody "
-                        "analysis loads saved SheetSage2 and its MERT parent. This is "
-                        "score-guided regeneration; exact timing, voice and arrangement may change."
+        with gr.Row():
+            with gr.Column(scale=6):
+                with gr.Group(elem_classes=["card-group"]):
+                    with gr.Accordion("🎤 Cover / restyle my existing song", open=True) as cover_panel:
+                        gr.Markdown(
+                            "Upload your existing WAV, FLAC or MP3. **Paste your original lyrics below**, "
+                            "then Analyze melody. The extracted melody fills Custom ABC and selects "
+                            "Melody score mode. Write your new style and Generate Song.\n\n"
+                            "Optional lyric transcription loads Whisper only when checked. Melody "
+                            "analysis loads saved SheetSage2 and its MERT parent. This is "
+                            "score-guided regeneration; exact timing, voice and arrangement may change."
+                        )
+                        with gr.Row():
+                            cover_audio = gr.Audio(
+                                label="Source song",
+                                type="filepath",
+                                sources=["upload"]
+                            )
+                            with gr.Column():
+                                cover_language = gr.Dropdown(
+                                    label="Lyric language",
+                                    choices=COVER_LANGUAGES,
+                                    value="Auto-detect"
+                                )
+                                cover_transcribe_lyrics = gr.Checkbox(label="Transcribe lyrics too (optional Whisper analysis)", value=False)
+                                analyze_btn = gr.Button("🔍 Analyze melody for cover", variant="secondary")
+                        cover_download = gr.File(label="Download cover score / analysis ZIP")
+                        cover_status = gr.Textbox(
+                            label="Analysis status",
+                            lines=2,
+                            interactive=False
+                        )
+
+                    style_input = gr.Textbox(
+                        label="🎸 Music Style & Instrumentation Prompt",
+                        placeholder="e.g. Cyber Metal, driving heavy rock, distorted electric guitars, fast drums, passionate vocal, 135 BPM",
+                        lines=3,
+                        value=PRESETS["Cyber Metal (High-Energy Heavy Metal)"]["style"]
+                    )
+                    lyrics_input = gr.Textbox(
+                        label="📝 Song Lyrics (Use section tags: [Verse], [Chorus], [Bridge], [Outro])",
+                        placeholder="[Verse 1]\nEnter your lyrics here...\n\n[Chorus]\nEnter your chorus here...",
+                        lines=10,
+                        value=PRESETS["Cyber Metal (High-Energy Heavy Metal)"]["lyrics"]
+                    )
+
+                    # The radio spans the full width on its own: sharing a row with
+                    # the controls below leaves it too narrow and wraps every option
+                    # onto three or four lines.
+                    cot_selector = gr.Radio(
+                        label="🎼 Symbolic Planning (what the model composes first)",
+                        choices=[
+                            ("Direct to audio (no score)", "off"),
+                            ("Melody score, then audio", "melody"),
+                            ("Melody + chords score, then audio", "full")
+                        ],
+                        value="off"
                     )
                     with gr.Row():
-                        cover_audio = gr.Audio(
-                            label="Source song",
-                            type="filepath",
-                            sources=["upload"]
+                        duration_selector = gr.Dropdown(
+                            label="⏱️ Maximum song length (safety ceiling)",
+                            info="The model chooses its ending from your prompt and lyrics. This ceiling can cut it off if reached.",
+                            choices=DURATION_CHOICES,
+                            value=DEFAULT_DURATION,
+                            interactive=True,
+                            scale=2
                         )
-                        with gr.Column():
-                            cover_language = gr.Dropdown(
-                                label="Lyric language",
-                                choices=COVER_LANGUAGES,
-                                value="Auto-detect"
+                        seed_input = gr.Number(
+                            label="🎲 Seed (-1 = random)",
+                            value=-1,
+                            precision=0,
+                            scale=1
+                        )
+                        score_only_checkbox = gr.Checkbox(
+                            label="📜 Score only (skip audio)",
+                            value=False,
+                            scale=1
+                        )
+
+                    with gr.Accordion("⚙️ Advanced Flow Matching Settings", open=False):
+                        with gr.Row():
+                            ode_steps_slider = gr.Slider(
+                                label="ODE Flow Matching Steps",
+                                minimum=8,
+                                maximum=32,
+                                value=16,
+                                step=2,
+                                info="Default: 16 steps (Fast & high-fidelity on GPU T4 x2)"
                             )
-                            cover_transcribe_lyrics = gr.Checkbox(label="Transcribe lyrics too (optional Whisper analysis)", value=False)
-                            analyze_btn = gr.Button("🔍 Analyze melody for cover", variant="secondary")
-                    cover_download = gr.File(label="Download cover score / analysis ZIP")
-                    cover_status = gr.Textbox(
-                        label="Analysis status",
-                        lines=2,
+                            ode_method_selector = gr.Radio(
+                                label="ODE Solver Method",
+                                choices=[
+                                    ("Euler (Fast - 1 pass/step, Recommended)", "euler"),
+                                    ("Midpoint (High Quality - 2 passes/step)", "midpoint")
+                                ],
+                                value="euler",
+                                info="Euler evaluates the velocity field once per step"
+                            )
+                            cfg_scale_slider = gr.Slider(
+                                label="CFG Guidance Scale",
+                                minimum=1.0,
+                                maximum=2.0,
+                                value=1.0,
+                                step=0.05,
+                                info="Default: 1.0 (Text guidance)"
+                            )
+                        fuse_checkbox = gr.Checkbox(
+                            label="Fused QKV / gate-up projections (experimental)",
+                            value=False,
+                            info="Fewer, wider matmuls per layer. Costs ~1.9 GB VRAM. "
+                                 "Listen to one song before trusting it."
+                        )
+                        abc_input = gr.Textbox(
+                            label="Custom ABC Score (Optional: supply your own melody/chords)",
+                            placeholder="X: 1\nM: 4/4\nL: 1/8\n...",
+                            lines=3
+                        )
+
+                    # 3 Standard Action Buttons
+                    with gr.Row():
+                        gen_btn = gr.Button("🎵 Generate Song", variant="primary", size="lg", elem_id="gen-btn")
+                        stop_btn = gr.Button("🛑 Stop", variant="secondary", size="lg", elem_id="stop-btn")
+                        clear_btn = gr.Button("🗑️ Clear", variant="secondary", size="lg", elem_id="clear-btn")
+
+            with gr.Column(scale=5):
+                with gr.Group(elem_classes=["card-group"]):
+                    audio_output = gr.Audio(
+                        label="🎧 Generated 48 kHz Stereo Song",
                         interactive=False
                     )
-
-                style_input = gr.Textbox(
-                    label="🎸 Music Style & Instrumentation Prompt",
-                    placeholder="e.g. Cyber Metal, driving heavy rock, distorted electric guitars, fast drums, passionate vocal, 135 BPM",
-                    lines=3,
-                    value=PRESETS["Cyber Metal (High-Energy Heavy Metal)"]["style"]
-                )
-                lyrics_input = gr.Textbox(
-                    label="📝 Song Lyrics (Use section tags: [Verse], [Chorus], [Bridge], [Outro])",
-                    placeholder="[Verse 1]\nEnter your lyrics here...\n\n[Chorus]\nEnter your chorus here...",
-                    lines=10,
-                    value=PRESETS["Cyber Metal (High-Energy Heavy Metal)"]["lyrics"]
-                )
-
-                # The radio spans the full width on its own: sharing a row with
-                # the controls below leaves it too narrow and wraps every option
-                # onto three or four lines.
-                cot_selector = gr.Radio(
-                    label="🎼 Symbolic Planning (what the model composes first)",
-                    choices=[
-                        ("Direct to audio (no score)", "off"),
-                        ("Melody score, then audio", "melody"),
-                        ("Melody + chords score, then audio", "full")
-                    ],
-                    value="off"
-                )
-                with gr.Row():
-                    duration_selector = gr.Dropdown(
-                        label="⏱️ Maximum song length (safety ceiling)",
-                        info="The model chooses its ending from your prompt and lyrics. This ceiling can cut it off if reached.",
-                        choices=DURATION_CHOICES,
-                        value=DEFAULT_DURATION,
-                        interactive=True,
-                        scale=2
+                    status_output = gr.Textbox(
+                        label="📊 Generation Status & Performance Metrics",
+                        lines=5,
+                        interactive=False
                     )
-                    seed_input = gr.Number(
-                        label="🎲 Seed (-1 = random)",
-                        value=-1,
-                        precision=0,
-                        scale=1
+                    score_output = gr.Code(
+                        label="📜 Generated ABC Musical Score Plan",
+                        language="markdown",
+                        interactive=False,
+                        lines=8
                     )
-                    score_only_checkbox = gr.Checkbox(
-                        label="📜 Score only (skip audio)",
-                        value=False,
-                        scale=1
+                    master_download = gr.File(label="Download WAV / FLAC masters", file_count="multiple")
+                    archive_download = gr.File(label="Download complete run ZIP")
+                    gr.Markdown("**Download the ZIP or Save Version with outputs before ending the Kaggle session.**")
+                    edit_btn = gr.Button(
+                        "✏️ Send score to the ABC editor (edit and regenerate)",
+                        variant="secondary",
+                        size="sm"
                     )
 
-                with gr.Accordion("⚙️ Advanced Flow Matching Settings", open=False):
-                    with gr.Row():
-                        ode_steps_slider = gr.Slider(
-                            label="ODE Flow Matching Steps",
-                            minimum=8,
-                            maximum=32,
-                            value=16,
-                            step=2,
-                            info="Default: 16 steps (Fast & high-fidelity on GPU T4 x2)"
-                        )
-                        ode_method_selector = gr.Radio(
-                            label="ODE Solver Method",
-                            choices=[
-                                ("Euler (Fast - 1 pass/step, Recommended)", "euler"),
-                                ("Midpoint (High Quality - 2 passes/step)", "midpoint")
-                            ],
-                            value="euler",
-                            info="Euler evaluates the velocity field once per step"
-                        )
-                        cfg_scale_slider = gr.Slider(
-                            label="CFG Guidance Scale",
-                            minimum=1.0,
-                            maximum=2.0,
-                            value=1.0,
-                            step=0.05,
-                            info="Default: 1.0 (Text guidance)"
-                        )
-                    fuse_checkbox = gr.Checkbox(
-                        label="Fused QKV / gate-up projections (experimental)",
-                        value=False,
-                        info="Fewer, wider matmuls per layer. Costs ~1.9 GB VRAM. "
-                             "Listen to one song before trusting it."
-                    )
-                    abc_input = gr.Textbox(
-                        label="Custom ABC Score (Optional: supply your own melody/chords)",
-                        placeholder="X: 1\nM: 4/4\nL: 1/8\n...",
-                        lines=3
-                    )
+        # Preset Selection Callback
+        def apply_preset(choice):
+            if choice and choice in PRESETS:
+                return PRESETS[choice]["style"], PRESETS[choice]["lyrics"]
+            return gr.update(), gr.update()
 
-                # 3 Standard Action Buttons
-                with gr.Row():
-                    gen_btn = gr.Button("🎵 Generate Song", variant="primary", size="lg", elem_id="gen-btn")
-                    stop_btn = gr.Button("🛑 Stop", variant="secondary", size="lg", elem_id="stop-btn")
-                    clear_btn = gr.Button("🗑️ Clear", variant="secondary", size="lg", elem_id="clear-btn")
+        preset_dropdown.change(
+            fn=apply_preset,
+            inputs=[preset_dropdown],
+            outputs=[style_input, lyrics_input]
+        )
 
-        with gr.Column(scale=5):
-            with gr.Group(elem_classes=["card-group"]):
-                audio_output = gr.Audio(
-                    label="🎧 Generated 48 kHz Stereo Song",
-                    interactive=False
-                )
-                status_output = gr.Textbox(
-                    label="📊 Generation Status & Performance Metrics",
-                    lines=5,
-                    interactive=False
-                )
-                score_output = gr.Code(
-                    label="📜 Generated ABC Musical Score Plan",
-                    language="markdown",
-                    interactive=False,
-                    lines=8
-                )
-                master_download = gr.File(label="Download WAV / FLAC masters", file_count="multiple")
-                archive_download = gr.File(label="Download complete run ZIP")
-                gr.Markdown("**Download the ZIP or Save Version with outputs before ending the Kaggle session.**")
-                edit_btn = gr.Button(
-                    "✏️ Send score to the ABC editor (edit and regenerate)",
-                    variant="secondary",
-                    size="sm"
-                )
+        # Cover: fills the ABC score, the lyrics and the planning mode from the
+        # uploaded song, leaving the style prompt for the user to write.
+        cover_event = analyze_btn.click(
+            fn=analyze_cover_source,
+            inputs=[cover_audio, cover_language, lyrics_input, cover_transcribe_lyrics],
+            outputs=[abc_input, lyrics_input, cot_selector, cover_status, cover_download],
+            concurrency_id="yue2_gpu", concurrency_limit=1
+        )
 
-    # Preset Selection Callback
-    def apply_preset(choice):
-        if choice and choice in PRESETS:
-            return PRESETS[choice]["style"], PRESETS[choice]["lyrics"]
-        return gr.update(), gr.update()
+        # Editing loop: yue2_infer 0.1.5 has no audio input, so the supported way to
+        # revise a song is symbolic. Copy the score the planner produced into the ABC
+        # box, edit the notes there, and regenerate with the same seed: the acoustic
+        # stages are then re-run against your edited score instead of a fresh plan.
+        def send_score_to_editor(score, cot_mode):
+            if not score or score.strip().startswith("(No symbolic score"):
+                raise gr.Error("Generate a song with planning mode 'Melody Only' or 'Full' first, "
+                               "so there is a score to edit.")
+            # An external score needs a planning stage to attach to.
+            return score, ("melody" if cot_mode == "off" else cot_mode)
 
-    preset_dropdown.change(
-        fn=apply_preset,
-        inputs=[preset_dropdown],
-        outputs=[style_input, lyrics_input]
-    )
+        edit_btn.click(
+            fn=send_score_to_editor,
+            inputs=[score_output, cot_selector],
+            outputs=[abc_input, cot_selector]
+        )
 
-    # Cover: fills the ABC score, the lyrics and the planning mode from the
-    # uploaded song, leaving the style prompt for the user to write.
-    cover_event = analyze_btn.click(
-        fn=analyze_cover_source,
-        inputs=[cover_audio, cover_language, lyrics_input, cover_transcribe_lyrics],
-        outputs=[abc_input, lyrics_input, cot_selector, cover_status, cover_download],
-        concurrency_id="yue2_gpu", concurrency_limit=1
-    )
+        # Clear Callback
+        def clear_all():
+            return "", "", "off", DEFAULT_DURATION, "", -1, None, "", "", None, None
 
-    # Editing loop: yue2_infer 0.1.5 has no audio input, so the supported way to
-    # revise a song is symbolic. Copy the score the planner produced into the ABC
-    # box, edit the notes there, and regenerate with the same seed: the acoustic
-    # stages are then re-run against your edited score instead of a fresh plan.
-    def send_score_to_editor(score, cot_mode):
-        if not score or score.strip().startswith("(No symbolic score"):
-            raise gr.Error("Generate a song with planning mode 'Melody Only' or 'Full' first, "
-                           "so there is a score to edit.")
-        # An external score needs a planning stage to attach to.
-        return score, ("melody" if cot_mode == "off" else cot_mode)
+        clear_btn.click(
+            fn=clear_all,
+            outputs=[style_input, lyrics_input, cot_selector, duration_selector, abc_input, seed_input, audio_output, status_output, score_output, master_download, archive_download]
+        )
 
-    edit_btn.click(
-        fn=send_score_to_editor,
-        inputs=[score_output, cot_selector],
-        outputs=[abc_input, cot_selector]
-    )
+        # Generation Event Binding
+        gen_event = gen_btn.click(
+            fn=generate_music,
+            inputs=[style_input, lyrics_input, cot_selector, duration_selector, abc_input, seed_input, ode_steps_slider, ode_method_selector, cfg_scale_slider, fuse_checkbox, score_only_checkbox],
+            outputs=[audio_output, score_output, status_output, master_download, archive_download],
+            concurrency_id="yue2_gpu", concurrency_limit=1
+        )
+        # queue=False so the stop request is served immediately, rather than queueing
+        # behind the generation it is meant to interrupt.
+        stop_btn.click(fn=request_stop, outputs=[status_output], queue=False, cancels=[gen_event, cover_event])
 
-    # Clear Callback
-    def clear_all():
-        return "", "", "off", DEFAULT_DURATION, "", -1, None, "", "", None, None
-
-    clear_btn.click(
-        fn=clear_all,
-        outputs=[style_input, lyrics_input, cot_selector, duration_selector, abc_input, seed_input, audio_output, status_output, score_output, master_download, archive_download]
-    )
-
-    # Generation Event Binding
-    gen_event = gen_btn.click(
-        fn=generate_music,
-        inputs=[style_input, lyrics_input, cot_selector, duration_selector, abc_input, seed_input, ode_steps_slider, ode_method_selector, cfg_scale_slider, fuse_checkbox, score_only_checkbox],
-        outputs=[audio_output, score_output, status_output, master_download, archive_download],
-        concurrency_id="yue2_gpu", concurrency_limit=1
-    )
-    # queue=False so the stop request is served immediately, rather than queueing
-    # behind the generation it is meant to interrupt.
-    stop_btn.click(fn=request_stop, outputs=[status_output], queue=False, cancels=[gen_event, cover_event])
-
-    # Branded Footer
-    gr.HTML("""
+        # Branded Footer
+        gr.HTML("""
     <div class='footer'>
         <p style='text-align: center; margin: 0 0 6px 0;'>
             <strong>AIQUEST Academy</strong> - Empowering the AI Community with Free & Open Source Solutions
@@ -1655,15 +1657,15 @@ with gr.Blocks(**blocks_kwargs) as demo:
     """)
 
 
-# Launch only one sharing mechanism; all audio and recoverable stages remain local.
-launch_kwargs = {
-    "server_name": "127.0.0.1", "share": True, "inline": False,
-    "debug": True, "show_error": True,
-    "allowed_paths": [os.environ["YUE2_OUTPUT_ROOT"]],
-}
-if "theme" in launch_params:
-    launch_kwargs["theme"] = modern_theme
-if "css" in launch_params:
-    launch_kwargs["css"] = CUSTOM_CSS
-print("Open the Gradio share link below. No generation is started automatically.", flush=True)
-demo.queue(default_concurrency_limit=1).launch(**launch_kwargs)
+    # Launch only one sharing mechanism; all audio and recoverable stages remain local.
+    launch_kwargs = {
+        "server_name": "127.0.0.1", "share": True, "inline": False,
+        "debug": True, "show_error": True,
+        "allowed_paths": [os.environ["YUE2_OUTPUT_ROOT"]],
+    }
+    if "theme" in launch_params:
+        launch_kwargs["theme"] = modern_theme
+    if "css" in launch_params:
+        launch_kwargs["css"] = CUSTOM_CSS
+    print("Open the Gradio share link below. No generation is started automatically.", flush=True)
+    demo.queue(default_concurrency_limit=1).launch(**launch_kwargs)
