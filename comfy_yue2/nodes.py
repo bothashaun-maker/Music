@@ -80,11 +80,15 @@ class Settings:
             'planning': (['off','melody','full'],),
             'steps': ('INT', {'default':16,'min':1,'max':100}),
             'method': (['euler','midpoint'],),
-            'cfg': ('FLOAT', {'default':1.0,'min':0.0,'max':10.0,'step':0.1})}}
-    def settings(self, seed, maximum_minutes, planning, steps, method, cfg):
+            'cfg': ('FLOAT', {'default':1.0,'min':0.0,'max':10.0,'step':0.1})},
+            'optional':{'abc_token_limit':('INT',{'default':4096,'min':128,'max':8192,'step':128,
+                'tooltip':'Optional symbolic-score planning budget; independent of the song-duration ceiling. Unused in direct/off mode.'})}}
+    def settings(self, seed, maximum_minutes, planning, steps, method, cfg, abc_token_limit=4096):
         if int(maximum_minutes) not in [1,2,3,6,7,8] or planning not in ['off','melody','full'] or method not in ['euler','midpoint']:
             raise ValueError('Unsupported generation settings')
-        return ({'seed':int(seed),'max_tokens':int(maximum_minutes)*60*25,'planning':planning,
+        if not 128<=int(abc_token_limit)<=8192:
+            raise ValueError('ABC planning token limit must be between 128 and 8192')
+        return ({'abc_token_limit':int(abc_token_limit),'seed':int(seed),'max_tokens':int(maximum_minutes)*60*25,'planning':planning,
                  'steps':int(steps),'method':method,'cfg':float(cfg)},)
 
 
@@ -110,11 +114,16 @@ class Plan:
                                                  engine_sha256=engine.pipe.runtime_sha256))
             began=time.perf_counter()
             plan=engine.pipe.plan(style=prompt['style'],lyrics=prompt['lyrics'],cot=mode,abc=prompt['abc'],
-                seed=settings['seed'],abc_sampling={'max_tokens':1200 if mode=='full' else 800},
+                seed=settings['seed'],abc_sampling={'max_tokens':settings.get('abc_token_limit',4096)},
                 cfg_scale=settings['cfg'],cancelled=interrupted)
             plan.save(directory)
             if plan.truncated:
-                raise ValueError(f'ABC planning reached its limit. Saved artifacts: {directory}')
+                limit=settings.get('abc_token_limit',4096)
+                write(directory/'status.json',{'status':'abc_planning_cutoff','abc_token_limit':limit,
+                    'abc_tokens':len(plan.abc_ids),'score_saved':True})
+                raise ValueError(f'ABC score reached its {limit}-token planning limit. Increase abc_token_limit on Song Settings, '
+                    f'or use planning=off with an empty ABC field for direct generation. '
+                    f'Partial score saved at {directory}; audio generation was not started.')
             if len(plan.prefix)+settings['max_tokens']>engine.yproto.CONTEXT:
                 raise ValueError('Lyrics/score and song ceiling exceed the model context')
             state={'engine':engine,'plan':plan,'settings':dict(settings),'directory':directory,

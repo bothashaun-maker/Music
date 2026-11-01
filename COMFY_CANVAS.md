@@ -40,6 +40,28 @@ folder information, while Preview Audio provides the usual canvas player. A run
 ZIP is made when space permits. Download/save desired outputs before the session
 ends. A natural end token alone does not prove complete lyrics or musical quality.
 
+### ABC planning limit
+
+`Song Settings → abc_token_limit` now defaults to **4096**, with a range of
+128–8192. Earlier canvas code silently capped Full planning at 1200 tokens and
+Melody at 800. The uploaded error report confirmed a Full planning cutoff at
+exactly 1200 tokens after about 31 seconds on the GPU. That was the planner budget,
+not the song-duration ceiling, an OOM, or CPU inference.
+
+For optional generated scores, retain your chosen planning mode and adjust this
+separate budget if needed. Higher limits allow a longer score but do not force it
+to finish naturally. A cutoff preserves its partial score/settings and status,
+then stops before music synthesis; partial notation is never treated as complete.
+The model's total context guard remains active. For direct generation with no
+score, select `off` and leave ABC empty; that path does not generate ABC.
+
+The field is optional at the node API level so existing workflow JSON without it
+still works and receives the 4096 default. Load your own saved workflow after
+updating to retain lyrics, Full planning, solver steps and CFG selections. Three
+additional CPU checks cover explicit budget forwarding, old settings without the
+field, and saved partial scores with early failure. Thirteen canvas tests pass;
+actual completion of this user's score with the higher ceiling is unverified.
+
 ## Existing WAV to ABC
 
 On the second canvas, use ComfyUI's standard **Load Audio** upload button, then

@@ -88,12 +88,40 @@ class CanvasTests(unittest.TestCase):
         self.assertEqual(json.loads((root/'status.json').read_text())['ending_reason'],'model_end_token')
         self.assertEqual(output['ui']['audio'][0]['subfolder'],str(root.relative_to(self.root)))
         self.assertEqual(self.engine.pipe.budget,12000)
-        self.assertEqual(self.engine.pipe.plan_args['abc_sampling'],{'max_tokens':800})
+        self.assertEqual(self.engine.pipe.plan_args['abc_sampling'],{'max_tokens':4096})
         self.assertEqual(self.engine.pipe.generation_config,Config(16,'euler'))
 
     def test_supplied_abc_promotes_direct_mode(self):
         self.stages(abc='X:1\nK:C\nCDEF|')
         self.assertEqual(self.engine.pipe.plan_args['cot'],'melody')
+
+    def test_explicit_abc_budget_reaches_planner(self):
+        prompt=nodes.Prompt().prompt('rock','[Verse]\nHome','')[0]
+        settings=nodes.Settings().settings(17,8,'full',16,'euler',1.0,6144)[0]
+        nodes.Plan().plan(self.engine,prompt,settings)
+        self.assertEqual(self.engine.pipe.plan_args['abc_sampling'],{'max_tokens':6144})
+        self.assertEqual(settings['max_tokens'],12000)
+
+    def test_old_settings_without_abc_field_remain_supported(self):
+        prompt=nodes.Prompt().prompt('rock','[Verse]\nHome','')[0]
+        settings=nodes.Settings().settings(17,8,'melody',16,'euler',1.0)[0]
+        settings.pop('abc_token_limit')
+        nodes.Plan().plan(self.engine,prompt,settings)
+        self.assertEqual(self.engine.pipe.plan_args['abc_sampling'],{'max_tokens':4096})
+
+    def test_truncated_plan_keeps_score_and_stops_before_music(self):
+        original=self.engine.pipe.plan
+        def cutoff(**kw):
+            plan=original(**kw);plan.truncated=True;return plan
+        self.engine.pipe.plan=cutoff
+        prompt=nodes.Prompt().prompt('rock','[Verse]\nHome','')[0]
+        settings=nodes.Settings().settings(17,8,'melody',16,'euler',1.0)[0]
+        with self.assertRaisesRegex(ValueError,'4096-token planning limit'):
+            nodes.Plan().plan(self.engine,prompt,settings)
+        self.assertTrue(list(self.root.rglob('score.abc')))
+        status=json.loads(next(self.root.rglob('status.json')).read_text())
+        self.assertEqual(status['status'],'abc_planning_cutoff')
+        self.assertFalse(list(self.root.rglob('semantic.npy')))
 
     def test_cutoff_reported_separately(self):
         audio,result=self.stages()

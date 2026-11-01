@@ -26,7 +26,7 @@ def workflows():
     node(1,'YuE2NativeEngine',(0,0),[],[('engine','YUE2_NATIVE')],size=(260,90))
     node(2,'YuE2Prompt',(0,140),[],[('prompt','YUE2_PROMPT')],
          ['Melodic rock, expressive vocals, guitar, piano, live drums','[Verse]\nPaste your complete lyrics here\n\n[Outro]\nWrite your ending here',''],size=(410,500))
-    node(3,'YuE2Settings',(0,700),[],[('settings','YUE2_SETTINGS')],[17,'randomize',8,'off',16,'euler',1.0],size=(310,240))
+    node(3,'YuE2Settings',(0,700),[],[('settings','YUE2_SETTINGS')],[17,'randomize',8,'off',16,'euler',1.0,4096],size=(310,270))
     node(4,'YuE2NativePlan',(490,180),[('engine','YUE2_NATIVE'),('prompt','YUE2_PROMPT'),('settings','YUE2_SETTINGS')],
          [('plan','YUE2_PLAN'),('abc','STRING')])
     node(5,'YuE2NativeSemantic',(840,180),[('plan','YUE2_PLAN')],[('semantic','YUE2_SEMANTIC')])
@@ -101,6 +101,8 @@ The song canvas has separate, connected prompt, settings, planning, semantic,
 acoustic, decoding, saving and standard audio-preview nodes. Edit the lyrics/style
 and settings directly on those nodes. Native FP16/CUDA-graph generation, T4
 attention patches, 16 Euler steps, CFG 1 and the 8-minute safety ceiling remain.
+ABC planning has its own visible `abc_token_limit` control (default 4096);
+it is independent of the song ceiling and unused in direct/off mode.
 The model can end earlier naturally. Saved status distinguishes a natural ending
 from a safety cutoff. Long-song quality, runtime and GPU peaks remain unverified.
 

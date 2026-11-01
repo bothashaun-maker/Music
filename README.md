@@ -5,7 +5,9 @@ This is the new interface requested: connected generation-stage nodes, normal
 Comfy controls/audio preview, and a separate WAV-to-ABC canvas. It reuses your
 existing `yue2-music-assets` and the native FP16 engine. Read
 [COMFY_CANVAS.md](COMFY_CANVAS.md) for startup, software installation and validation.
-The earlier Gradio notebook below remains a fallback.
+The earlier Gradio notebook below remains a fallback. ABC planning now has a
+visible `abc_token_limit` setting (4096 by default), replacing the hidden 800/1200
+limits in the first canvas release. Your existing workflow/settings remain usable.
 
 [Download the notebook](yue2-3b-frontier-full-song-music-generation.ipynb) using
 GitHub's **Download raw file**, then import it into Kaggle. Look for
