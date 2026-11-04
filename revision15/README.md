@@ -7,6 +7,7 @@ The older release notes below are retained as history, not new validation claims
 Use **YuE2_Music_Revision15.ipynb** from the repository root for music generation,
 or **Song-Timestamp-Studio-Canvas.ipynb** for alignment. Both have one executable
 cell and a normal ComfyUI canvas. Existing model assets remain compatible.
+The music creation notebook is published separately, outside the release ZIP.
 
 ---
 

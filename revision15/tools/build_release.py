@@ -27,7 +27,8 @@ def build():
     archive=DEST/'yue2-music-revision-15.zip'
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as bundle:
         for path in sorted(ROOT.rglob('*')):
-            if path.is_file() and '__pycache__' not in path.parts and path.suffix!='.pyc':
+            if (path.is_file() and '__pycache__' not in path.parts and path.suffix!='.pyc'
+                    and path.name != 'yue2-3b-frontier-full-song-music-generation.ipynb'):
                 bundle.write(path,path.relative_to(ROOT))
     print(archive)
 

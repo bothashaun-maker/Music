@@ -7,6 +7,8 @@ notebooks and the ZIP. Keep native FP16 generation and existing datasets.
 The prior branch notes below are retained for continuity; their historical
 validation claims do not establish a new live GPU or Cloudflare run.
 
+Publish the music creation notebook separately; exclude it from the release ZIP.
+
 # User preferences and continuity
 
 - Preserve working behavior. Prefer scoped, additive improvements; do not remove

@@ -5,6 +5,8 @@
 - [Complete repaired ZIP](yue2-music-revision-15.zip)
 - [Repair findings and validation limits](revision15/REPAIR_REPORT.md)
 
+The music creation notebook is published separately and is excluded from the ZIP.
+
 These files repair the user's uploaded revision 14 branch. Both notebooks retain
 one-cell startup and standard ComfyUI canvases. Existing YuE2 datasets remain
 compatible. 101 CPU/local-HTTP checks passed, including a byte-identical 75 MiB
