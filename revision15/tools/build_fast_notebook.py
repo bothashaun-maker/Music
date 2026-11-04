@@ -250,6 +250,10 @@ else:
     cells = [cell('markdown', '''
         # YuE2 on Kaggle — native FP16 engine (revision 15, one cell, canvas first)
 
+        **Cover upload update:** in the cover canvas, use **Upload song
+        (resumable)** inside LoadAudio. The original upload control remains
+        available; song generation and the full-song canvas are unchanged.
+
         **First time:** run `yue2-build-kaggle-assets.ipynb` once on Kaggle with
         Internet and **no GPU**, then save its outputs as a private dataset.
         Add that dataset to this notebook with **Add Input**. You can also attach
@@ -269,8 +273,11 @@ else:
           → Save Song. Direct-to-audio by default; switch the Plan Score node to
           Melody or Full mode for an ABC score, or paste a score into a
           **YuE2 Custom ABC** node.
-        * **YuE2 Cover / Restyle** — upload your song with the standard
-          **LoadAudio** node, analyze the melody (SheetSage2, FP32 for T4), then
+        * **YuE2 Cover / Restyle** — use **Upload song (resumable)** on the
+          **LoadAudio** node to avoid a single long upload request. Your WAV is
+          kept unchanged; failed pieces retry, and choosing the same file resumes
+          an interrupted upload. Wait for **ready** before pressing Run.
+          Analyze the melody (SheetSage2, FP32 for T4), then
           write the new style. The engine loads only after analysis finishes.
 
         This restores the original

@@ -8,6 +8,9 @@ Use **YuE2_Music_Revision15.ipynb** from the repository root for music generatio
 or **Song-Timestamp-Studio-Canvas.ipynb** for alignment. Both have one executable
 cell and a normal ComfyUI canvas. Existing model assets remain compatible.
 The music creation notebook is published separately, outside the release ZIP.
+For cover songs, choose **Upload song (resumable)** on LoadAudio and wait for
+**ready** before pressing Run. If disconnected, choose the same file again to
+resume completed pieces. The original upload control remains available.
 
 ---
 

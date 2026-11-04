@@ -8,6 +8,9 @@ The prior branch notes below are retained for continuity; their historical
 validation claims do not establish a new live GPU or Cloudflare run.
 
 Publish the music creation notebook separately; exclude it from the release ZIP.
+The user confirmed full-song creation works. Preserve its graph and engine.
+Cover uploads now add a resumable button to the existing LoadAudio node via
+native_yue2/cover_upload{,_web}.py; preserve the original upload control too.
 
 # User preferences and continuity
 

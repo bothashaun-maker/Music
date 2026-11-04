@@ -773,6 +773,10 @@ from aiohttp import web
 from server import PromptServer
 
 if getattr(PromptServer, "instance", None) is not None:
+    from native_yue2.cover_upload import register_routes as register_cover_upload_routes
+    register_cover_upload_routes(PromptServer.instance, folder_paths.get_input_directory(),
+                                 folder_paths.get_temp_directory())
+
     @PromptServer.instance.routes.get("/yue2/status")
     async def yue2_status(request):
         payload = {

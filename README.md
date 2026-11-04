@@ -6,10 +6,13 @@
 - [Repair findings and validation limits](revision15/REPAIR_REPORT.md)
 
 The music creation notebook is published separately and is excluded from the ZIP.
+For cover uploads, use **Upload song (resumable)** inside the existing LoadAudio
+node. It retries small pieces and preserves the original file. The full-song
+canvas and native generation engine are unchanged by this upload fix.
 
 These files repair the user's uploaded revision 14 branch. Both notebooks retain
 one-cell startup and standard ComfyUI canvases. Existing YuE2 datasets remain
-compatible. 101 CPU/local-HTTP checks passed, including a byte-identical 75 MiB
+compatible. 108 CPU/local-HTTP checks passed, including a byte-identical 75 MiB
 WAV transfer and the complete native-node stage chain with a synthetic pipeline.
 Live Kaggle GPU generation and public Cloudflare transfer were not verified.
 The older notebooks below remain available and have not been replaced.

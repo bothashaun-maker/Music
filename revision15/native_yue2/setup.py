@@ -70,6 +70,7 @@ def write_comfy_pack(comfy_dir):
     """Install the KaggleYuE2 node pack: engine wrapper nodes + two canvases."""
     from .comfy_canvas import build_all
     from .comfy_web import OPEN_WORKFLOW_JS
+    from .cover_upload_web import COVER_UPLOAD_JS
     comfy_dir = Path(comfy_dir)
     pack = comfy_dir / 'custom_nodes' / 'KaggleYuE2'
     (pack / 'web').mkdir(parents=True, exist_ok=True)
@@ -77,6 +78,7 @@ def write_comfy_pack(comfy_dir):
     compile(source, 'comfy_pack.py', 'exec')  # Fail setup, never the browser session.
     (pack / '__init__.py').write_text(source)
     (pack / 'web' / 'open_workflow.js').write_text(OPEN_WORKFLOW_JS)
+    (pack / 'web' / 'cover_upload.js').write_text(COVER_UPLOAD_JS)
     graphs = build_all()
     for name, graph in graphs.items():
         (pack / 'web' / f'yue2-{name}.json').write_text(json.dumps(graph, indent=1))

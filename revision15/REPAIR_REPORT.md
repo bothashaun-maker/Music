@@ -1,5 +1,27 @@
 # Revision 14 audit → revision 15
 
+## Cover upload timeout follow-up
+
+The user confirmed song creation works and the cover timeout occurs while
+uploading the source song. The cover graph still used ComfyUI's single-request
+upload. An additional **Upload song (resumable)** button now appears on the
+existing LoadAudio node. The original control remains available. The new route
+transfers 1 MiB pieces with retries, keeps completed pieces for resume, validates
+piece lengths, assembles off the HTTP event loop and automatically selects the
+finished song on the canvas. Finish retries are idempotent and same-named songs
+get separate filenames. Original WAV bytes are preserved; no conversion or
+compression is performed. No timestamp/alignment dependencies are added.
+
+All 108 checks passed, including seven new checks covering real local HTTP
+transfers, an unchanged 75 MiB WAV,
+interrupted pieces/resume, duplicate finish, invalid metadata, path confinement,
+same-name concurrency, and the actual JavaScript upload handler with an injected
+HTTP 503. The handler retry selects the uploaded song successfully. The working
+full-song graph and native engine match their previous release hashes. These
+checks do not establish live Cloudflare reliability or a Kaggle run. A runtime
+traceback was not provided, so the particular proxy/browser timeout limit is
+not established. The update avoids relying on one long upload request.
+
 This repair is based on the uploaded `yue2-music-revision-14.zip`, not a rollback
 to an older GitHub implementation. The uploaded source is preserved separately
 in the engineer's workspace. Existing root-level GitHub workflows are untouched;
@@ -83,7 +105,7 @@ byte-identical, with a readable WAV header. Tests cover interrupted/missing piec
 resume, duplicate finish, simultaneous same-named files, changed audio cache,
 planning budget forwarding, engine reuse/release, cancellation, valid masters,
 native plan preservation, and rejection of NaN exports. Generated notebooks parse
-and their payloads match the shipped sources. **101 tests passed** in the final suite. Python notebook cells and embedded
+and their payloads match the shipped sources. **101 tests passed** in the initial repair suite (108 after the cover-upload follow-up). Python notebook cells and embedded
 frontend JavaScript also passed syntax checks.
 
 These are CPU/local-server checks. They are not a completed Kaggle GPU song,
