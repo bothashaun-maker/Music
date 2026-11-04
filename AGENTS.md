@@ -21,3 +21,12 @@
   back to the earlier Comfy INT8/FP32 generation runtime. The old UI remains only
   as a fallback. Native stage nodes live in comfy_yue2/; never flatten the graph
   into one wrapper node. A headless guard skips Gradio construction in this mode.
+
+- Latest task (2026-11-04): repair the supplied yue2-music-revision-14.zip.
+  The repaired branch is in revision15/ so the prior root implementation remains
+  available. Current delivery: YuE2_Music_Revision15.ipynb and
+  Song-Timestamp-Studio-Canvas.ipynb. Rebuild via
+  python revision15/tools/build_release.py; audit: revision15/REPAIR_REPORT.md.
+  Use that branch's sources/tests for future revision-15 fixes, preserve the
+  existing asset schema/native engine, and distinguish local/CPU checks from
+  live Kaggle or Cloudflare runs. No new asset dataset is required by this repair.

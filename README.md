@@ -1,3 +1,19 @@
+# Uploaded revision 14 — repaired revision 15
+
+- [Music notebook — revision 15](YuE2_Music_Revision15.ipynb)
+- [Song Timestamp Studio canvas](Song-Timestamp-Studio-Canvas.ipynb)
+- [Complete repaired ZIP](yue2-music-revision-15.zip)
+- [Repair findings and validation limits](revision15/REPAIR_REPORT.md)
+
+These files repair the user's uploaded revision 14 branch. Both notebooks retain
+one-cell startup and standard ComfyUI canvases. Existing YuE2 datasets remain
+compatible. 101 CPU/local-HTTP checks passed, including a byte-identical 75 MiB
+WAV transfer and the complete native-node stage chain with a synthetic pipeline.
+Live Kaggle GPU generation and public Cloudflare transfer were not verified.
+The older notebooks below remain available and have not been replaced.
+
+---
+
 # YuE2 music generation on Kaggle — native FP16 engine
 
 **Standard ComfyUI canvas:** [YuE2_ComfyUI_Kaggle.ipynb](YuE2_ComfyUI_Kaggle.ipynb).
