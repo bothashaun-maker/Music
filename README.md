@@ -1,5 +1,13 @@
 # Uploaded revision 14 — repaired revision 15
 
+**Timestamp Studio alignment update:** the reported speech-filter and CUDA-library
+failures are addressed in the [Studio notebook](Song-Timestamp-Studio-Canvas.ipynb).
+Music transcription keeps speech VAD off, reports CPU fallback when Whisper's
+CUDA runtime cannot load, and stops zero-match exports. Logs and heard-word
+diagnostics are retained. The working music-creation notebook is unchanged.
+All 118 local checks passed; recognition on the user's actual song remains
+unverified. [Fix details and limits](revision15/STUDIO_ALIGNMENT_FIX.md).
+
 - [Music notebook — revision 15](YuE2_Music_Revision15.ipynb)
 - [Song Timestamp Studio canvas](Song-Timestamp-Studio-Canvas.ipynb)
 - [Complete repaired ZIP](yue2-music-revision-15.zip)

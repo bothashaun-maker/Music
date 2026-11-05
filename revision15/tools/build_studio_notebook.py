@@ -50,10 +50,16 @@ def build_payload():
 
 MD_TOP = """# 🎛️ Song Timestamp Studio — ComfyUI canvas (Kaggle)
 
-**One cell. One link. Your lyrics onto exact seconds.**
+**One cell. One link. Lyric timestamps you can check against the recording.**
+
+**Alignment fix:** music is transcribed with the speech-only filter disabled.
+If Whisper's CUDA libraries cannot load, the Studio reports a switch to CPU INT8.
+No-words/zero-match results stop before export. Runtime messages now appear below
+the running cell and are saved under `timestamp_studio/logs/`; each attempt also
+saves the heard transcript and recognition diagnostics under `diagnostics/`.
 
 Works exactly like your Movies / H3 canvases: attach nothing, select **Accelerator: None**
-(CPU is plenty — no GPU hours burned) and **Internet ON**, run the single cell below, then
+(CPU supported — no GPU hours burned) and **Internet ON**, run the single cell below, then
 click the printed ☁️ **Cloudflare** link — the full node graph opens directly, ready to run.
 The canvas is also under ComfyUI's **Workflows** menu.
 
@@ -77,11 +83,12 @@ from pathlib import Path
 
 ROOT = Path("/kaggle/temp/timestamp_studio")
 OUT = Path("/kaggle/working/timestamp_studio")
+LOGS = OUT / "logs"
 SUPPORT = ROOT / "support"
 COMFY_PORT = 8188
 COMFYUI_REPO = "https://github.com/comfyanonymous/ComfyUI.git"
 COMFYUI_COMMIT = "@COMFYUI_COMMIT"
-for p in (ROOT, OUT, SUPPORT):
+for p in (ROOT, OUT, SUPPORT, LOGS):
     p.mkdir(parents=True, exist_ok=True)
 os.environ.update({
     "HF_HOME": str(ROOT / "huggingface"), "HF_HUB_CACHE": str(ROOT / "huggingface/hub"),
@@ -179,8 +186,8 @@ else:
     with socket.socket() as probe:
         if probe.connect_ex(("127.0.0.1", COMFY_PORT)) == 0:
             raise RuntimeError(f"Port {COMFY_PORT} is occupied by another notebook.")
-    log_path = ROOT / "comfyui.log"
-    comfy_log = log_path.open("w")
+    log_path = LOGS / "comfyui.log"
+    comfy_log = log_path.open("a")
     # CPU-only machines (Kaggle "Accelerator: None") need --cpu; T4 sessions use the GPU.
     launch_flags = ["--listen", "127.0.0.1", "--port", str(COMFY_PORT),
                     "--output-directory", str(OUT), "--disable-auto-launch",
@@ -199,6 +206,7 @@ else:
         for line in stream:
             log.write(line)
             log.flush()
+            print(line, end="", flush=True)
         log.close()
 
     threading.Thread(target=_drain, args=(comfy_process.stdout, comfy_log), daemon=True).start()
@@ -294,6 +302,7 @@ if cf_link:
 else:
     print("  No public link was established; check the tunnel error above.", flush=True)
 print("  Workflows menu → Song Timestamp Studio", flush=True)
+print("  Runtime log: " + str(LOGS / "comfyui.log"), flush=True)
 print("=" * 64, flush=True)
 
 # --- 7 · keep the session alive while you use the canvas ----------------------
@@ -339,23 +348,24 @@ Output panel before the session ends. REAPER audit: drag `_reaper_markers.csv` i
 ## ✅ How to trust the timings
 
 - **Per-line confidence** in the Export report (`100% — solid` / `86% — solid` / `54% — check`).
-  🟢 75%+ overall = tight timings. 🔴 low → bigger model, vocal isolation ON, check language.
+  Word-match percentage measures text agreement, not timestamp accuracy. Listen to
+  representative lines even when the match is high. Zero matches stop the export.
 - **▶️ Audition** any line — the vocal should enter when the line fires.
 - **REAPER** — eyeball every flag against the waveform; you make the final call.
 - **Nudge** — if everything feels early/late by the same amount, shift once, re-run.
 
-**Measured accuracy** (synthetic song with known ground-truth timings, CPU, base model):
-all 6 test lines within **±0.46 s** (mean +0.20 s), 95% of words located; the same engine
-passed 37 format/behaviour checks and the canvas itself was queued through real ComfyUI
-(`STSLoadSong → … → Export All`) reproducing those exact timings. Real sung vocals vary more
-than clean test speech — expect ±0.2–0.5 s line timing on clear mixes. Word-level karaoke
-timing is not included.
+The alignment fix has CPU/mock regression checks for the reported filtering and
+CUDA failures. Those checks do not measure accuracy on your recording. There is
+no guaranteed line-level error bound; check the exports by listening. Word-level
+karaoke timing is not included.
 
 ## 🔧 Troubleshooting
 
 | Symptom | Fix |
 |---|---|
 | First Run is slow | Whisper models are pre-cached by the setup cell; if the cache step was skipped, the first Run downloads once (~150–500 MB). |
+| CUDA library unavailable | Studio reports CPU INT8 fallback; no CUDA packages are installed over Kaggle's PyTorch stack. |
+| No words / zero matches | Export stops. Check `diagnostics/<attempt>/alignment.json` for the heard text, audio levels and backend before another attempt. |
 | 🔴 Low match % | model `small`; vocal isolation ON; check Language; lyrics must match what is actually sung. |
 | All times slightly early/late | **Nudge** node → set the offset → Run again → re-download. |
 | No YouTube chapters | Add `[Verse]` / `[Chorus]` style tags in the lyrics box and run again. |

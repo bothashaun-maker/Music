@@ -125,12 +125,28 @@ def fmt_plain(t):
 # device / model handling
 # ----------------------------------------------------------------------------
 
+_CUDA_DISABLED_REASON = None
+_TRANSCRIPTION_DIAGNOSTICS = {}
+
 
 def pick_device():
+    global _CUDA_DISABLED_REASON
+    if _CUDA_DISABLED_REASON:
+        return "cpu", "int8"
     try:
         import ctranslate2
 
         if ctranslate2.get_cuda_device_count() > 0:
+            # CTranslate2's CUDA 12 runtime is independent of PyTorch's CUDA 13
+            # wheels. A visible T4 does not establish that these libraries load.
+            import ctypes
+            try:
+                ctypes.CDLL("libcublas.so.12")
+                ctypes.CDLL("libcudnn.so.9")
+            except OSError as exc:
+                _CUDA_DISABLED_REASON = str(exc)
+                print("[TimestampStudio] Whisper CUDA unavailable; using CPU INT8: " + str(exc), flush=True)
+                return "cpu", "int8"
             return "cuda", "float16"
     except Exception:
         pass
@@ -217,26 +233,61 @@ def transcribe_words(audio_path, model_size, language):
 
     words: [{'word','start','end'}] with word timestamps from faster-whisper.
     """
+    global _CUDA_DISABLED_REASON
+    _TRANSCRIPTION_DIAGNOSTICS.clear()
     device, compute_type = pick_device()
-    size = resolve_model_size(model_size)
-    model = get_model(size, device, compute_type)
+    size = model_size if model_size and model_size != "auto" else ("small" if device == "cuda" else "base")
     audio = load_audio_16k(audio_path)
+    if not audio.size or not np.isfinite(audio).all() or not np.any(audio):
+        raise ValueError("The decoded recording is empty, silent or nonfinite; check the source audio")
+    _TRANSCRIPTION_DIAGNOSTICS.update(
+        model=size, device=device, compute_type=compute_type, vad_filter=False,
+        cuda_fallback_reason=_CUDA_DISABLED_REASON,
+        audio_seconds=float(len(audio) / 16000),
+        audio_peak=float(np.max(np.abs(audio))),
+        audio_rms=float(np.sqrt(np.mean(audio.astype(np.float64) ** 2))))
     lang = None if (not language or language == "auto") else language
-    segments_iter, info = model.transcribe(
-        audio,
-        language=lang,
-        word_timestamps=True,
-        condition_on_previous_text=False,
-        vad_filter=True,
-        beam_size=5,
-    )
-    words, segs = [], []
-    for seg in segments_iter:
-        segs.append({"start": seg.start, "end": seg.end, "text": seg.text.strip()})
-        for w in seg.words or []:
-            token = (w.word or "").strip()
-            if token:
-                words.append({"word": token, "start": float(w.start), "end": float(w.end)})
+    def recognize(selected_device, selected_compute):
+        print(f"[TimestampStudio] Transcribing music: {size}, {selected_device}/{selected_compute}, speech filter OFF", flush=True)
+        model = get_model(size, selected_device, selected_compute)
+        segments_iter, info = model.transcribe(
+            audio, language=lang, word_timestamps=True,
+            condition_on_previous_text=False,
+            # Speech-only VAD removed this user's entire sung recording.
+            vad_filter=False, beam_size=5)
+        words, segs = [], []
+        _TRANSCRIPTION_DIAGNOSTICS.update(words=words, segments=segs)
+        # CUDA failures can occur only when this lazy iterator is consumed.
+        for seg in segments_iter:
+            segs.append({"start": float(seg.start), "end": float(seg.end), "text": seg.text.strip()})
+            for w in seg.words or []:
+                token = (w.word or "").strip()
+                if token:
+                    words.append({"word": token, "start": float(w.start), "end": float(w.end)})
+            _TRANSCRIPTION_DIAGNOSTICS.update(word_count=len(words), segment_count=len(segs))
+            print(f"[TimestampStudio] Whisper: {seg.end:.1f}s decoded, {len(words)} words", flush=True)
+        return words, segs, info
+    try:
+        words, segs, info = recognize(device, compute_type)
+    except (RuntimeError, OSError) as exc:
+        message = str(exc).lower()
+        library_failure = any(term in message for term in
+                              ("libcublas", "libcudnn", "libcudart", "cublas_status", "cudnn_status"))
+        if device != "cuda" or not library_failure:
+            raise
+        _CUDA_DISABLED_REASON = str(exc)
+        failed_model = _MODEL_CACHE.pop((size, device, compute_type), None)
+        del failed_model
+        print("[TimestampStudio] Whisper CUDA library failure; retrying this transcription once on CPU INT8: " + str(exc), flush=True)
+        device, compute_type = "cpu", "int8"
+        _TRANSCRIPTION_DIAGNOSTICS.update(device=device, compute_type=compute_type,
+                                          cuda_fallback_reason=str(exc))
+        words, segs, info = recognize(device, compute_type)
+    _TRANSCRIPTION_DIAGNOSTICS.update(words=words, segments=segs,
+                                      word_count=len(words), segment_count=len(segs))
+    print(f"[TimestampStudio] Heard {len(words)} timestamped words in {len(segs)} segments", flush=True)
+    if not segs:
+        raise ValueError("Whisper recognized no vocal segments. Alignment stopped; inspect the saved transcription diagnostics before retrying")
     duration = float(getattr(info, "duration", 0.0)) or float(len(audio) / 16000.0)
     detected = getattr(info, "language", None)
     return words, segs, duration, detected, size
@@ -344,11 +395,7 @@ def assign_word_times(whisper_words, sing_entries, duration):
     matched_js = [j for j in range(total) if starts[j] is not None]
 
     if not matched_js:
-        # nothing matched at all: spread words evenly over the audio
-        span = max(duration - 1.0, 1.0)
-        for j in range(total):
-            starts[j] = 0.5 + span * j / max(total, 1)
-            ends[j] = starts[j] + 0.4
+        raise ValueError("No supplied lyric words matched the recording. Alignment stopped without generating estimated timestamps. Check the saved heard transcript and that the lyrics match this audio")
     else:
         # global median char rate as fallback
         rates = []
@@ -691,6 +738,9 @@ def fmt_json(result, offset):
         "language_detected": result.get("detected_language"),
         "model": result.get("model_used"),
         "device": result.get("device"),
+        "status": result.get("status"),
+        "duration_seconds": result.get("duration"),
+        "transcription": result.get("transcription", {}),
         "lyric_word_match_rate": result.get("match_rate"),
         "offset_seconds": offset,
         "bpm": result.get("bpm"),
@@ -784,7 +834,8 @@ def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", i
     result["duration"] = duration
     result["detected_language"] = detected
     result["model_used"] = size_used
-    result["device"] = pick_device()[0]
+    result["device"] = _TRANSCRIPTION_DIAGNOSTICS.get("device") or pick_device()[0]
+    result["transcription"] = dict(_TRANSCRIPTION_DIAGNOSTICS)
 
     entries = parse_lyrics(lyrics_text)
     sing = [e for e in entries if e["kind"] == "sing"]
@@ -808,16 +859,20 @@ def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", i
                 entries.append({"kind": "sing", "text": p, "start": t, "end": t + d, "words": []})
                 t += d
         result["entries"] = entries
+        if not entries:
+            raise ValueError("Whisper returned no usable lyric text; inspect the transcription diagnostics")
         result["match_rate"] = None
         result["status"] = (
             f"✅ **Auto-transcribed** {len(entries)} lines with Whisper ({size_used} on {result['device']}). "
-            "You did not supply lyrics, so the text is what the AI heard — check it, or paste your real lyrics for guaranteed-correct text."
+            "You did not supply lyrics, so the text is what the AI heard. Check the words and timing against the recording."
         )
     elif not sing:
         result["entries"] = []
         result["status"] = "⚠️ Your lyric sheet has no sung lines — only [tags]. Add the actual lyric lines."
         return result
     else:
+        if not words:
+            raise ValueError("Whisper returned no word timestamps for lyric alignment. Inspect the saved transcription diagnostics")
         match_count, total = assign_word_times(words, sing, duration)
         build_line_times(entries, duration)
         result["entries"] = entries
@@ -826,7 +881,7 @@ def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", i
         pct = int(round(rate * 100))
         if rate >= 0.75:
             mood = "🟢"
-            advice = "Strong match — timings should be tight."
+            advice = "Strong text match — audition the timings; this percentage does not measure timing error."
         elif rate >= 0.55:
             mood = "🟡"
             advice = "Decent match — audition a few lines; try the offset slider if everything feels early/late."
@@ -908,6 +963,8 @@ def render_outputs(result, offset=0.0):
 
 
 def build_zip(result, offset=0.0):
+    if result.get("match_rate") == 0:
+        raise ValueError("Export stopped: no lyric words matched the recording")
     outs = render_outputs(result, offset)
     stem = re.sub(r"[^A-Za-z0-9_-]+", "_", result.get("song") or "song") or "song"
     files = {
@@ -925,6 +982,7 @@ def build_zip(result, offset=0.0):
         "=============================\n"
         f"Song: {result.get('song')}\n"
         f"Offset applied: {offset:+.2f} s\n\n"
+        f"Alignment status: {result.get('status', 'not recorded')}\n\n"
         f"{stem}.lrc                  synced lyrics, line level (LRC players / lyric-video tools)\n"
         f"{stem}.srt                  subtitles for CapCut / DaVinci Resolve / Premiere\n"
         f"{stem}.vtt                  captions for YouTube upload\n"

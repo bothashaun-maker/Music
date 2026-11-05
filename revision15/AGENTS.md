@@ -12,6 +12,13 @@ The user confirmed full-song creation works. Preserve its graph and engine.
 Cover uploads now add a resumable button to the existing LoadAudio node via
 native_yue2/cover_upload{,_web}.py; preserve the original upload control too.
 
+Studio follow-up: real Kaggle logs showed speech VAD removed all music and
+CTranslate2 could not load libcublas.so.12 despite PyTorch CUDA 13 seeing T4s.
+Keep music recognition VAD off, report CPU INT8 fallback for CUDA library errors,
+stop zero-match/empty recognition before export, retain heard-word diagnostics,
+and stream logs to the notebook plus /kaggle/working/timestamp_studio/logs/.
+Never describe matched-word percentage as a measured timing accuracy bound.
+
 # User preferences and continuity
 
 - Preserve working behavior. Prefer scoped, additive improvements; do not remove

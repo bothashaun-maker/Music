@@ -75,7 +75,8 @@ def _result_summary(result):
     rate_text = f"{int(round(100 * rate))}% of lyric words located" if rate is not None else "auto-transcribed"
     bpm = result.get("bpm")
     bpm_text = f", ~{bpm:.1f} BPM" if bpm else ""
-    return (f"✅ {lines} sung lines · {rate_text} · "
+    indicator = "✅" if rate is None or rate >= 0.75 else "⚠️"
+    return (f"{indicator} {lines} sung lines · {rate_text} · "
             f"{(result.get('duration') or 0):.1f}s{bpm_text}")
 
 
@@ -284,15 +285,38 @@ class STSAlign:
         model_management.throw_exception_if_processing_interrupted()
         path = _audio_to_temp_wav(audio)
         try:
+            import folder_paths
+            output_root = folder_paths.get_output_directory()
+        except Exception:
+            output_root = os.environ.get("STS_OUTPUT_ROOT") or os.path.join(os.getcwd(), "output")
+        diagnostics_root = os.path.join(output_root, "diagnostics")
+        os.makedirs(diagnostics_root, exist_ok=True)
+        diagnostic_dir = tempfile.mkdtemp(prefix=_safe_stem(opts["song_name"]) + "_", dir=diagnostics_root)
+        diagnostic_path = os.path.join(diagnostic_dir, "alignment.json")
+        details = {"song": opts["song_name"], "options": dict(opts), "status": "running"}
+        engine._TRANSCRIPTION_DIAGNOSTICS.clear()
+        print(_PREF + "Alignment diagnostics: " + diagnostic_path, flush=True)
+        try:
             result = engine.run_alignment(
                 path, opts["lyrics"], model_size=opts["model"], language=opts["language"],
                 isolate_vocals_flag=opts["isolate_vocals"])
+            if not result.get("entries"):
+                raise ValueError(result.get("status") or "No aligned lyric lines were produced")
+            details.update(status="finished", match_rate=result.get("match_rate"),
+                           alignment_status=result.get("status"))
+        except Exception as exc:
+            details.update(status="failed", error=f"{type(exc).__name__}: {exc}")
+            raise
         finally:
+            details["transcription"] = dict(engine._TRANSCRIPTION_DIAGNOSTICS)
+            with open(diagnostic_path, "w") as target:
+                json.dump(details, target, indent=2, ensure_ascii=False)
             os.remove(path)
         result["song"] = opts["song_name"]
         result["nudge"] = 0.0
         print(_PREF + _result_summary(result), flush=True)
-        return {"ui": {"text": [_result_summary(result)]}, "result": (result,)}
+        return {"ui": {"text": [_result_summary(result), result.get("status", ""),
+                                  "Diagnostics: " + diagnostic_path]}, "result": (result,)}
 
 
 class STSNudge:
@@ -371,6 +395,8 @@ class STSExportAll:
         import comfy.model_management as model_management
 
         model_management.throw_exception_if_processing_interrupted()
+        if result.get("match_rate") == 0:
+            raise ValueError("Export stopped: no lyric words matched the recording. These timestamps are not an alignment")
         try:
             import folder_paths
 

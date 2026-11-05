@@ -167,4 +167,37 @@ class UploadTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sf.info(first).subtype,'FLOAT')
         self.assertEqual(float(sf.read(first,dtype='float32')[0][0]),float(waveform[0,0,0]))
 
+    async def test_failed_alignment_keeps_transcript_diagnostics_without_exporting(self):
+        comfy = ModuleType('comfy')
+        mm = ModuleType('comfy.model_management')
+        mm.throw_exception_if_processing_interrupted = lambda: None
+        comfy.model_management = mm
+        opts = {'song_name':'test', 'lyrics':'The verdict stands', 'model':'small',
+                'language':'en', 'isolate_vocals':False}
+        def fail(*args, **kwargs):
+            self.pack.engine._TRANSCRIPTION_DIAGNOSTICS.update(
+                word_count=0, words=[], segments=[], vad_filter=False, device='cpu')
+            raise ValueError('Whisper recognized no vocal segments')
+        with patch.dict(sys.modules, {'comfy':comfy, 'comfy.model_management':mm}), \
+             patch.object(self.pack.engine, 'run_alignment', side_effect=fail):
+            with self.assertRaisesRegex(ValueError, 'no vocal segments'):
+                self.pack.STSAlign().execute({'waveform':torch.full((1,2,16000),.1),
+                                              'sample_rate':16000}, opts)
+        files = list((self.root/'output'/'diagnostics').rglob('alignment.json'))
+        self.assertEqual(len(files), 1)
+        details = json.loads(files[0].read_text())
+        self.assertEqual(details['status'], 'failed')
+        self.assertEqual(details['transcription']['word_count'], 0)
+        self.assertEqual(list((self.root/'output').rglob('*.zip')), [])
+
+    async def test_export_node_rejects_previous_zero_match_results(self):
+        comfy = ModuleType('comfy')
+        mm = ModuleType('comfy.model_management')
+        mm.throw_exception_if_processing_interrupted = lambda: None
+        comfy.model_management = mm
+        with patch.dict(sys.modules, {'comfy':comfy, 'comfy.model_management':mm}):
+            with self.assertRaisesRegex(ValueError, 'Export stopped'):
+                self.pack.STSExportAll().execute({'match_rate':0, 'entries':[]})
+        self.assertTrue(self.pack._result_summary({'match_rate':0,'entries':[]}).startswith('⚠️'))
+
 if __name__=='__main__':unittest.main()
