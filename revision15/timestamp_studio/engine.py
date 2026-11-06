@@ -591,11 +591,10 @@ def build_cut_plan(sections, beats, bpm, duration, beats_per_clip):
 def _collect_tags(entries, duration):
     """Tag entries as [(name, time)], with a proper 0:00 intro chapter."""
     tags = [(e["text"], float(e["start"])) for e in entries if e["kind"] == "tag"]
-    if tags and tags[0][1] > 1.0:
-        if "intro" in tags[0][0].strip().lower():
-            tags[0] = (tags[0][0], 0.0)
-        else:
-            tags.insert(0, ("Intro", 0.0))
+    if tags and "intro" in tags[0][0].strip().lower():
+        tags[0] = (tags[0][0], 0.0)
+    elif tags and tags[0][1] > 1.0:
+        tags.insert(0, ("Intro", 0.0))
     return tags
 
 
@@ -697,18 +696,20 @@ def fmt_reaper(entries, duration):
     """
     rows = ["#,Name,Start,End,Length,Color"]
     m_id = r_id = 0
-    sec = [e for e in entries if e["kind"] == "tag"]
+    # Use the same section boundaries as chapters/cut plans. A tag's lyric time
+    # is the first vocal onset; an opening Intro region covers the audio from 0.
+    sec = build_sections(entries, duration) if any(e["kind"] == "tag" for e in entries) else []
     sing = [e for e in entries if e["kind"] == "sing"]
     for e in sing:
         m_id += 1
         rows.append(
             f"M{m_id},{_csv_field(e['text'])},{fmt_clock(e['start'], force_hours=True)},,,"
         )
-    for k, e in enumerate(sec):
+    for e in sec:
         r_id += 1
-        end = sec[k + 1]["start"] if k + 1 < len(sec) else max(duration, e["start"] + 1.0)
+        end = e["end"]
         rows.append(
-            f"R{r_id},{_csv_field(e['text'].title())},{fmt_clock(e['start'], force_hours=True)},"
+            f"R{r_id},{_csv_field(e['name'])},{fmt_clock(e['start'], force_hours=True)},"
             f"{fmt_clock(end, force_hours=True)},{fmt_clock(end - e['start'], force_hours=True)},"
         )
     return "\n".join(rows)

@@ -18,6 +18,10 @@ Keep music recognition VAD off, report CPU INT8 fallback for CUDA library errors
 stop zero-match/empty recognition before export, retain heard-word diagnostics,
 and stream logs to the notebook plus /kaggle/working/timestamp_studio/logs/.
 Never describe matched-word percentage as a measured timing accuracy bound.
+REAPER export follow-up: derive section regions from build_sections, as chapters
+do, so an opening Intro begins at project zero even if vocals begin later.
+Never shift lyric marker onsets just to repair the Intro boundary. REAPER's
+Start column can display bars/beats; verify units before claiming a seconds offset.
 
 # User preferences and continuity
 

@@ -37,3 +37,13 @@ The music-creation notebook, its native engine and full-song graph remain
 byte-identical to the working previous release. Existing asset datasets and
 the resumable upload routes remain compatible. Accelerator **None** is supported
 for Studio; CPU inference may take longer than a working GPU backend.
+
+## Opening Intro region export
+
+The REAPER CSV formatter used raw section-tag times, anchoring Intro to the first
+vocal even though chapter/cut-plan sections already included the instrumental
+opening from zero. It now uses the same section boundaries as the chapter
+builder. An initial Intro always begins at 0:00. Lyric marker positions remain
+unchanged. Five export-only regression checks cover the opening boundary,
+chapter consistency, subsecond intros, lead-ins and marker-only exports. This
+does not establish or repair the timing accuracy of the recognized lyric lines.
