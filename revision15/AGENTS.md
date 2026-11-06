@@ -23,6 +23,15 @@ do, so an opening Intro begins at project zero even if vocals begin later.
 Never shift lyric marker onsets just to repair the Intro boundary. REAPER's
 Start column can display bars/beats; verify units before claiming a seconds offset.
 
+Studio revision 16 bypasses fuzzy transcription matching for supplied English
+lyrics. timestamp_studio/acoustic.py runs a pinned Wav2Vec2 CTC acoustic model,
+bounded inference windows and a full-target Viterbi path with blank states for
+gaps. Model/frame caches live in working outputs and can be reattached. Automatic
+transcription remains Whisper-based. Do not present acoustic scores or synthetic
+speech results as verified accuracy on the user's recording. The full WAV upload
+could not be transferred here because of the 32 MiB tool limit. Music creation
+must remain unchanged. See STUDIO_ACOUSTIC_REPAIR.md for current limits.
+
 # User preferences and continuity
 
 - Preserve working behavior. Prefer scoped, additive improvements; do not remove

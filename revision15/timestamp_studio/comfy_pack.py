@@ -72,6 +72,9 @@ def _audio_to_temp_wav(audio):
 def _result_summary(result):
     lines = len([e for e in result.get("entries", []) if e.get("kind") == "sing"])
     rate = result.get("match_rate")
+    if result.get("alignment_method") == "ctc_acoustic":
+        review = len(result.get("alignment", {}).get("review", []))
+        return f"Acoustic alignment: {lines} lyric lines · {review} lines to review · {result.get('duration',0):.1f}s. Listen to verify sync."
     rate_text = f"{int(round(100 * rate))}% of lyric words located" if rate is not None else "auto-transcribed"
     bpm = result.get("bpm")
     bpm_text = f", ~{bpm:.1f} BPM" if bpm else ""
@@ -253,9 +256,10 @@ class STSLyricsOptions:
     RETURN_TYPES = ("STS_OPTS",)
     FUNCTION = "execute"
     CATEGORY = CATEGORY
-    DESCRIPTION = ("Paste the lyrics exactly as sung, one line per row. Keep your [Verse] / "
-                   "[Chorus] tags: they become YouTube chapters and REAPER regions. Leave the "
-                   "box EMPTY to auto-transcribe instead (text = what the AI hears).")
+    DESCRIPTION = ("Paste English lyrics exactly as sung, including every repeat, one line per row. "
+                   "Supplied lyrics use acoustic CTC alignment. The model menu selects Whisper only "
+                   "when lyrics are empty. Section tags become regions; an opening Intro starts at zero. "
+                   "Empty lyrics enable multilingual automatic transcription.")
 
     def execute(self, song_name, lyrics, model, language, isolate_vocals):
         return ({"song_name": (song_name or "song").strip() or "song",
@@ -429,7 +433,9 @@ class STSExportAll:
                       "Manager (View menu) over your waveform.")
         text = "\n".join(report)
         print(_PREF + text, flush=True)
-        return {"ui": {"text": [text]}, "result": ()}
+        return {"ui": {"text": [text], "sts_download": [{
+                    "filename": os.path.basename(dest_zip),
+                    "subfolder": os.path.relpath(out_dir, out_root), "type": "output"}]}, "result": ()}
 
 
 NODE_CLASS_MAPPINGS = {cls.__name__: cls for cls in (

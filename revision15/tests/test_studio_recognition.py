@@ -38,9 +38,9 @@ class RecognitionTests(unittest.TestCase):
         with patch.object(self.engine, 'pick_device', return_value=('cpu', 'int8')), \
              patch.object(self.engine, 'get_model', return_value=model), \
              patch.object(self.engine, 'detect_beats', return_value=(120., [0., .5, 1.])):
-            result = self.engine.run_alignment('song.wav', '[Verse]\nThe verdict stands', 'small', 'en')
+            result = self.engine.run_alignment('song.wav', '', 'small', 'en')
         self.assertIs(model.transcribe.call_args.kwargs['vad_filter'], False)
-        self.assertEqual(result['match_rate'], 1.)
+        self.assertIsNone(result['match_rate'])
         line = [e for e in result['entries'] if e['kind'] == 'sing'][0]
         self.assertEqual((line['start'], line['end']), (1., 2.4))
         exported = json.loads(self.engine.fmt_json(result, 0))
@@ -84,7 +84,7 @@ class RecognitionTests(unittest.TestCase):
         with patch.object(self.engine, 'pick_device', return_value=('cpu', 'int8')), \
              patch.object(self.engine, 'get_model', return_value=model):
             with self.assertRaisesRegex(ValueError, 'no vocal segments'):
-                self.engine.run_alignment('song.wav', 'The verdict stands', 'small', 'en')
+                self.engine.run_alignment('song.wav', '', 'small', 'en')
         self.assertEqual(self.engine._TRANSCRIPTION_DIAGNOSTICS['word_count'], 0)
 
     def test_zero_word_match_is_not_exported_as_an_alignment(self):

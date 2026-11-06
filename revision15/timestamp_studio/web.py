@@ -16,6 +16,7 @@ at setup time. It does two things:
 
 STS_OPEN_WORKFLOW_JS = """import { app } from "../../scripts/app.js";
 import { ComfyWidgets } from "../../scripts/widgets.js";
+import { api } from "../../scripts/api.js";
 
 const REPORT_NODES = new Set(["STSAlign", "STSExportAll"]);
 
@@ -64,6 +65,16 @@ app.registerExtension({
         const original = nodeType.prototype.onExecuted;
         nodeType.prototype.onExecuted = function(message) {
             original?.apply(this, arguments);
+            const download = message?.sts_download?.[0];
+            if (nodeData.name === "STSExportAll" && download) {
+                this._stsDownload = download;
+                if (!this._stsDownloadButton) {
+                    this._stsDownloadButton = this.addWidget("button", "Download ZIP", null, () => {
+                        const query = new URLSearchParams(this._stsDownload).toString();
+                        window.open(api.apiURL("/view?" + query), "_blank");
+                    }, { serialize: false });
+                }
+            }
             if (!Array.isArray(message?.text)) return;
             if (!this._resultReport) {
                 this._resultReport = ComfyWidgets.STRING(

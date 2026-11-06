@@ -38,6 +38,7 @@ def build_payload():
     files = {
         "TimestampStudio/__init__.py": pack_src,
         "TimestampStudio/sts_engine.py": engine_src,
+        "TimestampStudio/acoustic.py": (ROOT / "timestamp_studio/acoustic.py").read_text(),
         "TimestampStudio/web/open_workflow.js": web_src,
     }
     for name, graph_text in canvases.items():
@@ -48,15 +49,25 @@ def build_payload():
     return base64.b64encode(zlib.compress(json.dumps(files).encode(), 9)).decode()
 
 
-MD_TOP = """# 🎛️ Song Timestamp Studio — ComfyUI canvas (Kaggle)
+MD_TOP = """# 🎛️ Song Timestamp Studio — acoustic alignment (revision 16)
 
 **One cell. One link. Lyric timestamps you can check against the recording.**
 
-**Alignment fix:** music is transcribed with the speech-only filter disabled.
-If Whisper's CUDA libraries cannot load, the Studio reports a switch to CPU INT8.
-No-words/zero-match results stop before export. Runtime messages now appear below
-the running cell and are saved under `timestamp_studio/logs/`; each attempt also
-saves the heard transcript and recognition diagnostics under `diagnostics/`.
+**Supplied English lyrics:** the Studio aligns the complete lyric sequence to
+acoustic frames, including repeated passages. It no longer fuzzy-matches an
+imperfect transcription and spreads missed words into estimated times. Include
+every performed repeat in the lyrics. The Whisper model menu applies only when
+the lyric box is empty (multilingual automatic transcription).
+
+The acoustic model (~360 MB) downloads on Kaggle on first use and is saved in
+`timestamp_studio/alignment_models/`. Acoustic frames are also cached, so changing
+lyrics for the same recording reuses the analysis. Save the Studio outputs and
+attach them with **Add Input** in a future session to reuse models and cached
+frames. You do not have to download model files to your PC.
+
+After Export completes, use **Download ZIP** on the Export node. Scores are
+diagnostics, not timing guarantees; the ZIP includes an alignment review CSV.
+Runtime logs and per-attempt diagnostics remain in Kaggle Output.
 
 Works exactly like your Movies / H3 canvases: attach nothing, select **Accelerator: None**
 (CPU supported — no GPU hours burned) and **Internet ON**, run the single cell below, then
@@ -101,7 +112,7 @@ os.environ.update({
 import importlib.metadata
 
 constraints = []
-for name in ("torch", "numpy", "numba", "llvmlite", "scipy"):
+for name in ("torch", "torchaudio", "torchvision", "numpy", "numba", "llvmlite", "scipy"):
     try:
         constraints.append(f"{name}=={importlib.metadata.version(name)}")
     except importlib.metadata.PackageNotFoundError:
@@ -110,7 +121,8 @@ constraint_file = ROOT / "kaggle-constraints.txt"
 constraint_file.write_text("\\n".join(constraints) + "\\n")
 subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", "-q",
                        "-c", str(constraint_file),
-                       "faster-whisper==1.2.1", "librosa==0.10.2.post1", "soundfile==0.13.1"])
+                       "faster-whisper==1.2.1", "librosa==0.10.2.post1", "soundfile==0.13.1",
+                       "transformers==4.57.6", "huggingface-hub==0.36.2", "safetensors>=0.7.0"])
 print("✅ tools installed", flush=True)
 
 # --- 2 · unpack the tested engine + node pack --------------------------------
@@ -341,15 +353,15 @@ MD_BOTTOM = """## 🖱️ Using the canvas (30 seconds)
 ## 📕 Where your files go
 
 Everything lands in `…/timestamp_studio/<song>_timestamps/` under **Kaggle Output**
-(ComfyUI output folder): the 8 formats + one ZIP with everything. Download from the
-Output panel before the session ends. REAPER audit: drag `_reaper_markers.csv` into the
+(ComfyUI output folder): exports, alignment review and one ZIP. Use **Download ZIP**
+on the Export node before the session ends. REAPER audit: drag `_reaper_markers.csv` into the
 **Region/Marker Manager** (View menu) — lyrics become markers, sections become regions.
 
 ## ✅ How to trust the timings
 
-- **Per-line confidence** in the Export report (`100% — solid` / `86% — solid` / `54% — check`).
-  Word-match percentage measures text agreement, not timestamp accuracy. Listen to
-  representative lines even when the match is high. Zero matches stop the export.
+- **Acoustic scores** for supplied lyrics describe model evidence, not measured
+  timing accuracy. Audition the repeated passages and flagged lines. An impossible
+  alignment fails instead of interpolating made-up positions.
 - **▶️ Audition** any line — the vocal should enter when the line fires.
 - **REAPER** — eyeball every flag against the waveform; you make the final call.
 - **Nudge** — if everything feels early/late by the same amount, shift once, re-run.
@@ -366,7 +378,8 @@ karaoke timing is not included.
 | First Run is slow | Whisper models are pre-cached by the setup cell; if the cache step was skipped, the first Run downloads once (~150–500 MB). |
 | CUDA library unavailable | Studio reports CPU INT8 fallback; no CUDA packages are installed over Kaggle's PyTorch stack. |
 | No words / zero matches | Export stops. Check `diagnostics/<attempt>/alignment.json` for the heard text, audio levels and backend before another attempt. |
-| 🔴 Low match % | model `small`; vocal isolation ON; check Language; lyrics must match what is actually sung. |
+| Supplied lyrics | English/romanized lyrics use a separate acoustic model; the Whisper base/small menu applies to empty-lyrics transcription only. |
+| Low acoustic score | Listen to the flagged lines; confirm every repeat appears in the lyric box. Optional isolation may need additional software. |
 | All times slightly early/late | **Nudge** node → set the offset → Run again → re-download. |
 | No YouTube chapters | Add `[Verse]` / `[Chorus]` style tags in the lyrics box and run again. |
 | REAPER CSV won't import | Drag into the **Region/Marker Manager** window (not the timeline); REAPER 7.66+. |

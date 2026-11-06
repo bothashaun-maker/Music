@@ -1,5 +1,12 @@
 # Uploaded revision 14 — repaired revision 15
 
+**Current Studio: acoustic alignment, revision 16.**
+[Open the Studio notebook](Song-Timestamp-Studio-Canvas.ipynb).
+Supplied English lyrics now align directly to acoustic frames, including repeats;
+the former fuzzy-transcription timing path is bypassed. The model and acoustic
+frames are reusable from saved Kaggle outputs. The Export node has **Download ZIP**.
+Music creation is unchanged. [Repair details and test limits](revision15/STUDIO_ACOUSTIC_REPAIR.md).
+
 [REAPER marker-shift action](reaper/README.md): shift all or selected lyric markers
 and optional chapter regions by an offset in seconds, with Undo and no Studio run.
 
