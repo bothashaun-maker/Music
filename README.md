@@ -1,5 +1,8 @@
 # Uploaded revision 14 — repaired revision 15
 
+[REAPER marker-shift action](reaper/README.md): shift all or selected lyric markers
+and optional chapter regions by an offset in seconds, with Undo and no Studio run.
+
 **Timestamp Studio alignment update:** the reported speech-filter and CUDA-library
 failures are addressed in the [Studio notebook](Song-Timestamp-Studio-Canvas.ipynb).
 Music transcription keeps speech VAD off, reports CPU fallback when Whisper's
