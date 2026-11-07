@@ -43,6 +43,14 @@ post-inference crash), and validates all supplied text before isolation/audio
 loading/inference. Keep acoustic cache keys stable for lyric-only repairs;
 this parsing fix does not establish improved timing accuracy on the real song.
 
+The user reports that most marker times still require manual repair. Do not
+equate a successful CTC path with timing accuracy. tools/collect_studio_evidence.py
+can collect the exact analysis audio and matching existing frames without model
+inference, preserving the original WAV and keeping archives below the chat's
+transfer limit. STUDIO_TIMING_INVESTIGATION.md explains same-session collection.
+Obtain the corrected REAPER project as reference; no acoustic repair has been
+validated on that recording yet. Keep the working generation pipeline unchanged.
+
 # User preferences and continuity
 
 - Preserve working behavior. Prefer scoped, additive improvements; do not remove
