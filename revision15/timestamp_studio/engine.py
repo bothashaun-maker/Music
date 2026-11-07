@@ -778,12 +778,30 @@ def isolate_vocals(audio_path):
 # ----------------------------------------------------------------------------
 
 
+def validate_acoustic_bundle():
+    """Load the adjacent helper independently of ComfyUI's custom module name."""
+    import hashlib
+    import importlib.util
+    from pathlib import Path
+    source = Path(__file__).with_name('acoustic.py').resolve()
+    if not source.is_file():
+        raise RuntimeError('Timestamp Studio installation is incomplete: missing ' + str(source))
+    name = '_timestamp_studio_acoustic_' + hashlib.sha256(str(source).encode()).hexdigest()[:20]
+    module = sys.modules.get(name)
+    if module is None:
+        spec = importlib.util.spec_from_file_location(name, source)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        try:
+            spec.loader.exec_module(module)
+        except BaseException:
+            sys.modules.pop(name, None)
+            raise
+    return module
+
+
 def acoustic_align_lines(audio, lines, progress=None):
-    try:
-        from .acoustic import align_lines
-    except ImportError:
-        from timestamp_studio.acoustic import align_lines
-    return align_lines(audio, lines, progress)
+    return validate_acoustic_bundle().align_lines(audio, lines, progress)
 
 
 def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", isolate_vocals_flag=False):

@@ -49,7 +49,7 @@ def build_payload():
     return base64.b64encode(zlib.compress(json.dumps(files).encode(), 9)).decode()
 
 
-MD_TOP = """# 🎛️ Song Timestamp Studio — acoustic alignment (revision 16)
+MD_TOP = """# 🎛️ Song Timestamp Studio — acoustic alignment (revision 16.1)
 
 **One cell. One link. Lyric timestamps you can check against the recording.**
 
@@ -131,8 +131,8 @@ for rel, text in json.loads(zlib.decompress(base64.b64decode(payload))).items():
     target = SUPPORT / rel
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text)
-compile((SUPPORT / "TimestampStudio/__init__.py").read_text(), "__init__.py", "exec")
-compile((SUPPORT / "TimestampStudio/sts_engine.py").read_text(), "sts_engine.py", "exec")
+for source in (SUPPORT / "TimestampStudio").rglob("*.py"):
+    compile(source.read_text(), str(source), "exec")
 print("✅ TimestampStudio node pack unpacked (engine + nodes + canvas)", flush=True)
 
 # --- 3 · pinned ComfyUI checkout (session-only) -------------------------------
@@ -150,19 +150,29 @@ if head.returncode != 0 or head.stdout.strip() != COMFYUI_COMMIT:
 head = subprocess.run(["git", "-C", str(comfy), "rev-parse", "HEAD"], capture_output=True, text=True)
 if head.stdout.strip() != COMFYUI_COMMIT:
     raise RuntimeError("ComfyUI checkout does not match the pinned commit")
-pack = comfy / "custom_nodes" / "TimestampStudio"
-(pack / "web").mkdir(parents=True, exist_ok=True)
-for rel in ("TimestampStudio/__init__.py", "TimestampStudio/sts_engine.py",
-            "TimestampStudio/web/open_workflow.js"):
-    pack_rel = rel.split("/", 1)[1]
-    (pack / pack_rel).write_text((SUPPORT / rel).read_text())
-    print("   wrote", pack_rel, flush=True)
-for f in (SUPPORT / "TimestampStudio/web").glob("sts-*.json"):
-    (pack / "web" / f.name).write_text(f.read_text())
-workflows = comfy / "user" / "default" / "workflows"
-workflows.mkdir(parents=True, exist_ok=True)
-(workflows / "Song Timestamp Studio.json").write_text(
-    (SUPPORT / "TimestampStudio/web/sts-studio.json").read_text())
+def install_studio_pack(support, comfy_root):
+    source_root = Path(support) / "TimestampStudio"
+    destination = Path(comfy_root) / "custom_nodes" / "TimestampStudio"
+    required = ("__init__.py", "sts_engine.py", "acoustic.py", "web/open_workflow.js", "web/sts-studio.json")
+    missing = [name for name in required if not (source_root / name).is_file()]
+    if missing:
+        raise RuntimeError("Timestamp Studio payload is incomplete: " + ", ".join(missing))
+    for source in sorted(source_root.rglob("*")):
+        if not source.is_file() or "__pycache__" in source.parts or source.suffix == ".pyc":
+            continue
+        relative = source.relative_to(source_root)
+        if source.suffix == ".py":
+            compile(source.read_text(), str(source), "exec")
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+        print("   wrote", relative, flush=True)
+    workflows = Path(comfy_root) / "user" / "default" / "workflows"
+    workflows.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source_root / "web/sts-studio.json", workflows / "Song Timestamp Studio.json")
+    return destination
+
+pack = install_studio_pack(SUPPORT, comfy)
 subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", "-q",
                        "-c", str(constraint_file), "-r", str(comfy / "requirements.txt")])
 print(f"✅ ComfyUI {COMFYUI_COMMIT[:12]} + TimestampStudio pack installed", flush=True)

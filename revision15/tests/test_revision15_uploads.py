@@ -37,6 +37,7 @@ class UploadTests(unittest.IsolatedAsyncioTestCase):
         pkg=self.root/'TestStudio';pkg.mkdir()
         shutil.copyfile(ROOT/'timestamp_studio/comfy_pack.py',pkg/'__init__.py')
         shutil.copyfile(ROOT/'timestamp_studio/engine.py',pkg/'sts_engine.py')
+        shutil.copyfile(ROOT/'timestamp_studio/acoustic.py',pkg/'acoustic.py')
         spec=importlib.util.spec_from_file_location('R15Studio',pkg/'__init__.py',submodule_search_locations=[str(pkg)])
         self.pack=importlib.util.module_from_spec(spec);sys.modules['R15Studio']=self.pack
         self.addCleanup(lambda:[sys.modules.pop(k,None) for k in list(sys.modules) if k.startswith('R15Studio')])

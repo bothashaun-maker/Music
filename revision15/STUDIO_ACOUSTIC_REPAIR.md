@@ -1,5 +1,22 @@
 # Studio acoustic alignment — revision 16
 
+## Revision 16.1: installed helper import
+
+The supplied Kaggle traceback showed that the notebook embedded `acoustic.py`
+but its hardcoded installer copied only the older file list. The helper never
+reached `custom_nodes/TimestampStudio/`. The engine's fallback then tried the
+source package `timestamp_studio`, which is not present in that installed layout.
+
+The installer now checks the required bundle and copies every payload file,
+including future helpers. The engine loads the adjacent helper by file location
+without assuming a Python package name or masking dependency failures. The node
+pack validates that helper during registration, before setup prints a usable
+canvas link. Five new regressions execute the actual installer, load the package
+using the absolute-path module name seen in ComfyUI, run the installed alignment
+and ZIP export, and exercise missing files and dependency errors. No model
+weights or acoustic math are changed by this repair.
+All 135 local regression checks passed, including those installed-layout tests.
+
 The uploaded exports exposed a fundamental problem: freely transcribed words
 were fuzzy-matched to the supplied lyrics, and missing words were interpolated.
 Large recognition gaps and weak matches compressed repeated lines into a few

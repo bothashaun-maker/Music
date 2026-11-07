@@ -32,6 +32,12 @@ speech results as verified accuracy on the user's recording. The full WAV upload
 could not be transferred here because of the 32 MiB tool limit. Music creation
 must remain unchanged. See STUDIO_ACOUSTIC_REPAIR.md for current limits.
 
+Revision 16.1 fixes an installed-bundle failure: the hardcoded installer omitted
+acoustic.py despite embedding it. Copy the complete payload, validate required
+files, and load the adjacent acoustic helper by file path. Preserve the exact
+ComfyUI path-named package regression in tests/test_studio_installed_bundle.py;
+tests of source imports alone do not cover the deployed node layout.
+
 # User preferences and continuity
 
 - Preserve working behavior. Prefer scoped, additive improvements; do not remove

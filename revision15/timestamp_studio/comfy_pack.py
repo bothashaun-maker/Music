@@ -36,6 +36,7 @@ import zipfile
 import numpy as np
 
 from . import sts_engine as engine
+engine.validate_acoustic_bundle()  # Fail registration before printing a usable canvas link.
 
 CATEGORY = "Song Timestamp Studio"
 _PREF = "[TimestampStudio] "

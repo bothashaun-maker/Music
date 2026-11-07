@@ -1,6 +1,6 @@
 # Uploaded revision 14 — repaired revision 15
 
-**Current Studio: acoustic alignment, revision 16.**
+**Current Studio: acoustic alignment, revision 16.1 (installed-bundle import fix).**
 [Open the Studio notebook](Song-Timestamp-Studio-Canvas.ipynb).
 Supplied English lyrics now align directly to acoustic frames, including repeats;
 the former fuzzy-transcription timing path is bypassed. The model and acoustic

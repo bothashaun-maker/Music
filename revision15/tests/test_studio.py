@@ -47,6 +47,8 @@ class StudioTests(unittest.TestCase):
                          (ROOT / "timestamp_studio/comfy_pack.py").read_text())
         self.assertEqual(files["TimestampStudio/sts_engine.py"],
                          (ROOT / "timestamp_studio/engine.py").read_text())
+        self.assertEqual(files["TimestampStudio/acoustic.py"],
+                         (ROOT / "timestamp_studio/acoustic.py").read_text())
         graph = json.loads(files["TimestampStudio/web/sts-studio.json"])
         types = {n["type"] for n in graph["nodes"]}
         self.assertIn("STSExportAll", types)
@@ -79,6 +81,7 @@ class StudioTests(unittest.TestCase):
             pkg.mkdir()
             (pkg / "__init__.py").write_text((ROOT / "timestamp_studio/comfy_pack.py").read_text())
             (pkg / "sts_engine.py").write_text((ROOT / "timestamp_studio/engine.py").read_text())
+            (pkg / "acoustic.py").write_text((ROOT / "timestamp_studio/acoustic.py").read_text())
             sys.path.insert(0, tmp)
             try:
                 for name in list(sys.modules):
