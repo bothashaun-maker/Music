@@ -30,3 +30,8 @@
   Use that branch's sources/tests for future revision-15 fixes, preserve the
   existing asset schema/native engine, and distinguish local/CPU checks from
   live Kaggle or Cloudflare runs. No new asset dataset is required by this repair.
+
+- 2026-11-07: after being told this repository is public and the project ZIP
+  includes project data/lyrics, the user explicitly authorized publishing the
+  exact `Studio17_REAPER_Repair.zip` here because chat downloads were blocked.
+  This permission covers that archive only, not other private projects or audio.
