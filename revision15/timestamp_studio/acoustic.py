@@ -118,7 +118,7 @@ def acoustic_frames(audio, progress=None):
                                'cache_file': str(cached), 'device': device}
 
 
-def ctc_path(logp, tokens, blank=0):
+def ctc_path(logp, tokens, blank=0, state_penalties=None):
     """Full-sequence CTC Viterbi. Blank/label self-loops retain long gaps/notes."""
     logp = np.asarray(logp, dtype=np.float32)
     tokens = np.asarray(tokens, dtype=np.int64)
@@ -128,6 +128,10 @@ def ctc_path(logp, tokens, blank=0):
         raise ValueError('Invalid acoustic frame scores or target tokens')
     states = np.full(2*len(tokens)+1, blank, dtype=np.int64)
     states[1::2] = tokens
+    if state_penalties is not None:
+        state_penalties = np.asarray(state_penalties, dtype=np.float32)
+        if state_penalties.shape != states.shape or not np.isfinite(state_penalties).all() or np.any(state_penalties < 0):
+            raise ValueError('Invalid CTC boundary penalties')
     if len(states)*len(logp) > 512*1024**2:
         raise ValueError('Lyric alignment exceeds the 512 MiB path budget; split this recording')
     skip = np.zeros(len(states), dtype=bool)
@@ -142,6 +146,8 @@ def ctc_path(logp, tokens, blank=0):
         choices = np.stack((score, one, two))
         back[frame_index] = choices.argmax(axis=0)
         score = choices.max(axis=0) + frame[states]
+        if state_penalties is not None:
+            score -= state_penalties
     state = len(states)-1 if score[-1] >= score[-2] else len(states)-2
     if not np.isfinite(score[state]):
         raise ValueError('No complete acoustic alignment path exists; no estimated times were substituted')
@@ -166,8 +172,11 @@ def prepare_lyric_words(lines):
             if not any(c.isalpha() for c in text):
                 if any(c.isalnum() for c in original):
                     raise ValueError('English acoustic alignment cannot encode ' + repr(original) + '; spell numbers and use English/romanized lyrics')
+                if words and words[-1]['line'] == line_index and ('...' in original or '…' in original):
+                    words[-1]['pause_after'] = True
                 continue
-            words.append({'text': original, 'line': line_index, 'encoded': text})
+            words.append({'text': original, 'line': line_index, 'encoded': text,
+                          'pause_after': '...' in original or '…' in original})
             found = True
         if not found:
             raise ValueError('A lyric line has no alignable English words: ' + repr(line))
@@ -194,6 +203,151 @@ def combine_views(first, second):
         device=device, cache_reused=bool(diagnostics.get('cache_reused') and vocal_diagnostics.get('cache_reused')))
 
 
+def context_penalties(targets, owners, words, separator):
+    """Soft gap priors: within-word blanks cost more; line/ellipsis pauses stay free.
+
+    Letter self-loops are untouched so a supported sung vowel can sustain. No
+    maximum word duration or song-specific times are imposed.
+    """
+    penalties = np.zeros(2*len(targets)+1, dtype=np.float32)
+    for index in range(1, len(targets)):
+        if targets[index-1] != separator and targets[index] != separator:
+            penalties[2*index] = .1
+    for index, token in enumerate(targets):
+        if token != separator:
+            continue
+        before, after = words[owners[index-1]], words[owners[index+1]]
+        if before['line'] == after['line'] and not before.get('pause_after', False):
+            penalties[2*index:2*index+3] = .02
+    return penalties
+
+
+def refine_vocal_onsets(audio, grouped):
+    """Backtrack to a local vocal attack, only with usable acoustic/energy evidence."""
+    from scipy.ndimage import uniform_filter1d
+    audio = np.asarray(audio)
+    if audio.ndim != 1 or not audio.size or not np.isfinite(audio).all():
+        raise ValueError('Invalid vocal samples for onset refinement')
+    envelope = np.sqrt(np.maximum(0, uniform_filter1d(audio.astype(np.float64)**2, 320, mode='nearest')))[::80]
+    applied = 0
+    previous_end = 0.
+    for group in grouped:
+        word = group[0]
+        start = word['start']
+        word['ctc_start'] = start
+        if word['acoustic_score'] >= .05:
+            lower = max(previous_end, start-.4, 0.)
+            ids = np.arange(max(0, int(lower/.005)), min(len(envelope), int((start+.12)/.005)+1))
+            times, energy = ids*.005, envelope[ids]
+            before, after = energy[times < start], energy[times >= start]
+            if len(before) >= 6 and len(after):
+                floor, peak = np.quantile(before,.1), np.quantile(after,.9)
+                if peak > 2*floor and peak >= 1e-5:
+                    threshold = floor+.2*(peak-floor)
+                    candidates = [float(times[j]) for j in range(4,len(energy)-1)
+                                  if lower <= times[j] < start and energy[j] >= threshold
+                                  and energy[j-1] < threshold and np.mean(energy[j-4:j] < threshold) >= .75]
+                    if candidates:
+                        word['start'] = candidates[-1]
+                        word['timing_source'] = 'ctc_with_vocal_attack'
+                        applied += 1
+        previous_end = group[-1]['end']
+    return {'method':'bounded_local_vocal_attack', 'applied_lines':applied,
+            'lookback_seconds':.4, 'rms_window_seconds':.02, 'stride_seconds':.005,
+            'minimum_word_score':.05, 'relative_attack_threshold':.2,
+            'scores_describe':'CTC frames, not measured boundary accuracy'}
+
+
+def refine_repeated_cues(audio, grouped):
+    """Repair uncertain leading cues by matching a clearer repeated vocal phrase.
+
+    Only major cue shifts are considered. Matching is bounded to each existing
+    occurrence, and at most three leading words can change; the suffix and all
+    other lyric occurrences remain independently aligned.
+    """
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for index, words in enumerate(grouped):
+        key = tuple(''.join(c for c in unicodedata.normalize('NFKD',w['text'].replace('’',"'")).upper()
+                            if c.isascii() and (c.isalpha() or c == "'")) for w in words)
+        if len(key) >= 3:
+            groups[key].append(index)
+    candidates = []
+    for indices in groups.values():
+        if len(indices) < 2:
+            continue
+        template = max(indices, key=lambda i: np.mean([w['acoustic_score'] for w in grouped[i]]))
+        if grouped[template][0]['acoustic_score'] < .25:
+            continue
+        for query in indices:
+            if query != template and grouped[query][0]['acoustic_score'] < .2:
+                candidates.append((template,query))
+    details = {'method':'bounded_repeated_vocal_dtw', 'applied_lines':0, 'matches':[],
+               'minimum_cue_shift':.35, 'maximum_cue_shift':3., 'maximum_cosine_distance':.55,
+               'minimum_phrase_words':3, 'maximum_changed_prefix_words':3}
+    if not candidates:
+        return details
+    import librosa
+    audio = np.asarray(audio, dtype=np.float32)
+    mfcc = librosa.feature.mfcc(y=audio,sr=16000,n_mfcc=13,n_mels=40,n_fft=512,
+                                hop_length=160,fmin=80,fmax=7600)[1:]
+    features = np.concatenate((mfcc,librosa.feature.delta(mfcc)))
+    features = (features-features.mean(axis=1,keepdims=True))/(features.std(axis=1,keepdims=True)+1e-5)
+    for template_index, query_index in candidates:
+        template,query = grouped[template_index],grouped[query_index]
+        tl = max(0,int((template[0]['start']-.5)*100))
+        th = min(features.shape[1],int((template[-1]['end']+.3)*100))
+        ql = max(0,int((query[0]['start']-2)*100))
+        qh = min(features.shape[1],int((query[-1]['end']+1)*100))
+        if not 4 <= th-tl <= 1500 or not 4 <= qh-ql <= 2500:
+            continue
+        first,second = features[:,tl:th],features[:,ql:qh]
+        if np.any(np.linalg.norm(first,axis=0)<1e-8) or np.any(np.linalg.norm(second,axis=0)<1e-8):
+            continue
+        try:
+            _,path = librosa.sequence.dtw(X=first,Y=second,metric='cosine',subseq=True,
+                step_sizes_sigma=np.array([[1,1],[1,2],[2,1]]),weights_mul=np.array([2.,3.,3.]))
+        except ValueError:
+            continue  # No usable acoustic path: retain the CTC result.
+        path = path[::-1]
+        x = np.unique(path[:,0])
+        y = np.array([np.median(path[path[:,0]==i,1]) for i in x])
+        def mapped(time):
+            return float((np.interp(time*100-tl,x,y)+ql)/100)
+        cue = mapped(template[0]['start'])
+        shift = cue-query[0]['start']
+        norms = np.linalg.norm(first[:,path[:,0]],axis=0)*np.linalg.norm(second[:,path[:,1]],axis=0)
+        distance = float(np.mean(1-np.sum(first[:,path[:,0]]*second[:,path[:,1]],axis=0)/(norms+1e-8)))
+        if not .35 <= abs(shift) <= 3 or not np.isfinite(distance) or distance > .55:
+            continue
+        previous_end = grouped[query_index-1][-1]['end'] if query_index else 0.
+        if cue < previous_end:
+            continue
+        # Extend the changed prefix only when a mapped word would otherwise
+        # overlap the old next word. Never compress a whole word to a few ms.
+        count = 1
+        while count < len(query) and (query[count]['start'] <= cue or
+                                      mapped(template[count-1]['end']) > query[count]['start']):
+            count += 1
+        if count > 3 or count >= len(query):
+            continue
+        proposal = [(mapped(w['start']),mapped(w['end'])) for w in template[:count]]
+        if any(not 0 <= a < b <= len(audio)/16000 for a,b in proposal):
+            continue
+        if any(a[1] > b[0] for a,b in zip(proposal,proposal[1:])) or proposal[-1][1] > query[count]['start']:
+            continue
+        before = query[0]['start']
+        for word,(start,end) in zip(query,proposal):
+            word.setdefault('ctc_start',word['start'])
+            word['ctc_end'] = word['end']
+            word.update(start=start,end=end,timing_source='repeated_vocal_dtw',
+                        repeat_template_line=template_index+1,repeat_distance=round(distance,4))
+        details['applied_lines'] += 1
+        details['matches'].append({'line':query_index+1,'template_line':template_index+1,
+            'previous_cue':before,'cue':cue,'cosine_distance':round(distance,4),'prefix_words':count})
+    return details
+
+
 def align_lines(audio, lines, progress=None, vocal_audio=None):
     """Return per-line acoustic word times with explicit diagnostic scores."""
     words = prepare_lyric_words(lines)
@@ -201,7 +355,11 @@ def align_lines(audio, lines, progress=None, vocal_audio=None):
     if vocal_audio is not None:
         if np.shape(vocal_audio) != np.shape(audio):
             raise ValueError('Mix and vocal sample counts differ')
-        first = combine_views(first, acoustic_frames(vocal_audio, progress))
+        vocal = acoustic_frames(vocal_audio, progress)
+        metadata = combine_views(first, vocal)[3]
+        metadata.update(variant='vocal_context_ctc', fusion='none_vocal_primary',
+                        reference_mix='retained_for_diagnostics')
+        first = (*vocal[:3], metadata)
     logp, times, vocab, diagnostics = first
     targets, owners = [], []
     for word_index, word in enumerate(words):
@@ -213,7 +371,14 @@ def align_lines(audio, lines, progress=None, vocal_audio=None):
             owners.append(None)
         targets.extend(vocab[c] for c in text)
         owners.extend([word_index]*len(text))
-    path = ctc_path(logp, targets, vocab['<pad>'])
+    if vocal_audio is not None:
+        penalties = context_penalties(targets, owners, words, vocab['|'])
+        path = ctc_path(logp, targets, vocab['<pad>'], state_penalties=penalties)
+        diagnostics['decoder'] = {'method':'context_gap_prior', 'within_word_blank_cost':.1,
+                                  'within_phrase_gap_cost':.02, 'line_and_ellipsis_pauses':'free',
+                                  'sustained_label_states':'unpenalized'}
+    else:
+        path = ctc_path(logp, targets, vocab['<pad>'])
     word_frames = [[] for _ in words]
     for token_index, owner in enumerate(owners):
         if owner is not None:
@@ -227,6 +392,9 @@ def align_lines(audio, lines, progress=None, vocal_audio=None):
         item = {'text': word['text'], 'start': float(start), 'end': float(end),
                 'matched': None, 'acoustic_score': round(confidence, 4), 'timing_source': 'ctc_acoustic'}
         grouped[word['line']].append(item)
+    if vocal_audio is not None:
+        diagnostics['onset_refinement'] = refine_vocal_onsets(vocal_audio, grouped)
+        diagnostics['repetition_refinement'] = refine_repeated_cues(vocal_audio, grouped)
     for index, group in enumerate(grouped):
         mean = float(np.mean([w['acoustic_score'] for w in group]))
         span = group[-1]['end']-group[0]['start']

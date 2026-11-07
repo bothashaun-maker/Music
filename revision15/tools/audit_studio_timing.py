@@ -64,8 +64,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--project', required=True)
     parser.add_argument('--candidate', required=True)
-    parser.add_argument('--reference-markers', required=True, help='Confirmed inclusive ID range, e.g. 1:15')
+    parser.add_argument('--reference-markers', required=True, help='Confirmed IDs/ranges, e.g. 1:15 or 1:68,70:87')
     args = parser.parse_args()
-    first,last = map(int,args.reference_markers.split(':'))
-    report = measure(read_result(args.candidate), project_markers(args.project), range(first,last+1))
+    ids = set()
+    for part in args.reference_markers.split(','):
+        bounds = list(map(int,part.split(':')))
+        if len(bounds) not in (1,2) or bounds[0] < 1 or bounds[-1] < bounds[0]:
+            parser.error('Invalid confirmed marker ID/range: ' + part)
+        ids.update(range(bounds[0],bounds[-1]+1))
+    report = measure(read_result(args.candidate), project_markers(args.project), sorted(ids))
     print(json.dumps(report,indent=2))

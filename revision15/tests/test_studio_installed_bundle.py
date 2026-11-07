@@ -131,7 +131,7 @@ class InstalledBundleTests(unittest.TestCase):
         self.assertEqual(inference.call_count,2)
         self.assertAlmostEqual(float(inference.call_args_list[0].args[0][0]),.1)
         self.assertAlmostEqual(float(inference.call_args_list[1].args[0][0]),.2)
-        self.assertEqual(result['alignment']['variant'],'mix_vocal_ensemble')
+        self.assertEqual(result['alignment']['variant'],'vocal_context_ctc')
         self.assertTrue(result['alignment']['isolation']['cache_reused'])
         self.assertAlmostEqual(result['entries'][0]['start'],.5)
 

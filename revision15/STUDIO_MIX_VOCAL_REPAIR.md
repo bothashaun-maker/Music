@@ -1,5 +1,8 @@
 # Studio revision 17: measured mix + vocal alignment repair
 
+These are historical revision-17 results. The later, larger reference set and
+revision-18 timing changes are documented in STUDIO_CUE_REPAIR.md.
+
 The user supplied the exact 387.52-second analysis waveform, its original frame
 cache, the resulting timestamps, and a REAPER project containing manually
 corrected marker starts. The waveform SHA-256 was verified against both the
@@ -9,7 +12,9 @@ matched the REAPER markers in order, including repeated passages.
 Only markers 1–15 had been changed beyond timestamp-rounding differences. Those
 15 were the explicitly confirmed reference set. The remaining 72 project marker
 positions were unchanged Studio estimates, not independent accuracy references.
-No recording, lyric sheet or user project is committed to this repository.
+The repair project was initially kept private. The user later explicitly
+authorized publishing that exact Studio17_REAPER_Repair.zip for download;
+subsequent projects and audio remain private unless separately authorized.
 
 ## Failure and resulting change
 
@@ -80,7 +85,8 @@ Research-only packages/models used for comparison are not added to the notebook.
 The private REAPER repair copy keeps all first 15 manually corrected markers
 exactly, updates later markers and section regions using the new output, and
 preserves every non-marker project byte. Its unreferenced later timings remain
-estimates to review. No user project/media is published in GitHub.
+estimates to review. Only that specific, subsequently approved project download
+was published in GitHub; no audio was published.
 
 ## Checks and reproducibility
 

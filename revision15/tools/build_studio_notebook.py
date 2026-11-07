@@ -50,7 +50,7 @@ def build_payload():
     return base64.b64encode(zlib.compress(json.dumps(files).encode(), 9)).decode()
 
 
-MD_TOP = """# 🎛️ Song Timestamp Studio — mix + vocal alignment (revision 17)
+MD_TOP = """# 🎛️ Song Timestamp Studio — vocal timing refinement (revision 18)
 
 **One cell. One link. Lyric timestamps you can check against the recording.**
 
@@ -60,19 +60,24 @@ imperfect transcription and spreads missed words into estimated times. Include
 every performed repeat in the lyrics. The Whisper model menu applies only when
 the lyric box is empty (multilingual automatic transcription).
 
-**Vocal isolation is ON in the supplied canvas.** Supplied lyrics now use both
-the original mix and a separate analysis vocal, combining their acoustic scores
-before aligning the complete lyric sequence. This reduces backing-track
-interference without letting a separate vocal pass skip repeated passages.
+**Vocal isolation is ON in the supplied canvas.** Supplied lyrics use a vocal-led
+decoder that distinguishes pauses inside words from pauses between lyric lines.
+It then checks local vocal attacks for small onset delays and matches clearer
+repeated phrases against the actual audio for larger uncertain cue errors.
+The full-mix frames remain available for diagnostics and the isolation-OFF route.
 The pinned separator (~80 MB) and its extracted vocals are cached in Studio
 outputs. A selected isolation failure stops with its actual error; it no longer
 silently proceeds with the full mix. Your original WAV stays unchanged.
 
-On the uploaded song's 15 manually corrected reference markers, the tested
-ensemble reduced mean absolute error from 1.06 s to 0.21 s, with 14/15 within
-0.5 s. The growled opening line remains about 1.53 s late and is flagged for
-review. The remaining 72 markers do not have independent timing references;
-these measurements do not establish complete-song or other-song accuracy.
+On the uploaded song's 71 newly corrected reference markers, average error fell
+from 0.36 s to 0.13 s; all 71 were within 0.5 s. Across 86 confirmed references,
+median error was 0.074 s and 85 were within 0.5 s. The growled opening line
+remains about 1.69 s late and needs review. These are development measurements
+on one recording, not guarantees of complete-song or other-song accuracy.
+
+Revision 18 reuses the existing models, saved vocals and frame caches. No new
+models or asset rebuild are required. The original CTC boundaries and refinement
+sources are recorded in the timestamp JSON for inspection.
 
 The acoustic model (~360 MB) downloads on Kaggle on first use and is saved in
 `timestamp_studio/alignment_models/`. Acoustic frames are also cached, so changing

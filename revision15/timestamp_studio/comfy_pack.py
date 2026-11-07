@@ -12,7 +12,7 @@ A visible, connected canvas of real, individually executed nodes:
    STS Export All  (LRC / SRT / VTT / chapters / REAPER / beats / Cut Plan / JSON / ZIP)
 
 The installed engine aligns supplied English lyrics with acoustic CTC frames,
-combining full-mix and isolated-vocal views when enabled. Empty lyrics use
+vocal gap context, local attacks and repeated-phrase audio matching. Empty lyrics use
 Whisper transcription. Beat grid and Cut Plan come from librosa; the Cut Plan
 speaks seconds AND frames @ 24 fps. Scores do not establish timing accuracy.
 """
@@ -250,7 +250,7 @@ class STSLyricsOptions:
             "model": (engine.MODEL_CHOICES, {"default": "auto"}),
             "language": (engine.LANG_CHOICES, {"default": "auto"}),
             "isolate_vocals": ("BOOLEAN", {"default": True,
-                                           "label_on": "on — mix + vocal alignment",
+                                           "label_on": "on — recommended for music",
                                            "label_off": "off — clear mixes"}),
         }}
 
@@ -281,7 +281,8 @@ class STSAlign:
     CATEGORY = CATEGORY
     OUTPUT_NODE = True
     DESCRIPTION = ("Aligns supplied English lyrics to acoustic frames. With isolation ON, "
-                   "combines mix and vocal evidence; models, vocals and frames are cached. "
+                   "uses vocal context, local attacks and repeated-phrase audio matching; "
+                   "models, vocals and frames are cached. "
                    "Weak or stretched words need review. The Whisper menu affects empty-lyric "
                    "transcription only; a bigger Whisper setting does not change CTC alignment.")
 

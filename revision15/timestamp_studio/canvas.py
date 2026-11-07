@@ -69,7 +69,7 @@ def build_studio_canvas(example_lyrics):
           title="2 · Your lyrics (keep the [Verse] / [Chorus] tags)")
     _node(nodes, 3, "STSAlign", (560, 240),
           [("audio", "AUDIO"), ("opts", "STS_OPTS")], [("STS_RESULT", "STS_RESULT")], [],
-          (420, 160), title="3 · Align lyrics — mix + vocal evidence")
+          (420, 160), title="3 · Align lyrics — vocal onsets + repeated phrases")
     _node(nodes, 4, "STSNudge", (1040, 120), [("result", "STS_RESULT")],
           [("STS_RESULT", "STS_RESULT")], [0.0], (360, 140),
           title="4 · All times late? early? shift everything at once")

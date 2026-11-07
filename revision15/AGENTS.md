@@ -62,6 +62,17 @@ the project, lyrics or audio. See STUDIO_MIX_VOCAL_REPAIR.md. Default canvas
 isolation is now ON, with installed, pinned/safe Demucs weights and persistent
 vocal/frame caches; selected failures must not silently degrade to full mix.
 
+Revision 18: the next privately uploaded project supplied 71 additional changed
+references (all after marker 15 except unchanged marker 69). Across the resulting
+86 confirmed starts, vocal-context decoding, local attack refinement and bounded
+repeated-phrase audio matching measured MAE 0.130 s, median 0.074 s, 85/86 within
+0.5 s. The known opening growl remains 1.69 s late; do not claim all corrections
+are eliminated. New 71 all measured within 0.5 s. These are development results
+on one recording, not a held-out/general benchmark. Models/caches/weights and
+generation remain unchanged. Do not publish the new project or replace the
+previously approved Studio17 project archive without separate user authorization.
+Details: STUDIO_CUE_REPAIR.md.
+
 # User preferences and continuity
 
 - Preserve working behavior. Prefer scoped, additive improvements; do not remove

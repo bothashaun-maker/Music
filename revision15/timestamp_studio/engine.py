@@ -4,7 +4,7 @@
 #  synced lyrics (LRC / SRT / VTT), YouTube chapters, REAPER markers CSV,
 #  a beat grid and a beat-snapped Cut Plan.
 #
-#  Supplied English lyrics use CTC alignment with optional mix/vocal fusion.
+#  Supplied English lyrics use vocal-led CTC timing when isolation is selected.
 #  Empty lyrics use Whisper transcription. Legacy fuzzy helpers remain for old
 #  integrations, but are not used by the supplied-lyrics pipeline.
 # ============================================================================
@@ -734,6 +734,10 @@ def fmt_json(result, offset):
                         "matched": w.get("matched", False),
                         "timing_source": w.get("timing_source", "recognizer_or_estimate"),
                         "acoustic_score": w.get("acoustic_score"),
+                        **({"ctc_start":round(w['ctc_start'],3)} if 'ctc_start' in w else {}),
+                        **({"ctc_end":round(w['ctc_end'],3)} if 'ctc_end' in w else {}),
+                        **({"repeat_template_line":w['repeat_template_line'],
+                            "repeat_distance":w['repeat_distance']} if 'repeat_template_line' in w else {}),
                     }
                     for w in e.get("words", [])
                 ],
@@ -873,7 +877,8 @@ def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", i
                       model_used=metadata["model"], device=metadata["device"],
                       alignment_method="ctc_acoustic", alignment=metadata, match_rate=None)
         review = len(metadata.get("review", []))
-        view = "Mix + vocal" if metadata.get('variant') == 'mix_vocal_ensemble' else "Full-mix"
+        view = ("Vocal context + onset" if metadata.get('variant') == 'vocal_context_ctc' else
+                "Mix + vocal" if metadata.get('variant') == 'mix_vocal_ensemble' else "Full-mix")
         result["status"] = (
             f"{view} acoustic alignment computed for {len(sing)} supplied lyric lines, including repeats. "
             f"English model on {metadata['device']}. {review} lines flagged for listening review. "
