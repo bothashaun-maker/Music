@@ -1,5 +1,8 @@
 # Studio acoustic alignment — revision 16
 
+These are historical revision-16 notes. The later exact analysis-audio evidence
+and measured revision-17 repair are documented in STUDIO_MIX_VOCAL_REPAIR.md.
+
 ## Revision 16.2: stray punctuation and early lyric validation
 
 The next supplied traceback reached the end of acoustic inference, then failed

@@ -110,6 +110,31 @@ class InstalledBundleTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'installation is incomplete: missing .*acoustic.py'):
             self.load_pack()
 
+    def test_installed_node_routes_selected_isolation_to_both_acoustic_views(self):
+        pack = self.load_pack()
+        helper = pack.engine.validate_acoustic_bundle()
+        separator = pack.engine._adjacent_helper('vocal.py')
+        vocal_path = self.root/'vocals.wav'
+        soundfile.write(vocal_path, np.full(64000,.2,np.float32),16000,subtype='FLOAT')
+        labels = np.zeros(200,dtype=int)
+        labels[25:29]=1; labels[30:34]=2
+        scores = np.full((200,4),-12.,np.float32)
+        scores[np.arange(200),labels]=-.001
+        frames = (scores,np.arange(200)*.02,{'<pad>':0,'H':1,'I':2,'|':3},
+                  {'device':'cached','cache_reused':True})
+        with patch.object(separator,'isolate',return_value=(str(vocal_path),{'cache_reused':True})), \
+             patch.object(helper,'acoustic_frames',return_value=frames) as inference, \
+             patch.object(pack.engine,'detect_beats',return_value=(None,[])):
+            opts = pack.STSLyricsOptions().execute('views','HI','auto','en',True)[0]
+            result = pack.STSAlign().execute({'waveform':torch.full((1,1,64000),.1),
+                                             'sample_rate':16000}, opts)['result'][0]
+        self.assertEqual(inference.call_count,2)
+        self.assertAlmostEqual(float(inference.call_args_list[0].args[0][0]),.1)
+        self.assertAlmostEqual(float(inference.call_args_list[1].args[0][0]),.2)
+        self.assertEqual(result['alignment']['variant'],'mix_vocal_ensemble')
+        self.assertTrue(result['alignment']['isolation']['cache_reused'])
+        self.assertAlmostEqual(result['entries'][0]['start'],.5)
+
     def test_dependency_error_is_not_masked_as_missing_source_package(self):
         (self.pack_path/'acoustic.py').write_text("raise ImportError('upstream dependency failure')\n")
         with self.assertRaisesRegex(ImportError, '^upstream dependency failure$'):

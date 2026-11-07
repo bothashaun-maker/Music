@@ -65,11 +65,11 @@ def build_studio_canvas(example_lyrics):
     _node(nodes, 1, "STSLoadSong", (40, 120), [], [("AUDIO", "AUDIO")], [NO_SONG],
           (440, 160), title="1 · Your song — pick from the list · paste a link · 📤 upload")
     _node(nodes, 2, "STSLyricsOptions", (40, 420), [], [("STS_OPTS", "STS_OPTS")],
-          ["my_song", example_lyrics, "auto", "auto", False], (440, 420),
+          ["my_song", example_lyrics, "auto", "auto", True], (440, 420),
           title="2 · Your lyrics (keep the [Verse] / [Chorus] tags)")
     _node(nodes, 3, "STSAlign", (560, 240),
           [("audio", "AUDIO"), ("opts", "STS_OPTS")], [("STS_RESULT", "STS_RESULT")], [],
-          (420, 160), title="3 · Forced alignment — your words onto exact seconds")
+          (420, 160), title="3 · Align lyrics — mix + vocal evidence")
     _node(nodes, 4, "STSNudge", (1040, 120), [("result", "STS_RESULT")],
           [("STS_RESULT", "STS_RESULT")], [0.0], (360, 140),
           title="4 · All times late? early? shift everything at once")

@@ -26,8 +26,9 @@ check prevents quietly collecting a different recording's frame scores.
    exec(compile(source, "collect_studio_evidence.py", "exec"), {"__name__": "__main__"})
    ```
 
-3. Run **only that new cell**. It prints download links and paths for
-   `studio_evidence_...zip` under `/kaggle/working/timestamp_studio/`.
+3. Run **only that new cell**. It prints paths for `studio_evidence_...zip` under
+   `/kaggle/working/timestamp_studio/`. In Kaggle's file panel, open that folder,
+   click each actual ZIP file and use its Download control.
 4. Attach those evidence ZIPs to the engineering chat, together with the saved
    REAPER `.rpp` project containing the corrected intro and first verse. The
    project stores marker/region positions; its referenced media is not embedded.

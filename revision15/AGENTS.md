@@ -51,6 +51,17 @@ transfer limit. STUDIO_TIMING_INVESTIGATION.md explains same-session collection.
 Obtain the corrected REAPER project as reference; no acoustic repair has been
 validated on that recording yet. Keep the working generation pipeline unchanged.
 
+Revision 17 follow-up: exact 387.52-second audio and frame evidence was received.
+Only the first 15 manually changed markers are confirmed references. The tested
+mix+vocal geometric acoustic ensemble reduced their mean error 1.061→0.206 s,
+14/15 within 0.5 s; the growled opening line remains 1.526 s late. The remaining
+72 markers and within-line words are not independently verified. Do not claim
+complete-song accuracy or that the last outlier is fixed. Preserve all user's
+manual corrections when preparing their private project copy; do not publish
+the project, lyrics or audio. See STUDIO_MIX_VOCAL_REPAIR.md. Default canvas
+isolation is now ON, with installed, pinned/safe Demucs weights and persistent
+vocal/frame caches; selected failures must not silently degrade to full mix.
+
 # User preferences and continuity
 
 - Preserve working behavior. Prefer scoped, additive improvements; do not remove

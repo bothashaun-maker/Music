@@ -176,10 +176,33 @@ def prepare_lyric_words(lines):
     return words
 
 
-def align_lines(audio, lines, progress=None):
+def combine_views(first, second):
+    """Equal geometric acoustic fusion; retain independent, reusable frame caches."""
+    logp, times, vocab, diagnostics = first
+    vocal_logp, vocal_times, vocal_vocab, vocal_diagnostics = second
+    if logp.shape != vocal_logp.shape or not np.array_equal(times, vocal_times) or vocab != vocal_vocab:
+        raise ValueError('Mix and vocal acoustic frames do not have matching timestamps and vocabulary')
+    fused = (logp+vocal_logp)*.5
+    # Frame-wise normalization does not change the Viterbi optimum, but scores
+    # must describe the normalized joint distribution, not unnormalized products.
+    fused -= np.logaddexp.reduce(fused, axis=1, keepdims=True)
+    device = diagnostics.get('device')
+    if device == 'cached':
+        device = vocal_diagnostics.get('device', device)
+    return fused, times, vocab, dict(diagnostics, variant='mix_vocal_ensemble',
+        fusion='equal_geometric', mix_frames=dict(diagnostics), vocal_frames=vocal_diagnostics,
+        device=device, cache_reused=bool(diagnostics.get('cache_reused') and vocal_diagnostics.get('cache_reused')))
+
+
+def align_lines(audio, lines, progress=None, vocal_audio=None):
     """Return per-line acoustic word times with explicit diagnostic scores."""
     words = prepare_lyric_words(lines)
-    logp, times, vocab, diagnostics = acoustic_frames(audio, progress)
+    first = acoustic_frames(audio, progress)
+    if vocal_audio is not None:
+        if np.shape(vocal_audio) != np.shape(audio):
+            raise ValueError('Mix and vocal sample counts differ')
+        first = combine_views(first, acoustic_frames(vocal_audio, progress))
+    logp, times, vocab, diagnostics = first
     targets, owners = [], []
     for word_index, word in enumerate(words):
         text = word['encoded']
@@ -207,10 +230,19 @@ def align_lines(audio, lines, progress=None):
     for index, group in enumerate(grouped):
         mean = float(np.mean([w['acoustic_score'] for w in group]))
         span = group[-1]['end']-group[0]['start']
-        if mean < .2 or span/max(len(group),1) < .12 or any(w['end']-w['start'] > 8 for w in group):
+        reasons = []
+        if mean < .2:
+            reasons.append('Low acoustic score')
+        if span/max(len(group),1) < .12:
+            reasons.append('Unusually dense timing')
+        if any(w['end']-w['start'] > 8 for w in group):
+            reasons.append('A word spans more than eight seconds')
+        if len(group) > 1 and group[0]['acoustic_score'] < .2 and group[1]['start']-group[0]['end'] > 1:
+            reasons.append('Weak first word separated from the next word by more than one second')
+        if reasons:
             warnings.append({'line': index+1, 'text': lines[index], 'start': group[0]['start'],
                              'end': group[-1]['end'], 'acoustic_score': round(mean,4),
-                             'reason': 'Low acoustic score or unusually dense timing; listen and review'})
+                             'reason': '; '.join(reasons) + '; listen and review'})
     diagnostics.update(method='ctc_acoustic', model=MODEL_ID, revision=MODEL_REVISION,
                        text_source='supplied_lyrics', review=warnings,
                        word_count=len(words), language='en', language_source='alignment_model')

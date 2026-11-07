@@ -39,6 +39,7 @@ def build_payload():
         "TimestampStudio/__init__.py": pack_src,
         "TimestampStudio/sts_engine.py": engine_src,
         "TimestampStudio/acoustic.py": (ROOT / "timestamp_studio/acoustic.py").read_text(),
+        "TimestampStudio/vocal.py": (ROOT / "timestamp_studio/vocal.py").read_text(),
         "TimestampStudio/web/open_workflow.js": web_src,
     }
     for name, graph_text in canvases.items():
@@ -49,7 +50,7 @@ def build_payload():
     return base64.b64encode(zlib.compress(json.dumps(files).encode(), 9)).decode()
 
 
-MD_TOP = """# 🎛️ Song Timestamp Studio — acoustic alignment (revision 16.2)
+MD_TOP = """# 🎛️ Song Timestamp Studio — mix + vocal alignment (revision 17)
 
 **One cell. One link. Lyric timestamps you can check against the recording.**
 
@@ -58,6 +59,20 @@ acoustic frames, including repeated passages. It no longer fuzzy-matches an
 imperfect transcription and spreads missed words into estimated times. Include
 every performed repeat in the lyrics. The Whisper model menu applies only when
 the lyric box is empty (multilingual automatic transcription).
+
+**Vocal isolation is ON in the supplied canvas.** Supplied lyrics now use both
+the original mix and a separate analysis vocal, combining their acoustic scores
+before aligning the complete lyric sequence. This reduces backing-track
+interference without letting a separate vocal pass skip repeated passages.
+The pinned separator (~80 MB) and its extracted vocals are cached in Studio
+outputs. A selected isolation failure stops with its actual error; it no longer
+silently proceeds with the full mix. Your original WAV stays unchanged.
+
+On the uploaded song's 15 manually corrected reference markers, the tested
+ensemble reduced mean absolute error from 1.06 s to 0.21 s, with 14/15 within
+0.5 s. The growled opening line remains about 1.53 s late and is flagged for
+review. The remaining 72 markers do not have independent timing references;
+these measurements do not establish complete-song or other-song accuracy.
 
 The acoustic model (~360 MB) downloads on Kaggle on first use and is saved in
 `timestamp_studio/alignment_models/`. Acoustic frames are also cached, so changing
@@ -122,7 +137,8 @@ constraint_file.write_text("\\n".join(constraints) + "\\n")
 subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", "-q",
                        "-c", str(constraint_file),
                        "faster-whisper==1.2.1", "librosa==0.10.2.post1", "soundfile==0.13.1",
-                       "transformers==4.57.6", "huggingface-hub==0.36.2", "safetensors>=0.7.0"])
+                       "transformers==4.57.6", "huggingface-hub==0.36.2", "safetensors>=0.7.0",
+                       "demucs==4.1.0", "julius==0.2.8", "sphn==0.2.1"])
 print("✅ tools installed", flush=True)
 
 # --- 2 · unpack the tested engine + node pack --------------------------------
@@ -153,7 +169,7 @@ if head.stdout.strip() != COMFYUI_COMMIT:
 def install_studio_pack(support, comfy_root):
     source_root = Path(support) / "TimestampStudio"
     destination = Path(comfy_root) / "custom_nodes" / "TimestampStudio"
-    required = ("__init__.py", "sts_engine.py", "acoustic.py", "web/open_workflow.js", "web/sts-studio.json")
+    required = ("__init__.py", "sts_engine.py", "acoustic.py", "vocal.py", "web/open_workflow.js", "web/sts-studio.json")
     missing = [name for name in required if not (source_root / name).is_file()]
     if missing:
         raise RuntimeError("Timestamp Studio payload is incomplete: " + ", ".join(missing))
@@ -354,9 +370,9 @@ MD_BOTTOM = """## 🖱️ Using the canvas (30 seconds)
 3. **Lyrics & Options** — paste the lyrics exactly as sung, one line per row. Keep your
    `[Verse]` / `[Chorus]` tags (they become chapters + REAPER regions). Leave it EMPTY to
    auto-transcribe instead. Pick model / language / vocal isolation if needed.
-4. Press **Run** (Queue Prompt). **Align Lyrics** reports the match rate; **Export All**
-   lists every written file with a per-line confidence check.
-5. Not happy? Change the **Nudge** offset (or the model / isolation) and press **Run** again
+4. Press **Run** (Queue Prompt). **Align Lyrics** reports lines needing review; **Export All**
+   lists every written file. Check flagged words against the audio.
+5. A uniform offset can use **Nudge**; varying timing errors cannot. Change the offset and press **Run** again
    — everything after Nudge re-runs. **Audition One Line → PreviewAudio** plays ~8 s around
    any line for a quick ear check.
 

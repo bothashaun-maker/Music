@@ -4,9 +4,9 @@
 #  synced lyrics (LRC / SRT / VTT), YouTube chapters, REAPER markers CSV,
 #  a beat grid and a beat-snapped Cut Plan.
 #
-#  Core idea: forced alignment. Whisper listens to the song, then the KNOWN
-#  lyric words are fuzzy-matched onto the words Whisper heard, so lyric text
-#  is always correct and only timing has to be estimated.
+#  Supplied English lyrics use CTC alignment with optional mix/vocal fusion.
+#  Empty lyrics use Whisper transcription. Legacy fuzzy helpers remain for old
+#  integrations, but are not used by the supplied-lyrics pipeline.
 # ============================================================================
 import io
 import json
@@ -764,16 +764,16 @@ def fmt_json(result, offset):
 # ----------------------------------------------------------------------------
 
 
-def isolate_vocals(audio_path):
-    out_dir = tempfile.mkdtemp(prefix="sts_demucs_")
-    import subprocess
+_ISOLATION_DIAGNOSTICS = {}
 
-    cmd = [sys.executable, "-m", "demucs", "--two-stems=vocals", "-n", "htdemucs", "-o", out_dir, audio_path]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
-    for root, _dirs, files in os.walk(out_dir):
-        if "vocals.wav" in files:
-            return os.path.join(root, "vocals.wav")
-    raise RuntimeError((proc.stderr or proc.stdout or "demucs produced no vocals")[-400:])
+
+def isolate_vocals(audio_path):
+    def progress(fields):
+        print('[TimestampStudio] ' + str(fields), flush=True)
+    path, metadata = _adjacent_helper('vocal.py').isolate(load_audio_16k(audio_path), progress)
+    _ISOLATION_DIAGNOSTICS.clear()
+    _ISOLATION_DIAGNOSTICS.update(metadata)
+    return path
 
 
 # ----------------------------------------------------------------------------
@@ -781,12 +781,12 @@ def isolate_vocals(audio_path):
 # ----------------------------------------------------------------------------
 
 
-def validate_acoustic_bundle():
+def _adjacent_helper(filename):
     """Load the adjacent helper independently of ComfyUI's custom module name."""
     import hashlib
     import importlib.util
     from pathlib import Path
-    source = Path(__file__).with_name('acoustic.py').resolve()
+    source = Path(__file__).with_name(filename).resolve()
     if not source.is_file():
         raise RuntimeError('Timestamp Studio installation is incomplete: missing ' + str(source))
     name = '_timestamp_studio_acoustic_' + hashlib.sha256(str(source).encode()).hexdigest()[:20]
@@ -803,8 +803,15 @@ def validate_acoustic_bundle():
     return module
 
 
-def acoustic_align_lines(audio, lines, progress=None):
-    return validate_acoustic_bundle().align_lines(audio, lines, progress)
+def validate_acoustic_bundle():
+    return _adjacent_helper('acoustic.py')
+
+
+def acoustic_align_lines(audio, lines, progress=None, vocal_audio=None):
+    helper = validate_acoustic_bundle()
+    if vocal_audio is None:
+        return helper.align_lines(audio, lines, progress)
+    return helper.align_lines(audio, lines, progress, vocal_audio=vocal_audio)
 
 
 def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", isolate_vocals_flag=False):
@@ -838,20 +845,22 @@ def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", i
     notes = []
     src = audio_path
     if isolate_vocals_flag:
-        try:
-            src = isolate_vocals(audio_path)
-            notes.append("🎛️ vocal isolation applied")
-        except Exception as exc:  # graceful fallback
-            notes.append(f"⚠️ vocal isolation unavailable ({exc} — continuing with the full mix)")
+        src = isolate_vocals(audio_path)
+        notes.append("🎛️ cached analysis vocals applied; original audio preserved")
 
     if sing:
-        audio16 = load_audio_16k(src)
+        audio16 = load_audio_16k(audio_path)
         duration = len(audio16) / 16000
         _TRANSCRIPTION_DIAGNOSTICS.clear()
         _TRANSCRIPTION_DIAGNOSTICS.update(method="ctc_acoustic", text_source="supplied_lyrics")
         def progress(fields):
             print("[TimestampStudio] " + str(fields), flush=True)
-        grouped, metadata = acoustic_align_lines(audio16, [e["text"] for e in sing], progress)
+        if isolate_vocals_flag:
+            grouped, metadata = acoustic_align_lines(audio16, [e["text"] for e in sing], progress,
+                                                    vocal_audio=load_audio_16k(src))
+            metadata['isolation'] = dict(_ISOLATION_DIAGNOSTICS)
+        else:
+            grouped, metadata = acoustic_align_lines(audio16, [e["text"] for e in sing], progress)
         if len(grouped) != len(sing):
             raise ValueError("The acoustic aligner did not return every lyric line; export stopped")
         for entry, word_times in zip(sing, grouped):
@@ -864,8 +873,9 @@ def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", i
                       model_used=metadata["model"], device=metadata["device"],
                       alignment_method="ctc_acoustic", alignment=metadata, match_rate=None)
         review = len(metadata.get("review", []))
+        view = "Mix + vocal" if metadata.get('variant') == 'mix_vocal_ensemble' else "Full-mix"
         result["status"] = (
-            f"Acoustic alignment computed for {len(sing)} supplied lyric lines, including repeats. "
+            f"{view} acoustic alignment computed for {len(sing)} supplied lyric lines, including repeats. "
             f"English model on {metadata['device']}. {review} lines flagged for listening review. "
             "Acoustic scores are model diagnostics, not measured timestamp accuracy."
         )

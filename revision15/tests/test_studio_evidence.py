@@ -96,6 +96,30 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Set SONG to the exact original WAV path'):
             self.collect()
 
+    def test_mix_vocal_export_collects_both_matching_frame_caches(self):
+        samples = np.ones(16000, np.float32)*.1
+        sf.write(self.song, samples, 16000, subtype='FLOAT')
+        digest = self.cache(samples)
+        vocal_digest = self.cache(samples*.5)
+        key = hashlib.sha256((vocal_digest+collector.MODEL_REVISION+':ctc-20s-context2-v1').encode()).hexdigest()
+        vocal_cache = self.out/'acoustic_cache'/f'{key}.npz'
+        result = {'alignment':{'audio_sha256':digest, 'vocal_frames':{
+            'audio_sha256':vocal_digest, 'cache_file':str(vocal_cache)}}}
+        (self.out/'song_timestamps.json').write_text(json.dumps(result))
+        archives = self.collect()
+        with zipfile.ZipFile(archives[0]) as bundle:
+            self.assertIn('vocal_acoustic_frames.npz', bundle.namelist())
+            self.assertEqual(json.loads(bundle.read('evidence.json'))['vocal_cache_key'],key)
+
+    def test_related_cache_cannot_reference_a_file_outside_saved_studio_data(self):
+        samples = np.ones(16000,np.float32)*.1
+        sf.write(self.song,samples,16000,subtype='FLOAT')
+        digest = self.cache(samples)
+        (self.out/'song_timestamps.json').write_text(json.dumps({'alignment':{
+            'audio_sha256':digest,'vocal_frames':{'cache_file':str(self.root/'outside.npz')}}}))
+        with self.assertRaisesRegex(ValueError,'outside Studio outputs'):
+            self.collect()
+
     def test_archive_size_limit_splits_files_without_truncating_samples(self):
         samples = np.random.default_rng(7).normal(0, .1, 4500).astype(np.float32)
         sf.write(self.song, samples, 16000, subtype='FLOAT')

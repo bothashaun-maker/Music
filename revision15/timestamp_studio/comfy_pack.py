@@ -11,11 +11,10 @@ A visible, connected canvas of real, individually executed nodes:
         ▼
    STS Export All  (LRC / SRT / VTT / chapters / REAPER / beats / Cut Plan / JSON / ZIP)
 
-The alignment engine is the standalone timestamp-studio engine (sts_engine.py,
-written next to this file): Whisper listens to the song, then the KNOWN lyric
-words are fuzzy-matched onto the words Whisper heard (forced alignment), so the
-lyric text is always correct and only timing is measured. Beat grid and Cut Plan
-come from librosa; the Cut Plan speaks seconds AND frames @ 24 fps.
+The installed engine aligns supplied English lyrics with acoustic CTC frames,
+combining full-mix and isolated-vocal views when enabled. Empty lyrics use
+Whisper transcription. Beat grid and Cut Plan come from librosa; the Cut Plan
+speaks seconds AND frames @ 24 fps. Scores do not establish timing accuracy.
 """
 import os
 
@@ -37,6 +36,7 @@ import numpy as np
 
 from . import sts_engine as engine
 engine.validate_acoustic_bundle()  # Fail registration before printing a usable canvas link.
+engine._adjacent_helper('vocal.py')
 
 CATEGORY = "Song Timestamp Studio"
 _PREF = "[TimestampStudio] "
@@ -249,8 +249,8 @@ class STSLyricsOptions:
                                   "placeholder": "[Verse]\n...one line per row...\n\n[Chorus]\n..."}),
             "model": (engine.MODEL_CHOICES, {"default": "auto"}),
             "language": (engine.LANG_CHOICES, {"default": "auto"}),
-            "isolate_vocals": ("BOOLEAN", {"default": False,
-                                           "label_on": "on — dense mixes",
+            "isolate_vocals": ("BOOLEAN", {"default": True,
+                                           "label_on": "on — mix + vocal alignment",
                                            "label_off": "off — clear mixes"}),
         }}
 
@@ -280,9 +280,10 @@ class STSAlign:
     FUNCTION = "execute"
     CATEGORY = CATEGORY
     OUTPUT_NODE = True
-    DESCRIPTION = ("Listens to the song and times every lyric line. First run downloads the "
-                   "Whisper model (~150 MB, one-time per session). Confidence per line appears "
-                   "in the Export node report; low scores → bigger model or vocal isolation.")
+    DESCRIPTION = ("Aligns supplied English lyrics to acoustic frames. With isolation ON, "
+                   "combines mix and vocal evidence; models, vocals and frames are cached. "
+                   "Weak or stretched words need review. The Whisper menu affects empty-lyric "
+                   "transcription only; a bigger Whisper setting does not change CTC alignment.")
 
     def execute(self, audio, opts):
         import comfy.model_management as model_management

@@ -49,6 +49,8 @@ class StudioTests(unittest.TestCase):
                          (ROOT / "timestamp_studio/engine.py").read_text())
         self.assertEqual(files["TimestampStudio/acoustic.py"],
                          (ROOT / "timestamp_studio/acoustic.py").read_text())
+        self.assertEqual(files["TimestampStudio/vocal.py"],
+                         (ROOT / "timestamp_studio/vocal.py").read_text())
         graph = json.loads(files["TimestampStudio/web/sts-studio.json"])
         types = {n["type"] for n in graph["nodes"]}
         self.assertIn("STSExportAll", types)
@@ -57,6 +59,8 @@ class StudioTests(unittest.TestCase):
         # in the node menu for small files but is not on the default canvas.
         self.assertIn("STSLoadSong", types)
         self.assertIn("PreviewAudio", types)
+        options = next(n for n in graph['nodes'] if n['type'] == 'STSLyricsOptions')
+        self.assertIs(options['widgets_values'][-1], True)
 
     def test_canvas_wiring_is_a_single_connected_graph(self):
         code = "".join(self.nb["cells"][1]["source"])
@@ -82,6 +86,7 @@ class StudioTests(unittest.TestCase):
             (pkg / "__init__.py").write_text((ROOT / "timestamp_studio/comfy_pack.py").read_text())
             (pkg / "sts_engine.py").write_text((ROOT / "timestamp_studio/engine.py").read_text())
             (pkg / "acoustic.py").write_text((ROOT / "timestamp_studio/acoustic.py").read_text())
+            (pkg / "vocal.py").write_text((ROOT / "timestamp_studio/vocal.py").read_text())
             sys.path.insert(0, tmp)
             try:
                 for name in list(sys.modules):

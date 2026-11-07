@@ -71,14 +71,31 @@ def collect(audio_path=None, output_root='/kaggle/working/timestamp_studio',
                  'Scores and synthetic tests do not establish timing accuracy. '
                  'If no matching export exists, attach the latest timestamp ZIP separately.',
     }
-    for name in ('sts_engine.py', 'acoustic.py'):
+    related = []
+    if latest:
+        details = json.loads(latest.read_text()).get('alignment', {}).get('vocal_frames', {})
+        if details.get('cache_file'):
+            path = Path(details['cache_file']).resolve()
+            allowed = any(path.is_relative_to(root.resolve()) for root in (output, Path('/kaggle/input')))
+            if not allowed:
+                raise ValueError('The related vocal cache is outside Studio outputs and attached inputs')
+            if path.is_file():
+                vocal_key = hashlib.sha256((details['audio_sha256']+MODEL_REVISION+':ctc-20s-context2-v1').encode()).hexdigest()
+                with np.load(path, allow_pickle=False) as frames:
+                    if str(frames['key']) != vocal_key:
+                        raise ValueError('Related vocal acoustic cache identity mismatch')
+                related.append((path, 'vocal_acoustic_frames.npz'))
+                manifest['vocal_cache_key'] = vocal_key
+            else:
+                manifest['missing_vocal_cache'] = str(path)
+    for name in ('sts_engine.py', 'acoustic.py', 'vocal.py'):
         source = Path(comfy_root) / 'custom_nodes' / 'TimestampStudio' / name
         if source.is_file():
             manifest[name + '_sha256'] = hashlib.sha256(source.read_bytes()).hexdigest()
 
     with tempfile.TemporaryDirectory(prefix='evidence_', dir=output) as scratch:
         scratch = Path(scratch)
-        files = [(cache, 'acoustic_frames.npz')]
+        files = [(cache, 'acoustic_frames.npz')] + related
         if latest:
             files.append((latest, 'timestamps.json'))
         # Small lossless array chunks allow independent archives below the file
@@ -127,10 +144,6 @@ if __name__ == '__main__':
     SONG = ''
     paths = collect(SONG or None)
     print('Evidence collected. No alignment or model inference was run. Original song unchanged.')
+    print('Download these ZIP files from Kaggle’s file panel: /kaggle/working → timestamp_studio.')
     for path in paths:
         print(path)
-        try:
-            from IPython.display import FileLink, display
-            display(FileLink(str(path)))
-        except ImportError:
-            pass
