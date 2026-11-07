@@ -38,6 +38,11 @@ files, and load the adjacent acoustic helper by file path. Preserve the exact
 ComfyUI path-named package regression in tests/test_studio_installed_bundle.py;
 tests of source imports alone do not cover the deployed node layout.
 
+Revision 16.2 ignores punctuation-only lyric lines (a lone '[' caused a real
+post-inference crash), and validates all supplied text before isolation/audio
+loading/inference. Keep acoustic cache keys stable for lyric-only repairs;
+this parsing fix does not establish improved timing accuracy on the real song.
+
 # User preferences and continuity
 
 - Preserve working behavior. Prefer scoped, additive improvements; do not remove

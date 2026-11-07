@@ -155,31 +155,41 @@ def ctc_path(logp, tokens, blank=0):
     return frames
 
 
-def align_lines(audio, lines, progress=None):
-    """Return per-line acoustic word times with explicit diagnostic scores."""
-    logp, times, vocab, diagnostics = acoustic_frames(audio, progress)
-    targets, owners, words = [], [], []
+def prepare_lyric_words(lines):
+    """Validate all text before model loading, isolation or acoustic inference."""
+    words = []
     for line_index, line in enumerate(lines):
         found = False
         for original in line.split():
             text = unicodedata.normalize('NFKD', original.replace('’', "'")).upper()
             text = ''.join(c for c in text if c.isascii() and (c.isalpha() or c == "'"))
-            if not text:
+            if not any(c.isalpha() for c in text):
                 if any(c.isalnum() for c in original):
                     raise ValueError('English acoustic alignment cannot encode ' + repr(original) + '; spell numbers and use English/romanized lyrics')
                 continue
-            if any(c not in vocab for c in text):
-                raise ValueError('Unsupported lyric character in ' + repr(original))
-            if targets:
-                targets.append(vocab['|'])
-                owners.append(None)
-            word_index = len(words)
-            words.append({'text': original, 'line': line_index})
-            targets.extend(vocab[c] for c in text)
-            owners.extend([word_index]*len(text))
+            words.append({'text': original, 'line': line_index, 'encoded': text})
             found = True
         if not found:
             raise ValueError('A lyric line has no alignable English words: ' + repr(line))
+    if not words:
+        raise ValueError('No alignable English lyric words were supplied')
+    return words
+
+
+def align_lines(audio, lines, progress=None):
+    """Return per-line acoustic word times with explicit diagnostic scores."""
+    words = prepare_lyric_words(lines)
+    logp, times, vocab, diagnostics = acoustic_frames(audio, progress)
+    targets, owners = [], []
+    for word_index, word in enumerate(words):
+        text = word['encoded']
+        if any(c not in vocab for c in text):
+            raise ValueError('Unsupported lyric character in ' + repr(word['text']))
+        if targets:
+            targets.append(vocab['|'])
+            owners.append(None)
+        targets.extend(vocab[c] for c in text)
+        owners.extend([word_index]*len(text))
     path = ctc_path(logp, targets, vocab['<pad>'])
     word_frames = [[] for _ in words]
     for token_index, owner in enumerate(owners):

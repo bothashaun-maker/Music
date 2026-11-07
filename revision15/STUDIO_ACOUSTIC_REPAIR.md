@@ -1,5 +1,28 @@
 # Studio acoustic alignment — revision 16
 
+## Revision 16.2: stray punctuation and early lyric validation
+
+The next supplied traceback reached the end of acoustic inference, then failed
+on a standalone `[` immediately after a section heading. The parser now ignores
+and logs punctuation-only lines instead of classifying them as sung lyrics.
+Actual lyric lines and section headings retain their order and labels.
+The complete supplied text is validated before optional vocal isolation, audio
+loading or model inference. A nonempty sheet with no sung words fails explicitly
+rather than falling through to automatic transcription. The acoustic helper also
+validates its input before producing frames when called directly.
+
+Regressions cover a stray bracket among repeated lyrics and section tags,
+unsupported text failing before inference, and invalid sheets failing before
+isolation or audio loading. Existing acoustic cache keys and frame computations
+are unchanged: the interrupted run's saved frames remain reusable in its session
+after removing the stray bracket. This is a parsing repair, not a measured
+improvement to timing accuracy on the user's recording. The uploaded pip log
+also reports conflicts with preinstalled Gradio/Diffusers requirements; these
+did not trigger the supplied ValueError and are not changed by this repair.
+All 138 local regression checks passed. The actual lyric text embedded in the
+uploaded error report also passes text validation after the parser ignores the
+stray bracket (488 words); this check does not run acoustic inference.
+
 ## Revision 16.1: installed helper import
 
 The supplied Kaggle traceback showed that the notebook embedded `acoustic.py`

@@ -63,6 +63,36 @@ class AcousticTests(unittest.TestCase):
         self.assertEqual(data['alignment_method'],'ctc_acoustic')
         self.assertIsNone(data['lyric_word_match_rate'])
 
+    def test_stray_bracket_and_punctuation_do_not_become_lyric_lines(self):
+        engine = self.engine()
+        entries = engine.parse_lyrics('[Verse 3]\n[\nHello again!\n...\n]\n[Chorus]\nHello again!')
+        self.assertEqual([(e['kind'], e['text']) for e in entries],
+                         [('tag', 'Verse 3'), ('sing', 'Hello again!'),
+                          ('tag', 'Chorus'), ('sing', 'Hello again!')])
+        words = acoustic.prepare_lyric_words([e['text'] for e in entries if e['kind'] == 'sing'])
+        self.assertEqual([w['line'] for w in words], [0, 0, 1, 1])
+
+    def test_invalid_text_fails_before_acoustic_frames(self):
+        for lines in (['Hello', '['], ['Hello', '123'], ['Hello', "'"], []):
+            with self.subTest(lines=lines), \
+                 patch.object(acoustic, 'acoustic_frames') as frames:
+                with self.assertRaises(ValueError):
+                    acoustic.align_lines(np.ones(16000, np.float32), lines)
+                frames.assert_not_called()
+
+    def test_invalid_lyrics_fail_before_isolation_or_audio_loading(self):
+        engine = self.engine()
+        for lyrics in ('[Verse]\n123', '[\n...'):
+            with self.subTest(lyrics=lyrics), \
+                 patch.object(engine, 'isolate_vocals') as isolate, \
+                 patch.object(engine, 'load_audio_16k') as load, \
+                 patch.object(engine, 'transcribe_words') as transcribe:
+                with self.assertRaises(ValueError):
+                    engine.run_alignment('song.wav', lyrics, isolate_vocals_flag=True)
+                isolate.assert_not_called()
+                load.assert_not_called()
+                transcribe.assert_not_called()
+
     def test_section_follows_next_line_in_text_even_when_legacy_times_overlap(self):
         engine=self.engine()
         def line(text,start,end):

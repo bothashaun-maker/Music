@@ -49,7 +49,7 @@ def build_payload():
     return base64.b64encode(zlib.compress(json.dumps(files).encode(), 9)).decode()
 
 
-MD_TOP = """# 🎛️ Song Timestamp Studio — acoustic alignment (revision 16.1)
+MD_TOP = """# 🎛️ Song Timestamp Studio — acoustic alignment (revision 16.2)
 
 **One cell. One link. Lyric timestamps you can check against the recording.**
 

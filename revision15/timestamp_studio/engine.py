@@ -78,6 +78,9 @@ def parse_lyrics(text):
         line = raw.strip()
         if not line:
             continue
+        if not any(c.isalnum() for c in line):
+            print("[TimestampStudio] Ignoring punctuation-only lyric line: " + repr(line), flush=True)
+            continue
         m = TAG_RE.match(line)
         if m:
             entries.append({"kind": "tag", "text": m.group(1).strip(), "words": []})
@@ -822,6 +825,16 @@ def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", i
         result["status"] = "⚠️ **Upload a song first** (step 1)."
         return result
 
+    entries = parse_lyrics(lyrics_text)
+    sing = [e for e in entries if e["kind"] == "sing"]
+    if (lyrics_text or "").strip() and not sing:
+        raise ValueError("The lyric sheet contains no sung lines, only section tags or punctuation. Add the actual sung lines")
+
+    if sing:
+        if language not in ("auto", "en", "", None):
+            raise ValueError("Supplied-lyric acoustic alignment currently supports English/romanized lyrics. Multilingual automatic transcription remains available with an empty lyric box")
+        validate_acoustic_bundle().prepare_lyric_words([e["text"] for e in sing])
+
     notes = []
     src = audio_path
     if isolate_vocals_flag:
@@ -831,14 +844,7 @@ def run_alignment(audio_path, lyrics_text, model_size="auto", language="auto", i
         except Exception as exc:  # graceful fallback
             notes.append(f"⚠️ vocal isolation unavailable ({exc} — continuing with the full mix)")
 
-    entries = parse_lyrics(lyrics_text)
-    sing = [e for e in entries if e["kind"] == "sing"]
-    if entries and not sing:
-        raise ValueError("The lyric sheet contains only section tags. Add the actual sung lines")
-
     if sing:
-        if language not in ("auto", "en", "", None):
-            raise ValueError("Supplied-lyric acoustic alignment currently supports English/romanized lyrics. Multilingual automatic transcription remains available with an empty lyric box")
         audio16 = load_audio_16k(src)
         duration = len(audio16) / 16000
         _TRANSCRIPTION_DIAGNOSTICS.clear()
