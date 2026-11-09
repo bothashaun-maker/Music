@@ -1,11 +1,23 @@
+# JJP Music Production System
+
+**[Open the 16-page production guide](JJP_Music_Production_System.pdf)** · **[Music Launch Desk](MUSIC_LAUNCH_DESK.md)** · [Editable guide](MUSIC_PRODUCTION_SYSTEM.md)
+
+A practical companion to the JJP Launch System: song creation and covers, reusable
+model storage, stem splitting, REAPER, final masters, lyric timestamps, subtitles,
+visuals and versioned delivery packs. Includes project templates and direct links
+to the existing notebooks. This is a documentation addition; working runtimes and
+model datasets are unchanged.
+
+---
+
 # Uploaded revision 14 — repaired revision 15
 
-**Current Studio: acoustic alignment, revision 16.1 (installed-bundle import fix).**
+**Current Studio: vocal timing refinement, revision 18.**
 [Open the Studio notebook](Song-Timestamp-Studio-Canvas.ipynb).
 Supplied English lyrics now align directly to acoustic frames, including repeats;
 the former fuzzy-transcription timing path is bypassed. The model and acoustic
 frames are reusable from saved Kaggle outputs. The Export node has **Download ZIP**.
-Music creation is unchanged. [Repair details and test limits](revision15/STUDIO_ACOUSTIC_REPAIR.md).
+Music creation is unchanged. [Current timing changes and test limits](revision15/STUDIO_CUE_REPAIR.md).
 
 [REAPER marker-shift action](reaper/README.md): shift all or selected lyric markers
 and optional chapter regions by an offset in seconds, with Undo and no Studio run.

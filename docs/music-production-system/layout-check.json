@@ -1,0 +1,110 @@
+{
+  "pages": 16,
+  "layout": [
+    {
+      "section": "desk",
+      "page": 2,
+      "scale": 1,
+      "body_bottom": 125.9,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "vault",
+      "page": 3,
+      "scale": 0.94,
+      "body_bottom": 74.74,
+      "min_body_font": 8.46
+    },
+    {
+      "section": "session",
+      "page": 4,
+      "scale": 1,
+      "body_bottom": 123.6,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "brief",
+      "page": 5,
+      "scale": 0.92,
+      "body_bottom": 80.01,
+      "min_body_font": 8.28
+    },
+    {
+      "section": "create",
+      "page": 6,
+      "scale": 1,
+      "body_bottom": 99.2,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "cover",
+      "page": 7,
+      "scale": 1,
+      "body_bottom": 114.8,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "stems",
+      "page": 8,
+      "scale": 1,
+      "body_bottom": 126.5,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "reaper",
+      "page": 9,
+      "scale": 1,
+      "body_bottom": 135.1,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "master",
+      "page": 10,
+      "scale": 1,
+      "body_bottom": 165.2,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "timestamps",
+      "page": 11,
+      "scale": 1,
+      "body_bottom": 89.8,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "markers",
+      "page": 12,
+      "scale": 1,
+      "body_bottom": 103.9,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "visuals",
+      "page": 13,
+      "scale": 1,
+      "body_bottom": 179.3,
+      "min_body_font": 9.0
+    },
+    {
+      "section": "archive",
+      "page": 14,
+      "scale": 0.92,
+      "body_bottom": 79.09,
+      "min_body_font": 8.28
+    },
+    {
+      "section": "triage",
+      "page": 15,
+      "scale": 0.98,
+      "body_bottom": 83.8,
+      "min_body_font": 8.82
+    },
+    {
+      "section": "rhythm",
+      "page": 16,
+      "scale": 0.92,
+      "body_bottom": 88.38,
+      "min_body_font": 8.28
+    }
+  ]
+}

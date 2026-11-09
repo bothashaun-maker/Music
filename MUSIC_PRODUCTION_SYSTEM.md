@@ -1,0 +1,385 @@
+# JJP Music Production System
+
+*Edition I · Studio operations · 9 November 2026*
+
+[Open the designed PDF](JJP_Music_Production_System.pdf) · [One-page launch desk](MUSIC_LAUNCH_DESK.md)
+
+## 01 · The Music Launch Desk
+
+*OPEN THE RIGHT TOOL. DO ONLY THE WORK THIS SONG NEEDS.*
+
+One music system. Separate tools. A keeper at every hand-off. This is the practical companion to your JJP Launch System, built around the notebooks already in your GitHub.
+
+| I WANT TO… | OPEN / START HERE |
+| --- | --- |
+| Create a new song | Music Creation — YuE2 Full Song canvas. |
+| Cover or restyle a song | The same Music Creation notebook — Cover / Restyle canvas. |
+| Separate vocals or instruments | Stem Studio — two-, four- or six-output canvas. |
+| Time lyrics / make subtitles | Song Timestamp Studio — use the final audio and performed lyrics. |
+| Mix or adjust markers | REAPER — local project; existing marker-shift action. |
+| Make artwork / video | Image Studio; movie tools only when visuals are needed. |
+
+- [OPEN MUSIC CREATION + COVERS](https://github.com/bothashaun-maker/Music/blob/main/YuE2_Music_Revision15.ipynb)
+- [OPEN STEM STUDIO](https://github.com/bothashaun-maker/kaggle_roformer_stem_splitter/blob/main/Stem_Splitter_ComfyUI_Kaggle.ipynb)
+- [OPEN TIMESTAMP STUDIO](https://github.com/bothashaun-maker/Music/blob/main/Song-Timestamp-Studio-Canvas.ipynb)
+- [OPEN REAPER MARKER HELP](https://github.com/bothashaun-maker/Music/blob/main/reaper/README.md)
+
+**ALREADY HAVE A FINISHED SONG?**
+
+Start at stems if you need a remix, or timestamps if the audio is ready. You do not have to regenerate your back catalog to use this system.
+
+These are stable GitHub entry points. The Cloudflare link printed inside a running Kaggle session is temporary. Bookmark this launch desk, not an old tunnel URL.
+
+## 02 · The Model Vault
+
+*SAVE WEIGHTS ONCE. SAVE SONG OUTPUTS SEPARATELY.*
+
+Model storage and song storage are different jobs. A saved model Dataset does not back up the song you just made.
+
+| TOOL | REUSABLE STORAGE |
+| --- | --- |
+| Music + covers | Attach your existing private yue2-music-assets Dataset. The generator reads the attached bundle; do not rebuild it just to make another song. |
+| Stem Studio | Named private Dataset: janpierrrewiet/stem-studio-assets-v1-f6815b582a. About 2.1 GiB. Startup attempts auto-attachment; Add Input is the alternative. |
+| Timestamp Studio | Save its working outputs with models/caches, then attach that saved output in a later session. It does not currently have Stem Studio’s automatic named-Dataset builder. |
+
+**IF THE MODELS ARE ALREADY SAVED**
+
+Attach/reuse them. Your supplied Kaggle log already showed the stem Dataset mounting and verifying successfully. For first-time preparation only, use Accelerator: None and Internet ON. Keep model preparation off your T4 quota.
+
+- [MUSIC ASSET BUILDER — FIRST TIME ONLY](https://github.com/bothashaun-maker/Music/blob/main/yue2-build-kaggle-assets.ipynb)
+- [STEM MODEL DATASET BUILDER — FIRST TIME ONLY](https://github.com/bothashaun-maker/kaggle_roformer_stem_splitter/blob/main/Stem_Splitter_Model_Packs.ipynb)
+
+1. For the stem builder, wait for PRIVATE DATASET SUBMITTED, open the printed Dataset link and wait for processing. Authentication failures leave verified model files in the builder output.
+2. If automatic attachment is unavailable, use Add Input → Your Datasets, or attach a saved notebook version with its actual output files.
+3. Before ending a productive session, download its result ZIP or save a notebook version including outputs. A draft alone is not a durable file backup.
+
+**WHAT IS STILL DOWNLOADED?**
+
+Software and tunnel tools may install on Kaggle each fresh session. Reusable weights avoid the large model-host downloads. Uploading your song and downloading your stems still use your connection.
+
+## 03 · The Session Routine
+
+*ONE STARTUP CELL. ONE ACTIVE MUSIC TOOL. RUN ONCE.*
+
+Use the same routine every time. Heavy work runs on Kaggle; your browser is the control panel.
+
+1. Choose the job from the launch desk. Import/open that notebook in Kaggle. Attach its saved inputs where required.
+2. For song creation, covers, stems and faster timestamp analysis: choose GPU T4 ×2 and Internet ON. CPU timestamping is supported, but your earlier full analysis took over ten minutes on CPU.
+3. Run the notebook’s single startup code cell. Let setup finish. FutureWarning and Requirement already satisfied are not failure messages.
+4. Open the printed Cloudflare canvas link. Keep the startup cell running while using ComfyUI. Select the source and settings, then press Run once.
+5. Listen and save a keeper. Download the job ZIP or save versioned outputs before closing the session.
+
+| ROUTE | THE SHORT PATH |
+| --- | --- |
+| New composition | Brief → create → choose keeper → optional stems → mix/master → timestamps → release pack. |
+| Existing song | Original WAV → optional stems/remix → final master → timestamps → release pack. |
+
+**GPU MEMORY IS NOT POOLED**
+
+Music generation uses both T4s for different stages. Stem Studio uses GPU 0; Timestamp Studio uses available acceleration. CPU/RAM activity is normal on Kaggle. Stop the previous startup cell before switching tools in the same runtime.
+
+Do not leave multiple music engines competing for the same T4. Save their outputs first; stop their owning cells rather than killing unrelated processes.
+
+## 04 · The Song Brief
+
+*THE MESSAGE LEADS. THE TOOLS SERVE.*
+
+Write a short brief before spending GPU time. The brief is the one source of truth for lyrics, direction and the ending.
+
+| FIELD | WHAT TO RECORD |
+| --- | --- |
+| Identity | Song ID, working title, source version and the keeper filename. |
+| Message | One sentence: what should the listener understand or feel? Record the scripture reference and translation if used. |
+| Voices | Solo or duet; lead/harmony roles; delivery and register. Put production directions in the style brief. |
+| Sound | Genre fusion, principal instruments, tempo feel, energy arc and space. Describe audible qualities. |
+| Structure | Performed verse/chorus order, every repeat, instrumental breaks and the intended ending. |
+| Decision | New song, restyle, remix or finished track? Choose only the required tools. |
+
+**A USEFUL STYLE PROMPT**
+
+Genre / groove → instruments → vocal roles → verse-to-chorus lift → bridge contrast → ending. Be concrete: “restrained piano verse, full drums at the chorus, female harmony above the male lead, resolved final chord.”
+
+- Keep an untouched copy of your original words. Save lyric edits as new versions.
+- Include every performed repeat in a timing lyric sheet. A repeated line needs its own occurrence.
+- Do not prescribe an exact song length unless you need one. Long-song support is a ceiling, not a promise to fill the time.
+- Use the project templates beside this guide for the brief, review notes and production log.
+
+**KEEP CREATION AND TIMING TEXT DISTINCT**
+
+Creation lyrics describe the intended performance. Timing lyrics must match what the chosen recording actually sings. Correct the timing sheet after listening to the keeper.
+
+## 05 · Create a New Song
+
+*YUE2 FULL SONG — THE WORKING NATIVE ENGINE.*
+
+- [OPEN THE CURRENT MUSIC CREATION NOTEBOOK](https://github.com/bothashaun-maker/Music/blob/main/YuE2_Music_Revision15.ipynb)
+
+1. Start the notebook with T4 ×2, Internet ON and your existing YuE2 assets attached. Open the Full Song canvas.
+2. Enter the style and full section-tagged lyrics. Set a seed if you want a recorded experiment; save it with the run.
+3. Start with the proven baseline below. Press Run once. The graph moves through tokens, acoustic synthesis, decoding and saving.
+4. Listen to the complete result, especially repeated lyrics, transitions and the last phrase. Choose a keeper before doing further work.
+
+| SETTING | STARTING POINT |
+| --- | --- |
+| Planning | Direct to audio unless you deliberately need an ABC plan. |
+| Synthesis | 16 steps; Euler. More steps cost time and do not guarantee a better result. |
+| CFG | 1.0 on the direct-generation baseline. |
+| Duration ceiling | Up to 8 min. A natural ending can arrive earlier. |
+| Master files | audio.wav / audio.flac: 48 kHz stereo PCM-24, plus status and a run ZIP. |
+
+**ENDING VS CUTOFF**
+
+A natural model ending is different from a token-limit cutoff, but neither proves lyrical or musical completeness. Check the saved status and listen. Do not pad a good four-minute song just because the ceiling is eight minutes.
+
+Output: /kaggle/working/yue2_native/runs/. Preserve the complete run ZIP, including settings and recovery latents. A rerun with changed settings does not recover time already spent, and reuse of earlier stages is not guaranteed.
+
+## 06 · Cover / Restyle
+
+*KEEP THE SOURCE. REBUILD FROM ITS MELODY SCORE.*
+
+- [OPEN MUSIC CREATION — THEN THE COVER CANVAS](https://github.com/bothashaun-maker/Music/blob/main/YuE2_Music_Revision15.ipynb)
+
+The current cover route analyzes melody into ABC notation, then generates a new song from that score, your lyrics and a new style. It is score-guided regeneration.
+
+1. Open Cover / Restyle from the printed link or ComfyUI’s Workflows menu.
+2. Use Upload song (resumable) in LoadAudio. Wait until the original WAV is ready before pressing Run.
+3. Paste the performed lyrics into Style + Lyrics and describe the new arrangement. Keep original words unless you intend a rewrite.
+4. Let melody analysis finish before the generation engine loads. Start with the same 16-step Euler baseline and an appropriate safety ceiling.
+5. Compare the source and result: melody identity, lyric order, duet roles, groove and ending. Save the chosen cover ZIP and its analysis artifacts.
+
+**IF YOU DO NOT HAVE THE WORDS**
+
+You can use Timestamp Studio with an empty lyric box to obtain a draft transcription, then listen and correct it before pasting into the cover canvas. The cover node’s transcribe option may save analysis text, but the current graph connection carries the ABC score; do not assume it fills the editable lyric box.
+
+**WHAT A COVER DOES NOT GUARANTEE**
+
+The voice, timing, arrangement and instrumentation can change. This is not exact waveform editing or voice cloning. Preserve the original master and treat each cover as its own version.
+
+Reusing a saved, complete ABC score can avoid repeating melody extraction. Check the installed node documentation for the available Custom ABC route. Keep model/version and source notes with the job; model and analysis licenses remain separate from the original recording’s rights.
+
+## 07 · Split the Stems
+
+*CHOOSE THE OUTPUTS YOU NEED. PRESERVE THE SOURCE CLOCK.*
+
+- [OPEN STEM STUDIO](https://github.com/bothashaun-maker/kaggle_roformer_stem_splitter/blob/main/Stem_Splitter_ComfyUI_Kaggle.ipynb)
+- [MODEL COMPARISONS AND SETTINGS](https://github.com/bothashaun-maker/kaggle_roformer_stem_splitter/blob/main/RESEARCH.md)
+
+| GOAL | MODEL / OUTPUT |
+| --- | --- |
+| Vocals + instrumental | Kim Mel-Band default; Viperx BS-RoFormer is the alternative. |
+| Six stems | BS-RoFormer SW: bass, drums, other, vocals, guitar, piano. |
+| Four stems | The same SW model; guitar and piano are added to other. This is a grouping, not a different model. |
+
+1. Start Stem Studio with T4 ×2. Its saved private Dataset should attach and verify. Open the desired canvas.
+2. Upload the original WAV in the resumable uploader, return to the canvas and select it.
+3. Use Balanced first: batch one, roughly 8-second windows, overlap 2. Quality uses overlap 4; Maximum uses 8 and is much slower.
+4. Press Run once. Audition vocals, drums, bass and the delicate passages. Change the preview position to check different sections.
+5. Download all stems ZIP from Export. Completed jobs are reused when source bytes, model and settings match.
+
+**THE EXPORT CONTRACT**
+
+Stems are 32-bit float WAVs with the original sample rate, channels and exact frame count, starting at zero. They are not independently normalized. Internal analysis uses 44.1 kHz; export does not restore detail the model removed.
+
+Output: /kaggle/working/stem_studio/jobs/. Guitar/piano bleed can remain. Higher overlap and extra passes are experiments, not quality guarantees. These three models do not separately provide kick/snare, organ or lead/backing-vocal stems.
+
+## 08 · The REAPER Session
+
+*ONE SOURCE CLOCK. ONE CHOSEN VERSION.*
+
+Use REAPER to make the musical decisions. Imported AI stems are editable estimates, not a reason to rebuild a song that already works.
+
+1. Create a song project folder and save the REAPER project there. Keep media with the project using REAPER’s copy-media option when saving.
+2. Import the chosen original/master at project time zero. Name that track REFERENCE and keep it for comparison.
+3. Import all stems from the same job at zero. Keep the filenames and source version in the project notes.
+4. Mute the reference while listening to the stem mix. For A/B, solo the reference or the stem mix in turn; do not accidentally play both together.
+5. Check the intro, a chorus transition and the ending. Match obvious attacks against the source. Confirm no item rate, start offset or accidental stretch was introduced.
+
+- Balance and pan before adding processing. Use EQ, dynamics and ambience only where the song benefits.
+- Watch vocal consonants, cymbal wash, low-end pumping, doubled notes and phase changes on processed stems.
+- Keep adequate bus headroom. Do not normalize each stem to the same loudness.
+- Save a new project version before destructive edits or bulk marker replacement.
+
+**REFERENCE IS NOT AN EXTRA STEM**
+
+Separated multi-instrument outputs may not sum exactly to the original. Use the original for listening comparison; do not blend it in merely to force a null test or hide every artifact.
+
+If you move, trim or stretch the audio after timestamping, existing lyric cues may no longer match. Finalize the audio arrangement before the final timing pass.
+
+## 09 · The Final Audio Keeper
+
+*FINISH THE MIX. MEASURE IT. FREEZE ITS TIMELINE.*
+
+The final master is the file used for subtitles, chapters, video editing and release. Pick one version and label it clearly.
+
+1. Render the full intended song from REAPER, including its real intro and ending. Preserve intentional silence, false endings and reverb tails.
+2. Listen outside the mix session: headphones, speakers and a modest playback level. Check clipping, low end, words and the final chord/tail.
+3. Measure integrated loudness and true peak with an appropriate meter. Choose processing for the song and the delivery specification, not a number alone.
+4. Export an archive/delivery WAV at the required sample rate and bit depth. A 24-bit PCM WAV is a practical delivery choice when accepted; retain the working float mix separately.
+5. Record filename, duration, sample rate, bit depth and revision. Use this exact audio for the final Timestamp Studio run.
+
+**ABOUT THE REFERENCE PLAN’S −14 LUFS / −1.5 dBTP**
+
+That is one possible streaming-oriented reference, not a universal distributor requirement or a mandatory mastering target. Do not reprocess a good master just to hit it. Avoid clipping and judge dynamics and codec headroom in context.
+
+**ALREADY MASTERED?**
+
+Keep the approved file. Stems are optional. If only timing or lyric-video files are needed, go straight to Timestamp Studio with that master.
+
+Keep the original, mix render and final master as separate files. Do not overwrite the only good version. Save any loudness report and the rendering settings with the project.
+
+## 10 · Time the Lyrics
+
+*FINAL AUDIO + PERFORMED WORDS = THE TIMING PASS.*
+
+- [OPEN SONG TIMESTAMP STUDIO](https://github.com/bothashaun-maker/Music/blob/main/Song-Timestamp-Studio-Canvas.ipynb)
+
+1. Start with T4 ×2 for faster processing. Open the canvas and upload the exact final master using the provided uploader.
+2. Enter a useful song name. Paste the lyrics exactly as performed, one line per row, including every repeated occurrence. Retain section tags such as [Intro], [Verse] and [Chorus].
+3. Leave Isolate vocals ON for music. For supplied English/romanized lyrics, the acoustic aligner is used. The Whisper base/small menu does not change that alignment model.
+4. If the lyric box is empty, the tool instead transcribes what it hears with Whisper. Treat the text as a draft, especially for growls, choirs and repeated words.
+5. Run once. Download the Export ZIP. Listen to the beginning, repeated passages and ending against the cues before marking them approved.
+
+| FILE | PURPOSE |
+| --- | --- |
+| LRC / SRT / VTT | Synced lyric and subtitle formats. |
+| REAPER CSV | Lyric-line markers and section regions. |
+| Chapters / beat grid / cut plan | Editing aids; beat and structure estimates need listening. |
+| Timestamps JSON / review CSV | Word-level data, model diagnostics and lines flagged for review. |
+
+**A COMPLETE PATH IS NOT PERFECT TIMING**
+
+A low model score is a review flag, not a measured error in seconds. A high score is not proof of accuracy. Check repeated lines, whispered and growled starts; do not use the reference Launch System’s hook times for a different render.
+
+Output: /kaggle/working/timestamp_studio/. Keep the audio version with the exports, review the cue sheet, and preserve your corrections.
+
+## 11 · Markers, Words & Repairs
+
+*FIX THE RIGHT LEVEL. KEEP YOUR MANUAL CORRECTIONS.*
+
+1. Open the REAPER project containing the same master at zero. Choose View → Region/Marker Manager.
+2. Import or drag in the file ending _reaper_markers.csv using the manager. Use a fresh project copy when replacing an earlier marker set; avoid accumulating duplicates.
+3. Display seconds or a time format you understand. Bars/beats are not decimal seconds. Zoom in and listen at the actual vocal onset.
+4. Review the opening, every repeated phrase, major transitions and the ending. Write remaining problems in the cue-review sheet.
+5. Save the corrected .rpp. The project stores marker/region positions; referenced media is not embedded automatically.
+
+| WHAT YOU SEE | THE RIGHT FIX |
+| --- | --- |
+| Everything equally late/early | A uniform offset can help. Use the linked shift action; positive is later, negative is earlier. |
+| Only one passage is offset | Select those marker rows and use selected scope. Include regions only when appropriate. |
+| Drift changes across the song | A global offset will not fix it. Adjust the local cues or re-align the affected performance/version. |
+| A repeated line is missing | Check the performed lyric sheet has every repeat. Review the audio; moving unrelated labels does not add a missing occurrence. |
+
+- [INSTALL / USE THE EXISTING MARKER-SHIFT ACTION](https://github.com/bothashaun-maker/Music/blob/main/reaper/README.md)
+
+**LINES ARE NOT INDIVIDUAL WORD MARKERS**
+
+The REAPER CSV labels lyric lines; word data is in the JSON. An opening [Intro] region can begin at zero while the first lyric marker correctly starts later. Keep reviewed REAPER timings separately from the original Studio export.
+
+## 12 · Artwork & Lyric Videos
+
+*BUILD TO THE APPROVED AUDIO, NOT A GUESS AT ITS LENGTH.*
+
+The music system hands the video system a fixed master, a reviewed cue set and a clear brief. Visual work is a separate stage, not a reason to rerender the song.
+
+1. Use the final master as the editing reference. Import the reviewed SRT/VTT into the editor when supported; verify its first cue and the ending against playback.
+2. Use lyric markers and the cut plan as starting points for shots. Listen for the real transitions; a detected beat grid is not an artistic edit decision.
+3. Make artwork using the chosen song/series palette and readable typography. Proof title, credits and any scripture reference yourself.
+4. If generating visuals, prepare the appropriate Image Studio or movie model packs separately. Music assets do not contain image/video weights.
+5. Export the full version and any short excerpts from the same final audio. Preview subtitles on a phone-sized frame for readability.
+
+- [IMAGE STUDIO — ARTWORK](https://github.com/bothashaun-maker/Movies/blob/main/Image_Studio_Kaggle_v3.ipynb)
+- [IMAGE MODEL PACKS](https://github.com/bothashaun-maker/Movies/blob/main/Image_Studio_Model_Packs.ipynb)
+- [MOVIE WORKFLOW — OPTIONAL VISUALS](https://github.com/bothashaun-maker/Movies/blob/main/Current_Working_Workflow.ipynb)
+- [MOVIE UPSCALER — OPTIONAL FINISH](https://github.com/bothashaun-maker/Movies/blob/main/Movie_Upscaler_Kaggle_v1.ipynb)
+
+**LET THE ENDING SPEAK**
+
+Keep a hard stop, fade, laugh, silence drop or false ending when it serves the song. Captions and shots should follow the approved recording, not an old energy map from another version.
+
+This guide links the existing visual tools; it does not add a mastering, lyric-animation or publishing node to ComfyUI. CapCut/REAPER desktop editing remains your local stage.
+
+## 13 · The Delivery & Archive Pack
+
+*MODEL DATASETS SURVIVE. UNSAVED SESSION FILES MAY NOT.*
+
+One folder should tell the story of one approved song version. Keep source, edits and delivery copies distinct.
+
+| FOLDER | KEEP INSIDE |
+| --- | --- |
+| 01_Brief | Song brief; lyric versions; style prompt; source and model/version notes. |
+| 02_Source | Untouched original WAV and the selected generation/cover run ZIP. |
+| 03_Stems | The chosen stem-job ZIP and result.json; keep all stems from one source version together. |
+| 04_REAPER | Versioned .rpp files and the media they reference. |
+| 05_Master | Approved audio keeper; optional meter report and render settings. |
+| 06_Timestamps | Original export ZIP; reviewed marker project; subtitle revisions and cue notes. |
+| 07_Release | Artwork, video renders, final captions/chapters and release metadata. |
+
+**NAMING THAT WORKS ON WINDOWS**
+
+JJP_0001_Song_Title / Song_Title_master_v03.wav / Song_Title_timing_v03.zip. Use the same song ID and version on related files. Keep failed experiments in a separate folder rather than overwriting a keeper.
+
+- Download the result ZIP or Save Version with output files before ending Kaggle.
+- A saved .rpp needs its referenced media; keep them together.
+- Confirm distributor/editor delivery requirements before export. Keep source/model terms and your own credits with the release notes.
+- Open the archive once after copying it. Confirm the audio, project and subtitles actually load.
+
+**A RELEASE PACK IS NOT AN AUTOMATIC RELEASE**
+
+Nothing here uploads to Spotify, YouTube or a distributor. Metadata, rights/credit checks and publication remain separate decisions. Open model weights do not by themselves establish unrestricted commercial permission; check the specific model and cover-analysis terms.
+
+## 14 · If Something Goes Wrong
+
+*READ THE ACTUAL FAILURE. DO NOT RESTART AT THE FIRST WARNING.*
+
+| SYMPTOM | NEXT MOVE |
+| --- | --- |
+| FutureWarning / already satisfied | These are not evidence of failure. Let startup continue until its ready message and links, or an actual traceback. |
+| No Cloudflare link | Check whether the startup cell is still active. Read the saved log; an old session URL will not reconnect to a new session. |
+| Model Dataset missing | Attach the existing correct pack. Do not start another large model download as the first repair. |
+| Large WAV upload stalls | Use the resumable uploader. Retry the same original file so saved pieces can be reused; no compression step is required. |
+| CUDA out of memory | Stop competing GPU work owned by your session. Preserve outputs. Do not start a second engine to repair the first. |
+| ABC plan reaches its limit | Save artifacts. Use Direct to audio when a score is not needed, or supply/review a complete ABC score. Planning and song-token limits are different. |
+| Timestamps are offset/drifting | Check the correct audio version, project zero, time units and repeats. Use local marker repair only when the error pattern fits. |
+
+**LOG LOCATIONS**
+
+```text
+Music: /kaggle/working/yue2_native/runtime/comfyui.log
+Timestamp Studio: /kaggle/working/timestamp_studio/logs/comfyui.log
+Stem Studio: /kaggle/working/stem_studio/comfy.log
+Stem job progress: its jobs/<id>/progress.json
+```
+
+**DECODING FAILED AFTER GENERATION?**
+
+Keep the complete run folder and saved latents. Use the notebook’s documented decode-recovery route only when matching artifacts exist. It may avoid regenerating tokens. Recovery is not guaranteed after an unsaved session is discarded.
+
+## 15 · The Repeatable Work Block
+
+*MAKE A KEEPER. SAVE THE WORK. COME BACK WITH A PLAN.*
+
+Use this as a flexible two-hour work block, not a deadline for the model. Keep only the next useful action in front of you.
+
+| BLOCK | DO THE WORK THAT MOVES THIS SONG FORWARD |
+| --- | --- |
+| First 15 minutes | Pick one song and one job. Confirm the brief, source version and model inputs. |
+| Next 30–45 minutes | Start the needed Kaggle work. While it processes, proof lyrics or prepare the edit notes; do not launch competing GPU jobs. |
+| Next 30 minutes | Listen and decide. Choose a keeper, or write one specific change for the next attempt. |
+| Final 15 minutes | Save ZIPs/project/media, update the production log, and write the next action. Stop unused sessions. |
+
+**BEFORE YOU CLOSE**
+
+Can you open the saved keeper? Do the project’s media files exist? Did you preserve manual timing corrections? Is the source/version identified? Is the next action written down?
+
+**WHEN YOU RETURN NEXT WEEK**
+
+Open this launch desk → choose the task → attach the saved model input → select T4 ×2 where needed → run the startup cell → open the new Cloudflare link. Old tunnel links are not your permanent studio address.
+
+- [CREATE / COVER](https://github.com/bothashaun-maker/Music/blob/main/YuE2_Music_Revision15.ipynb)
+- [SPLIT STEMS](https://github.com/bothashaun-maker/kaggle_roformer_stem_splitter/blob/main/Stem_Splitter_ComfyUI_Kaggle.ipynb)
+- [TIME LYRICS](https://github.com/bothashaun-maker/Music/blob/main/Song-Timestamp-Studio-Canvas.ipynb)
+- [REAPER MARKER REPAIR](https://github.com/bothashaun-maker/Music/blob/main/reaper/README.md)
+
+**WHAT THIS EDITION IS**
+
+A practical operating guide to your existing tools, checked against their source on 9 November 2026. Keep your source files, saved model inputs and keeper decisions together. The creative direction and final approval stay with you.
