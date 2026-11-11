@@ -1,6 +1,6 @@
 # Music Studio Field Guide
 
-*Edition I · 11 November 2026*
+*Edition II · 11 November 2026*
 
 [Open the designed PDF](../../Music-Studio-Guide.pdf)
 
@@ -20,7 +20,7 @@ Create a song, work on its score, or bring in a recording you already have. This
 
 **Separate from your working notebooks**
 
-This browser studio is an additional experiment. Your native FP16 music creator, Song Timestamp Studio, and their saved datasets remain separate. The v1 studio uses Q8 GGUF weights.
+This browser studio uses the official YuE2 Studio 3.8.5 with Q8 GGUF weights. Your existing native FP16 creator and separate Timestamp notebook remain available. Timestamp recognition is excluded from Music Studio.
 
 - [Open Music-Studio.ipynb](https://github.com/bothashaun-maker/Music/blob/main/Music-Studio.ipynb)
 - [Open automatic Dataset builder](https://github.com/bothashaun-maker/Music/blob/main/Music-Studio-Dataset.ipynb)
@@ -38,7 +38,7 @@ ACCELERATOR NONE · INTERNET ON
 
 **Disk and time**
 
-The model set is about 24.77 GB plus the runtime. Uploads stream one verified file at a time; the largest is about 8.71 GB. Runtime compilation needs at least 7 GiB free initially. Actual space is checked. First-time compilation/downloads take time; no timing guarantee is made.
+The model set is about 26.24 GB plus the runtime. Uploads stream one verified file at a time; the largest is about 5.19 GB. Runtime compilation needs at least 7 GiB free initially. Actual space is checked. First-time compilation/downloads take time; no timing guarantee is made.
 
 The builder never overwrites an existing Dataset. An interrupted final request may have reached Kaggle: inspect its page before retrying. A submission receipt is not proof that Kaggle has finished processing.
 
@@ -56,7 +56,7 @@ GPU T4 ×2 · INTERNET ON · SAVED DATASET ATTACHED
 
 Each startup creates a fresh Cloudflare URL/key. Keep it private and use the latest link. An old bookmark is not a permanent studio address. A tunnel problem does not erase songs already saved on Kaggle.
 
-GPU 0 runs generation. The second T4’s memory is separate and is not automatically combined. Stems, recognition and the writing assistant use the documented CPU paths. No diagnostic song starts during setup.
+GPU 0 runs generation and LoRA training, one heavy job at a time. The second T4 has separate memory. Stems, MIDI, the writing assistant and music-style description use CPU. No diagnostic song starts during setup.
 
 Use the current Kaggle GPU image. This CUDA 13 runtime needs NVIDIA driver 580 or newer; startup checks it before loading the model.
 
@@ -69,15 +69,13 @@ CREATE · LIBRARY · STUDIO TOOLS · LORA · SETTINGS
 | Create | Title, style, lyrics, score, quality, seeds and generation |
 | Library | Listen, rename, like, organize, inspect settings and reuse a track |
 | Upload large WAV | Verified resumable WAV/MP3 imports without conversion |
-| Studio tools | Stems, karaoke, MIDI and audio processing |
-| LoRA | Browse/import compatible style adapters; apply them to a song |
-| Settings | Music model, engine device, assistant, recognition and network access |
+| Studio tools | HT-Demucs / RoFormer stems, audio-to-MIDI and audio processing |
+| LoRA | Browse/import adapters, prepare training material and train on the T4 |
+| Settings | Music model, engine device, writer, artwork and network access |
 
 The player follows you between panels. Select a track before opening a track-specific tool. Track menus contain actions that do not fit on the main card. A generated result, a stem and a processed version can be separate library items.
 
-**Version scope**
-
-This v1 uses the pinned Linux browser fork, whose feature set differs from newer Windows Studio releases. The guide describes available controls. Windows VST hosting, T4 LoRA training, AB2/chord-variety and newer extension/continuation controls are not provisioned.
+The official 3.8.5 release includes AB2, chord variety, re-render extension and score continuation. The notebook supplies native Linux tools and a CUDA trainer with the upstream Turing fix. Windows plugins and desktop editor windows require a local desktop. Recognition is handled in your separate notebook.
 
 ## 05 · Make your first song
 
@@ -128,6 +126,8 @@ ONE CHANGE AT A TIME · SAVE THE REQUEST
 | Guidance / CFG | Prompt-conditioning strength; begin with the offered default |
 | Temperature / top-p / top-k | Sampling variety; larger changes can reduce consistency |
 | Batch / variations | More candidates consume more memory and compute |
+| Solver: Midpoint / AB2 | Choose the acoustic sampling method; compare at the same steps and seed |
+| Chord variety / sections | Encourage varied harmonic choices during score planning |
 
 Start with one song and one variation. Keep model, prompt and seeds fixed when comparing a setting. Export the request/settings alongside the keeper; a title alone does not identify how a version was made.
 
@@ -135,7 +135,7 @@ Start with one song and one variation. Keep model, prompt and seeds fixed when c
 
 The launcher chooses Q8, CUDA, one-song batching, staged model loading and a bounded context. It fails instead of silently substituting CPU generation. Do not choose a larger model simply because two T4s appear in the session.
 
-The AB2 solver and newer chord-variety controls shown in some Windows videos are not controls of this pinned browser release.
+Advanced settings include Midpoint or AB2 acoustic solvers and chord-variety controls. Start with the offered defaults. AB2 changes acoustic sampling; chord variety changes composition. Compare one setting at a time with both seeds pinned.
 
 ## 08 · Read and revise the score
 
@@ -183,7 +183,7 @@ KEEP THE COMPOSITION · TRY A DIFFERENT REALIZATION
 
 The stored request/codes are reused. Hardware, software, quantization and numerical kernels can affect byte-level reproducibility. Do not equate a changed audio file with a new composition, or promise identical bytes across different engines.
 
-Newer Windows continuation/extension controls are outside this build. To lengthen a piece here, revise its composition/lyrics and render another version, or arrange the accepted sections in REAPER.
+Re-render also offers +15, +30, +60, +90 or +120 seconds when the saved source has enough context room. A duration ceiling is not a promise that the model will use every second. Keep both the source and extended version.
 
 ## 11 · Bring in your recording
 
@@ -192,7 +192,7 @@ ORIGINAL WAV/MP3 · RESUMABLE · NO CONVERSION
 1. Choose Upload large WAV in the sidebar. The upload page opens in the same authenticated studio.
 2. Choose your original WAV or MP3, up to 2 GiB, then press Upload / Resume. The notebook cell must remain running.
 3. Wait for Ready in Library. Each 4 MiB piece has a checksum. If the connection fails, choose the same file and resume; previously saved pieces are checked against it.
-4. Return to Studio and open Library. Select the imported recording before using covers, stems, MIDI, karaoke or processing.
+4. Return to Studio and open Library. Select the imported recording before using covers, stems, MIDI or processing.
 5. Inspect the source filename and checksum when you need a provenance check. The imported audio has not been transcoded.
 
 **If a transfer pauses**
@@ -221,9 +221,9 @@ Use recordings you have the necessary rights to use. SheetSage2 and the decoder 
 
 DRUMS · BASS · OTHER · VOCALS · GUITAR · PIANO
 
-1. Select the song in Library and open Stem separation under its tools/actions.
+1. Select the source song in Library, open Studio tools and choose HT-Demucs for six stems or Mel-Band RoFormer for vocals/instrumental.
 2. Choose the stems you want to keep. The model predicts all six even when you export fewer.
-3. Begin with the default overlap. Run once and wait for completion; the provided ONNX path uses CPU.
+3. Begin with the offered overlap. Run once and wait for completion. HT-Demucs uses the bundled audio.cpp CPU server; RoFormer uses its own CPU tool.
 4. Audition isolated parts and the recombined mix. Check difficult vocal tails, guitar/piano overlap and transitions.
 5. Save the useful stems and their source/settings. Use the isolated vocal for subsequent analysis only after listening.
 
@@ -231,7 +231,7 @@ DRUMS · BASS · OTHER · VOCALS · GUITAR · PIANO
 
 Separation can leave bleed, remove transients or create artifacts. More overlap costs more time and is not a guarantee of better sound. Keep the original full mix. This integrated tool exports 44.1 kHz stereo PCM16 WAV stems. Use the separate Stem Studio when its floating-point export is required.
 
-For your existing dedicated RoFormer Stem Studio, continue using its own notebook and Dataset. This studio’s HT-Demucs model is an additional integrated option, not a claim that it beats that setup.
+The integrated RoFormer option is additional to your dedicated Stem Studio. It uses voc_fv6 Q8_0. Keep using the separate notebook when you need its other models or floating-point export.
 
 ## 14 · Turn audio into MIDI
 
@@ -249,35 +249,35 @@ Polyphonic mixtures can produce extra/missing notes and wrong instrument assignm
 
 MuScriptor’s weights are CC BY-NC 4.0. The MIDI editor itself does not require that transcription model when you draw notes or import your own MIDI.
 
-## 15 · Time lyrics and karaoke
+## 15 · Extend a song. Continue an idea.
 
-PARAKEET OR WHISPER · REVIEW EVERY LINE
+RE-RENDER EXTENSION · OPENING SCORE · YOUR OWN MELODY
 
-1. Select the finished audio you intend to publish. In recognition settings choose the bundled Parakeet INT8 or Whisper large-v3-turbo provider.
-2. Keep speech VAD off for singing. Review the lyric text and remove implementation notes before alignment.
-3. Run karaoke/timing on the selected song. These recognition paths use CPU in this bundle.
-4. Listen around line starts, repeated choruses, instrumental gaps and the last line. Correct mistakes before using timestamps in a video.
-5. Save the available timed lyric files with the exact audio version they describe.
+1. For a longer performance, open a generated track’s menu → Re-render. Choose an available extension from +15 to +120 seconds, set the acoustic seed and render a new version.
+2. For composition from an idea, import a short recording or hum. Use SheetSage2 to transcribe its melody, or write/import the opening in the MIDI/ABC editor.
+3. Send the opening score into Create. Enable Continue score, choose Full or Melody planning, and describe the desired style and song structure.
+4. Compose the continuation, inspect the resulting score, then render the performance. Compare where the original idea returns as a hook.
+5. For a chord bed, use the score editor’s accompaniment/chord tools and suitable instruments. Keep the source MIDI/ABC alongside the chosen render.
 
-**Your existing Timestamp Studio**
+**Two different operations**
 
-Integrated recognition is not a replacement for the corrected timing workflow and manual REAPER references in your separate Song Timestamp Studio. Recognition success or matched-word percentage is not a measured timing-accuracy bound.
+Re-render extension works from a stored generated track. Continue score develops an opening melody into composition. Audio-to-score and audio-to-MIDI are musical tools; speech/timestamp recognition is not installed here.
 
-Parakeet has language limits; Whisper may hallucinate over music or omit difficult singing. A different mix or re-render can change timing, so do not reuse old cues without checking them.
+Use short, clear reference material first. Inspect notes, key, meter and section boundaries before spending time on a long render.
 
 ## 16 · Process and master audio
 
 COMPARE BEFORE/AFTER · KEEP THE ORIGINAL
 
 1. Select the track or stem and open the audio processing tool.
-2. Choose one operation at a time: the available noise reduction, spectral/vocal processing or reference mastering controls.
+2. Choose an operation: naturalizer/spectral processing, reference mastering, or a native Linux VST3 chain. Adjust one stage at a time.
 3. Audition before and after on several sections. Match listening level so louder does not automatically seem better.
 4. Keep the processed take as a new version only when it improves the intended result.
 5. Export the chosen version, then check the file in your DAW. Retain the untouched source and settings.
 
-**Desktop plugin limits**
+**Plugins on Kaggle**
 
-Windows VST hosting is not part of this Linux browser build. Use your local REAPER installation for your own Windows plugins, detailed mixing and final mastering.
+Attach a Dataset containing native Linux .vst3 bundles with Contents/x86_64-linux/*.so, then restart Studio and scan plugins. The launcher links these bundles into the host’s plugin folder. Kaggle cannot run Windows VST DLLs or show desktop plugin editors. Use default/saved compatible state for offline processing; use local REAPER for desktop editing.
 
 Noise reduction and vocal processing can remove desired texture or add artifacts. Reference mastering matches aspects of a sound; it does not establish rights to the reference or guarantee a release-ready result.
 
@@ -285,8 +285,8 @@ Noise reduction and vocal processing can remove desired texture or add artifacts
 
 FINISH AUDIO FIRST · THEN RENDER
 
-1. Select the approved audio version. Review its lyrics and karaoke timing first.
-2. Open the video/clip tool. Choose landscape 16:9, square 1:1 or vertical 9:16 as offered.
+1. Select the approved audio version. If you want lyric overlays, export its LRC from your separate Timestamp notebook.
+2. Open the video/clip tool. In Text, import that LRC file. Choose landscape 16:9, square 1:1 or vertical 9:16 as offered.
 3. Choose a background/cover you may use. Add title, lyric layers, visualizer and supported effects; keep text readable.
 4. Preview a difficult section: a repeated chorus, a long line and the ending. Then render the clip.
 5. Download/save the video and play the exported file from beginning to end. Check audio sync, text clipping, transitions and final duration.
@@ -323,13 +323,29 @@ APPLICATION IS INCLUDED · T4 TRAINING IS NOT
 4. Compare with the same prompt and seeds without that adapter. Reject unwanted voice, pronunciation or mix changes.
 5. Save accepted adapters and their source/license notes with your output library.
 
-**Training on this setup**
+**Training on T4**
 
-This v1 does not provision a T4 trainer or training-base weights. The pinned trainer’s BF16 path calls for newer hardware. The training panel is documented for orientation, not presented as a working T4 feature.
+Studio 3.8.5 and the pinned HOT-Step trainer include the Turing F32 fallback for INT8 ConvRot training. Training weights and a CUDA SM75 trainer are included. No lyric aligner is installed. The source supports T4; actual training, VRAM use and speed still require a live Kaggle run.
 
-On suitable newer hardware the upstream workflow prepares recordings, lyrics/styles, trains an adapter, reviews checkpoints and applies a selected result. Do not start downloading a training pack on this T4 notebook expecting it to become a tested training configuration.
+Use the Training page for your own recordings and manually supplied lyrics/styles. The fast, balanced and thorough recipes train from mastered mixes without lyric timestamps. The next page covers preparation and checkpoints.
 
-## 20 · Describe audio by ear
+## 20 · Train a music adapter
+
+YOUR RECORDINGS · MANUAL LYRICS · CHECKPOINTS
+
+1. Open Training and create a training dataset. Add recordings from the library or upload them; use material you may train on.
+2. Enter correct lyrics and section tags for each vocal song, or mark a song instrumental. Enter its style. Describe style can suggest musical metadata; it does not recognize lyrics.
+3. Check that every item is ready. Choose Fast for a first trial, or Balanced / Thorough for more updates. Leave lyric timing off; the recognition and forced-alignment models are absent.
+4. Start training with generation idle. Studio releases the generation engine while the CUDA trainer uses the selected T4. Keep the notebook running and inspect progress/loss.
+5. Review a saved checkpoint, install/apply the adapter and compare a short test with fixed seeds. Save training datasets, runs and accepted adapters through Kaggle output files.
+
+**Persistent training work**
+
+Datasets and runs are linked into /kaggle/working/music_studio/training. Training models stay in the read-only model Dataset. Preserve output files before ending Kaggle; the model Dataset does not automatically save your new checkpoints.
+
+This notebook does not pool both T4 GPUs. Use one heavy GPU job at a time. If training runs out of memory, retain logs/checkpoints and review the recipe; do not start a second engine.
+
+## 21 · Describe audio by ear
 
 MOSS-MUSIC · TEMPO ANALYSIS · EDIT THE RESULT
 
@@ -341,11 +357,11 @@ MOSS-MUSIC · TEMPO ANALYSIS · EDIT THE RESULT
 
 **Memory**
 
-The two MOSS files total about 10.43 GB on disk. That is separate from its runtime memory. Do not compare download size with available VRAM or launch several models simply because there are two T4s.
+The CPU captioner uses the MOSS F16 audio tower and Q4_K_M language model, about 6.91 GB on disk together. Runtime memory is separate. The CPU profile analyzes up to two minutes of a track and avoids competing for generation VRAM.
 
-Describing a track and training a LoRA are separate operations. The captioning tools are included; T4 LoRA training is not. External/cloud description providers are optional and require your own configuration.
+Music-style description and training are separate operations. Correct the proposed genre, instruments and BPM yourself. Lyrics are entered manually; external writing providers are optional.
 
-## 21 · Artwork, player and library
+## 22 · Artwork, player and library
 
 ORGANIZE THE WORK · AUDITION THE KEEPER
 
@@ -363,7 +379,7 @@ Automatic cover generation starts off. Photo searches and optional generation ma
 
 The Linux fork uses browser playback/Webamp. Desktop window shaping, Explorer integration and Windows-only plugins are not part of the Kaggle experience. Browser sound may require an initial click.
 
-## 22 · Drive it with an agent
+## 23 · Drive it with an agent
 
 OPTIONAL MCP AUTOMATION · SAME PRIVATE STUDIO
 
@@ -379,7 +395,7 @@ The public tunnel uses the same authentication guard for the UI and API. Do not 
 
 MCP exposes real studio actions, not just a read-only help page. An agent can create, modify or remove work through supported tools. Use your own explicit instructions and preserve the original versions.
 
-## 23 · Save and restore your work
+## 24 · Save and restore your work
 
 MODEL DATASET ≠ SONG LIBRARY
 
@@ -395,7 +411,7 @@ MODEL DATASET ≠ SONG LIBRARY
 
 Save a new private project version after substantial changes. Preserve original recordings and manual corrections. Never publish private audio/projects merely because the code repository is public.
 
-## 24 · When something stops
+## 25 · When something stops
 
 READ THE STAGE · KEEP THE EVIDENCE
 
@@ -408,7 +424,7 @@ READ THE STAGE · KEEP THE EVIDENCE
 | CUDA engine failed | Read studio.log and runtime-identity.json; do not switch blindly to CPU |
 | Cloudflare link failed | Use the latest link/key; inspect cloudflare.log; keep saved media |
 | Upload stopped | Re-select the same source file in Upload large WAV and resume |
-| Recognition is wrong | Review provider/language/audio; keep VAD off for singing |
+| Training items incomplete | Enter lyrics with sections, or mark instrumental; enter/review styles |
 
 Startup status, ready checks and runtime identity are saved with logs under music_studio. Dataset upload diagnostics live under music_studio_dataset. A FutureWarning is not the same as a failed model job.
 
@@ -416,23 +432,25 @@ Startup status, ready checks and runtime identity are saved with logs under musi
 
 Read VALIDATION.md for exactly what ran during development. Local compilation, browser/API tests and mocked private upload tests do not establish T4 speed, full-song quality, live Cloudflare reliability or a successful authenticated Kaggle upload.
 
-## 25 · Know the tool boundaries
+## 26 · Know the tool boundaries
 
 COMPONENT TERMS · SOURCE VERSIONS · PRACTICAL LIMITS
 
 | Component | Terms / scope |
 | --- | --- |
-| Studio / C++ engines | MIT; retain upstream notices |
+| Studio / C++ engines | MIT; retain upstream/dependency notices |
 | YuE2 base weights | CC BY-NC plus individual-creator permission under its conditions |
 | SheetSage2 / companion / MuScriptor | Separate CC BY-NC terms; no blanket creator exception |
 | Gemma | Google Gemma terms and use policy |
-| HT-Demucs / Whisper / Beat This! | MIT; Parakeet retains CC BY attribution |
+| HT-Demucs / Beat This! | MIT; audio.cpp and RoFormer code retain their own notices |
 | MOSS / Cloudflared | Apache-2.0; other dependencies retain their terms |
 
-The standard Studio generation path includes the Mothersuperior companion. The complete bundle is therefore not presented as unrestricted commercial use. Keep the model Dataset private and review the terms relevant to your intended work.
+Realaudio/companion selection is Auto, On or Off. The companion has its own model terms; turning it off does not change the terms of other tools used. Keep the model Dataset private and review the licenses relevant to the selected workflow.
 
-The PDF follows the visual format of your existing Music Production System guide. It describes the actual v1 browser build and its selected tools, with unavailable newer Windows/hardware features identified.
+The PDF follows the visual format of your existing Music Production System guide. It describes the official 3.8.5 browser build and its selected tools, with unavailable newer Windows/hardware features identified.
 
 - [Component notices and source links](https://github.com/bothashaun-maker/Music/blob/main/music_studio/NOTICES.md)
 - [Pinned model catalog](https://github.com/bothashaun-maker/Music/blob/main/music_studio/catalog.json)
 - [Validation record](https://github.com/bothashaun-maker/Music/blob/main/docs/music-studio/VALIDATION.md)
+
+No Whisper, Parakeet, speech recognizer or MMS forced-alignment model is included. Musical score transcription remains available. RoFormer model usage follows its author’s terms; do not assume an unrestricted commercial license.

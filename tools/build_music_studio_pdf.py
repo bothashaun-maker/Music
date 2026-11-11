@@ -30,7 +30,7 @@ def base(c, page, total):
         c.setStrokeColor(style.LINE)
         c.line(style.MARGIN, 48, style.WIDTH-style.MARGIN, 48)
         c.setFont('JJP', 7)
-        c.drawString(style.MARGIN, 33, 'MUSIC STUDIO v1  ·  11 NOV 2026')
+        c.drawString(style.MARGIN, 33, 'MUSIC STUDIO v2  ·  11 NOV 2026')
         c.drawRightString(style.WIDTH-style.MARGIN, 33, f'{page:02} / {total:02}')
         c.setFillColor(style.CYAN)
         c.drawRightString(style.WIDTH-style.MARGIN, style.HEIGHT-56, 'BACK TO STUDIO DESK')
@@ -42,9 +42,9 @@ def build():
     style.fonts()
     target = ROOT / 'Music-Studio-Guide.pdf'
     c = canvas.Canvas(str(target), pagesize=(style.WIDTH, style.HEIGHT), invariant=1, pageCompression=1)
-    c.setTitle('JesusJuiceProductions — Music Studio Field Guide · Edition I')
+    c.setTitle('JesusJuiceProductions — Music Studio Field Guide · Edition II')
     c.setAuthor('JesusJuiceProductions')
-    c.setSubject('Kaggle Music Studio: setup, songs, scores, MIDI, covers, stems, karaoke, processing, video, LoRA and MCP')
+    c.setSubject('Kaggle Music Studio: setup, songs, scores, MIDI, covers, stems, continuation, training, processing, video, LoRA and MCP')
     total = len(data['pages']) + 1
     base(c, 1, total)
     c.bookmarkPage('cover')
@@ -65,11 +65,11 @@ def build():
     quote.wrap(style.CONTENT_WIDTH-26, 50)
     quote.drawOn(c, style.MARGIN+13, 228)
     style.tracking(c, 'CREATE  /  EDIT  /  RE-PERFORM  /  FINISH', style.MARGIN, 167, 6.8, .5, style.CYAN)
-    style.tracking(c, 'EDITION I · MUSIC STUDIO v1', style.MARGIN, 70, 6.9, .9, style.MUTED)
+    style.tracking(c, 'EDITION II · MUSIC STUDIO v2', style.MARGIN, 70, 6.9, .9, style.MUTED)
     style.tracking(c, 'KAGGLE  /  BROWSER STUDIO  /  YOUR LIBRARY', style.MARGIN, 50, 6.4, .55, style.CYAN)
     c.showPage()
     metrics = []
-    markdown = ['# Music Studio Field Guide', '', '*Edition I · 11 November 2026*', '', '[Open the designed PDF](../../Music-Studio-Guide.pdf)', '']
+    markdown = ['# Music Studio Field Guide', '', '*Edition II · 11 November 2026*', '', '[Open the designed PDF](../../Music-Studio-Guide.pdf)', '']
     for number, section in enumerate(data['pages'], 1):
         base(c, number+1, total)
         c.bookmarkPage(section['id'])

@@ -13,7 +13,7 @@ import subprocess
 import sys
 import tempfile
 
-from .common import HERE, PROFILE, catalog, fingerprint, scrub, transfer, validate_manifest, verify, write_json
+from .common import HERE, PROFILE, catalog, fingerprint, notebook_process, scrub, transfer, validate_manifest, verify, write_json
 
 
 def authenticated_api():
@@ -38,7 +38,10 @@ def authenticated_api():
     if installed != '2.0.2':
         # Dedicated helper directory: never replace Kaggle's Torch/scientific packages.
         package_dir = Path('/kaggle/working/music_studio_dataset/.api')
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--target', str(package_dir), 'kaggle==2.0.2'])
+        from .build_runtime import command
+        package_dir.parent.mkdir(parents=True, exist_ok=True)
+        command([sys.executable, '-m', 'pip', 'install', '--target', str(package_dir), 'kaggle==2.0.2'],
+                cwd=package_dir.parent, log=package_dir.parent / 'api-install.log')
         sys.path.insert(0, str(package_dir))
     from kaggle.api.kaggle_api_extended import KaggleApi
     api = KaggleApi()
@@ -54,7 +57,7 @@ def identity(owner, manifest):
         raise ValueError('Set DATASET_OWNER to your Kaggle username if it cannot be detected from your private credentials.')
     suffix = fingerprint({'catalog': manifest['catalog_fingerprint'], 'runtime': manifest['runtime']['source_fingerprint'],
                           'compatibility': manifest['runtime'].get('compatibility', {})})[:12]
-    return owner + '/music-studio-dataset-v1-' + suffix, suffix
+    return owner + '/music-studio-dataset-v2-' + suffix, suffix
 
 
 def reuse_runtime(input_root, output_root):
@@ -75,7 +78,7 @@ def clean_build_intermediates(work):
     work = Path(work).resolve()
     if not (work / 'runtime-build.json').is_file():
         raise RuntimeError('No completed build receipt; compiler files were retained for diagnosis.')
-    for name in ('bundle', 'studio-source', 'engine-source', 'tools-source', 'whisper-source', 'cargo', 'rustup', 'cuda', 'node', 'build-tools', 'unpack-onnxruntime', 'unpack-llama.cpp'):
+    for name in ('bundle', 'studio-source', 'engine-source', 'tools-source', 'whisper-source', 'cargo', 'rustup', 'cuda', 'node', 'build-tools', 'unpack-onnxruntime', 'unpack-llama.cpp', 'unpack-audiocpp', 'unpack-roformer'):
         path = work / name
         if path.is_dir() and not path.is_symlink():
             shutil.rmtree(path)
@@ -214,7 +217,7 @@ def create(output_root='/kaggle/working/music_studio_dataset', input_root='/kagg
             runtime_path, runtime = previous
         else:
             from .build_runtime import build
-            work = Path('/kaggle/temp/music_studio_build')
+            work = Path('/kaggle/temp/music_studio_build') / PROFILE
             work.mkdir(parents=True, exist_ok=True)
             runtime = build(work, jobs=jobs)
             runtime_path = work / runtime['name']
@@ -223,8 +226,9 @@ def create(output_root='/kaggle/working/music_studio_dataset', input_root='/kagg
         manifest = dict(schema=1, profile=PROFILE, complete=True, catalog_fingerprint=fingerprint(data),
                         files=data['assets'], runtime=runtime, model_bytes=sum(r['bytes'] for r in data['assets']))
         return publish(manifest, runtime_path, output_root=root, input_root=input_root, owner=owner, api=api,
-                       cache_root='/kaggle/temp/music_studio_dataset_downloads')
+                       cache_root=str(Path('/kaggle/temp/music_studio_dataset_downloads') / PROFILE))
 
 
 if __name__ == '__main__':
+    notebook_process()
     create(owner=os.environ.get('MUSIC_STUDIO_DATASET_OWNER', ''), jobs=int(os.environ.get('MUSIC_STUDIO_BUILD_JOBS', '2')))

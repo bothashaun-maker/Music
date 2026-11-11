@@ -1,0 +1,1437 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index a1d9350..2db5ea5 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -262,15 +262,6 @@ dependencies = [
+  "hybrid-array",
+ ]
+ 
+-[[package]]
+-name = "block2"
+-version = "0.6.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5"
+-dependencies = [
+- "objc2",
+-]
+-
+ [[package]]
+ name = "borrow-or-share"
+ version = "0.2.4"
+@@ -509,8 +500,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "1e0e367e4e7da84520dedcac1901e4da967309406d1e51017ae1abfb97adbd38"
+ dependencies = [
+  "bitflags",
+- "block2",
+- "libc",
+  "objc2",
+ ]
+ 
+@@ -525,21 +514,6 @@ dependencies = [
+  "syn 3.0.6",
+ ]
+ 
+-[[package]]
+-name = "dlib"
+-version = "0.5.3"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ab8ecd87370524b461f8557c119c405552c396ed91fc0a8eec68679eab26f94a"
+-dependencies = [
+- "libloading 0.8.9",
+-]
+-
+-[[package]]
+-name = "downcast-rs"
+-version = "1.2.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
+-
+ [[package]]
+ name = "dub-core"
+ version = "2.0.0"
+@@ -578,7 +552,7 @@ name = "dub-tcpp"
+ version = "2.0.0"
+ source = "git+https://github.com/timoncool/dub-studio?rev=ba53e572bd7cc5bd5e57dfe9ed386f1746640a7a#ba53e572bd7cc5bd5e57dfe9ed386f1746640a7a"
+ dependencies = [
+- "libloading 0.9.0",
++ "libloading",
+ ]
+ 
+ [[package]]
+@@ -1406,16 +1380,6 @@ dependencies = [
+  "libc",
+ ]
+ 
+-[[package]]
+-name = "libloading"
+-version = "0.8.9"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
+-dependencies = [
+- "cfg-if",
+- "windows-link",
+-]
+-
+ [[package]]
+ name = "libloading"
+ version = "0.9.0"
+@@ -1698,7 +1662,6 @@ dependencies = [
+  "regex",
+  "reqwest",
+  "resvg",
+- "rfd",
+  "rusqlite",
+  "serde",
+  "serde_json",
+@@ -1839,18 +1802,6 @@ dependencies = [
+  "objc2-encode",
+ ]
+ 
+-[[package]]
+-name = "objc2-app-kit"
+-version = "0.3.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d49e936b501e5c5bf01fda3a9452ff86dc3ea98ad5f283e1455153142d97518c"
+-dependencies = [
+- "bitflags",
+- "block2",
+- "objc2",
+- "objc2-foundation",
+-]
+-
+ [[package]]
+ name = "objc2-core-foundation"
+ version = "0.3.2"
+@@ -1876,7 +1827,6 @@ checksum = "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272"
+ dependencies = [
+  "bitflags",
+  "objc2",
+- "objc2-core-foundation",
+ ]
+ 
+ [[package]]
+@@ -1936,7 +1886,7 @@ version = "2.0.0-rc.13"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "4336a1e2b38848325241c72889086886004e589b7c74f335e60a8e8db5138a0b"
+ dependencies = [
+- "libloading 0.9.0",
++ "libloading",
+  "ndarray",
+  "ort-sys",
+  "smallvec",
+@@ -2021,12 +1971,6 @@ dependencies = [
+  "miniz_oxide 0.8.9",
+ ]
+ 
+-[[package]]
+-name = "pollster"
+-version = "0.4.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
+-
+ [[package]]
+ name = "polycool"
+ version = "0.4.0"
+@@ -2078,15 +2022,6 @@ dependencies = [
+  "unicode-ident",
+ ]
+ 
+-[[package]]
+-name = "quick-xml"
+-version = "0.41.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e660451e55124f798a69a5af3f49ccfbefbd41910eefd25caf2393e1f3473ec1"
+-dependencies = [
+- "memchr",
+-]
+-
+ [[package]]
+ name = "quinn"
+ version = "0.11.12"
+@@ -2191,12 +2126,6 @@ dependencies = [
+  "rand_core",
+ ]
+ 
+-[[package]]
+-name = "raw-window-handle"
+-version = "0.6.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
+-
+ [[package]]
+ name = "rawpointer"
+ version = "0.2.1"
+@@ -2352,33 +2281,6 @@ dependencies = [
+  "usvg",
+ ]
+ 
+-[[package]]
+-name = "rfd"
+-version = "0.17.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "20dafead71c16a34e1ff357ddefc8afc11e7d51d6d2b9fbd07eaa48e3e540220"
+-dependencies = [
+- "block2",
+- "dispatch2",
+- "js-sys",
+- "libc",
+- "log",
+- "objc2",
+- "objc2-app-kit",
+- "objc2-core-foundation",
+- "objc2-foundation",
+- "percent-encoding",
+- "pollster",
+- "raw-window-handle",
+- "wasm-bindgen",
+- "wasm-bindgen-futures",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-protocols",
+- "web-sys",
+- "windows-sys 0.61.2",
+-]
+-
+ [[package]]
+ name = "rgb"
+ version = "0.8.53"
+@@ -2599,12 +2501,6 @@ dependencies = [
+  "windows-sys 0.61.2",
+ ]
+ 
+-[[package]]
+-name = "scoped-tls"
+-version = "1.0.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
+-
+ [[package]]
+ name = "scopeguard"
+ version = "1.2.0"
+@@ -3648,66 +3544,6 @@ dependencies = [
+  "web-sys",
+ ]
+ 
+-[[package]]
+-name = "wayland-backend"
+-version = "0.3.17"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "38a91b4eaddff87b1cd1074985e3713da4af2c49742d1b356b2c01670a67a078"
+-dependencies = [
+- "cc",
+- "downcast-rs",
+- "rustix",
+- "scoped-tls",
+- "smallvec",
+- "wayland-sys",
+-]
+-
+-[[package]]
+-name = "wayland-client"
+-version = "0.31.15"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e3c36a0f861ad76d0901f2800b46321410d9f73f2ea88aac0650d86c32688073"
+-dependencies = [
+- "bitflags",
+- "rustix",
+- "wayland-backend",
+- "wayland-scanner",
+-]
+-
+-[[package]]
+-name = "wayland-protocols"
+-version = "0.32.13"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "23d0c813de3daa2ed6520af85a3bd49b0e722a3078506899aa9686fea58dc4b6"
+-dependencies = [
+- "bitflags",
+- "wayland-backend",
+- "wayland-client",
+- "wayland-scanner",
+-]
+-
+-[[package]]
+-name = "wayland-scanner"
+-version = "0.31.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "338e30461b3a2b67d70eb30a6d89f8e0c93a833e07d2ae89085cd070c4a00ac0"
+-dependencies = [
+- "proc-macro2",
+- "quick-xml",
+- "quote",
+-]
+-
+-[[package]]
+-name = "wayland-sys"
+-version = "0.31.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d8eab23fefc9e41f8e841df4a9c707e8a8c4ed26e944ef69297184de2785e3be"
+-dependencies = [
+- "dlib",
+- "log",
+- "pkg-config",
+-]
+-
+ [[package]]
+ name = "web-sys"
+ version = "0.3.106"
+diff --git a/app/components/CreatePanel.tsx b/app/components/CreatePanel.tsx
+index c24ff3c..2184157 100644
+--- a/app/components/CreatePanel.tsx
++++ b/app/components/CreatePanel.tsx
+@@ -1443,76 +1443,10 @@ export const CreatePanel: React.FC<CreatePanelProps> = ({ onGenerate, isGenerati
+               {coverSource && !transcribing && abc && (
+                 <p className="mt-2 text-[11px] text-emerald-600 dark:text-emerald-300">{tt('coverScoreReady')} · {coverSource}</p>
+               )}
+-              {abc && (coverSongId || coverFile) && (
+-                <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-white/5">
+-                  <button
+-                    type="button"
+-                    disabled={matchingSections || !hasSungLines(lyrics)}
+-                    onClick={() => {
+-                      setError(null);
+-                      setMatchingSections(true);
+-                      const run = sectionRun.current;
+-                      void matchSections({ abc, lyrics: lyrics.replace(/\r\n?/g, '\n'), songId: coverSongId, file: coverFile })
+-                        .then(answer => {
+-                          if (run !== sectionRun.current) return;
+-                          if (failed(answer)) setError(karaokeReason(tt, answer.error) ?? answer.error);
+-                          else setSectionProposal(answer.proposal);
+-                        })
+-                        .finally(() => setMatchingSections(false));
+-                    }}
+-                    title={tt('coverMatchSectionsHint')}
+-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-200 py-2 text-xs font-semibold text-zinc-700 transition hover:border-pink-300 disabled:opacity-50 dark:border-white/10 dark:text-zinc-200"
+-                  >
+-                    {matchingSections ? <Loader2 size={13} className="animate-spin" /> : <ListChecks size={13} />}
+-                    {matchingSections ? tt('coverMatchingSections') : tt('coverMatchSections')}
+-                  </button>
+-                  <p className="mt-1.5 text-[11px] leading-4 text-zinc-500">{tt('coverMatchSectionsHint')}</p>
+-                  {sectionProposal && (
+-                    <div className="mt-3 rounded-lg border border-pink-300/40 bg-pink-50/60 p-3 dark:border-pink-500/20 dark:bg-pink-500/5">
+-                      {sectionProposal.unchanged ? (
+-                        <p className="text-[11px] text-zinc-600 dark:text-zinc-300">{tt('coverSectionsUnchanged')}</p>
+-                      ) : (
+-                        <>
+-                          <p className="text-[11px] leading-4 text-zinc-700 dark:text-zinc-200">
+-                            {tt('coverSectionsSummary')
+-                              .replace('{renamed}', String(sectionProposal.blocks.filter(block => block.status === 'renamed').length))
+-                              .replace('{copied}', String(sectionProposal.filled.filter(fill => fill.copied_from !== null).length))
+-                              .replace('{unsure}', String(sectionProposal.blocks.filter(block => block.status === 'unsure').length))}
+-                          </p>
+-                          {sectionProposal.blocks.some(block => block.status === 'unsure') && (
+-                            <p className="mt-1 flex gap-1.5 text-[11px] leading-4 text-amber-700 dark:text-amber-300">
+-                              <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+-                              {tt('coverSectionsUnsure').replace('{blocks}', sectionProposal.blocks.filter(block => block.status === 'unsure').map(block => block.tag ?? `#${block.index}`).join(', '))}
+-                            </p>
+-                          )}
+-                          <div className="mt-2 grid grid-cols-2 gap-2">
+-                            <pre className="max-h-48 overflow-auto rounded-md bg-white/70 p-2 text-[10px] leading-4 text-zinc-500 dark:bg-black/20">{lyrics}</pre>
+-                            <pre className="max-h-48 overflow-auto rounded-md bg-white/70 p-2 text-[10px] leading-4 text-zinc-800 dark:bg-black/20 dark:text-zinc-100">{sectionProposal.lyrics}</pre>
+-                          </div>
+-                        </>
+-                      )}
+-                      <div className="mt-2 flex justify-end gap-2">
+-                        <button type="button" onClick={() => setSectionProposal(null)} className="rounded-md px-3 py-1.5 text-[11px] font-semibold text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-white/5">
+-                          {tt('cancel')}
+-                        </button>
+-                        {!sectionProposal.unchanged && (
+-                          <button
+-                            type="button"
+-                            onClick={() => { setLyrics(sectionProposal.lyrics); setSectionProposal(null); }}
+-                            className="rounded-md bg-pink-600 px-3 py-1.5 text-[11px] font-bold text-white hover:brightness-110"
+-                          >
+-                            {tt('coverSectionsApply')}
+-                          </button>
+-                        )}
+-                      </div>
+-                    </div>
+-                  )}
+-                </div>
+-              )}
+             </Card>
+           )}
+ 
+-          {activity.filter(entry => entry.state === 'running').slice(-3).map(entry => (
++          {activity.filter(entry => entry.kind === 'cover' && entry.state === 'running').slice(-3).map(entry => (
+             <div key={`${entry.song_id}-${entry.kind}`} className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-[11px] dark:border-white/10 dark:bg-suno-card">
+               <div className="flex items-center gap-2">
+                 <Loader2 size={12} className="animate-spin text-pink-500" />
+diff --git a/app/components/KaraokeAction.tsx b/app/components/KaraokeAction.tsx
+index 415472c..74da4f4 100644
+--- a/app/components/KaraokeAction.tsx
++++ b/app/components/KaraokeAction.tsx
+@@ -1,48 +1,4 @@
+-import React, { useState } from 'react';
+-import { Loader2, Mic2 } from 'lucide-react';
+-import { useKaraokeStatus } from '../services/studioQueries';
+-import { useI18n } from '../context/I18nContext';
+-import { Song } from '../types';
+-
+-export const KaraokeAction: React.FC<{ song: Song; onDone?: (lrc: string) => void; unavailable?: React.ReactNode }> = ({ song, onDone, unavailable = null }) => {
+-    const { t } = useI18n();
+-    const available = useKaraokeStatus().data?.ready === true;
+-    const [busy, setBusy] = useState(false);
+-    const [error, setError] = useState<string | null>(null);
+-
+-    if (!available) return <>{unavailable}</>;
+-    if (!song.audioUrl || !song.lyrics?.trim()) return null;
+-
+-    const run = async () => {
+-        setBusy(true);
+-        setError(null);
+-        try {
+-            const response = await fetch(`/v1/library/songs/${encodeURIComponent(song.id)}/karaoke`, {
+-                method: 'POST',
+-                headers: { 'Content-Type': 'application/json' },
+-                body: JSON.stringify({}),
+-            });
+-            const body = await response.json().catch(() => null);
+-            if (!response.ok) throw new Error(body?.error || String(response.status));
+-            onDone?.(body.lrc as string);
+-        } catch (reason) {
+-            setError(reason instanceof Error ? reason.message : String(reason));
+-        } finally {
+-            setBusy(false);
+-        }
+-    };
+-
+-    return (
+-        <div className="space-y-1">
+-            <button
+-                onClick={() => void run()}
+-                disabled={busy}
+-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 text-zinc-600 dark:text-zinc-400 text-xs font-medium transition-colors disabled:opacity-50"
+-            >
+-                {busy ? <Loader2 size={14} className="animate-spin" /> : <Mic2 size={14} />}
+-                {busy ? t('karaokeMaking') : song.lrcContent ? t('karaokeReady') : t('karaokeMake')}
+-            </button>
+-            {error && <p className="text-[11px] text-red-500">{error}</p>}
+-        </div>
+-    );
+-};
++import React from 'react';
++import type { Song } from '../types';
++// Recognition belongs to the separate Timestamp notebook.
++export const KaraokeAction: React.FC<{ song: Song; onDone?: (lrc: string) => void; unavailable?: React.ReactNode }> = () => null;
+diff --git a/app/components/KaraokeSettings.tsx b/app/components/KaraokeSettings.tsx
+index 42b0e17..a8d9678 100644
+--- a/app/components/KaraokeSettings.tsx
++++ b/app/components/KaraokeSettings.tsx
+@@ -1,141 +1,2 @@
+-import React, { useEffect, useRef, useState } from 'react';
+-import { karaokeStatusChanged, useKaraokeStatus } from '../services/studioQueries';
+-import { Check, Loader2 } from 'lucide-react';
+-import { useI18n } from '../context/I18nContext';
+-import { loadNativeOpenRouterCatalog, refreshNativeOpenRouterCatalog, type NativeOpenRouterModel } from '../services/nativeOpenRouter';
+-
+-/**
+- * The parts of karaoke timing that are not the download.
+- *
+- * Which recogniser, what it runs on, which model, and the button that installs
+- * or removes the set are `OptionalGroup` on the models page. What is left is
+- * whether timings are wanted at all, and - for the cloud recogniser - which
+- * model on OpenRouter does the listening.
+- *
+- * This was a page with its own recogniser tabs, its own device picker and an
+- * `OptionalGroup` underneath repeating both.
+- */
+-
+-const INPUT =
+-  'w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-hidden focus:border-pink-400 dark:border-white/10 dark:bg-black/20 dark:text-white';
+-
+-export const KaraokeExtras: React.FC<{ engine: string }> = ({ engine }) => {
+-  const { t } = useI18n();
+-
+-  const [enabled, setEnabled] = useState(false);
+-  const [openRouterModel, setOpenRouterModel] = useState('');
+-  const [catalog, setCatalog] = useState<NativeOpenRouterModel[]>([]);
+-  const [busy, setBusy] = useState<'save' | 'catalog' | null>(null);
+-  const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+-
+-  useEffect(() => {
+-    void loadNativeOpenRouterCatalog()
+-      .then((models) => setCatalog(models.filter((model) => model.capabilities.includes('speech_to_text'))))
+-      .catch(() => undefined);
+-  }, []);
+-
+-  // the form starts from the saved settings once; a later re-read must not
+-  // overwrite what is being typed
+-  const { data: status } = useKaraokeStatus();
+-  const seeded = useRef(false);
+-  useEffect(() => {
+-    if (!status || seeded.current) return;
+-    seeded.current = true;
+-    setEnabled(Boolean(status.enabled));
+-    setOpenRouterModel(status.openrouter_model ?? '');
+-  }, [status]);
+-
+-  /// The recogniser and the device belong to the control above; sending them
+-  /// from here would overwrite whatever it just saved.
+-  const write = async (body: object) => {
+-    const response = await fetch('/v1/karaoke/status', {
+-      method: 'PUT',
+-      headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify(body),
+-    });
+-    if (!response.ok) {
+-      const failure = await response.json().catch(() => null);
+-      throw new Error(failure?.error || String(response.status));
+-    }
+-    karaokeStatusChanged();
+-  };
+-
+-  const toggle = async (next: boolean) => {
+-    setEnabled(next);
+-    setMessage(null);
+-    await write({ enabled: next }).catch((reason: Error) => setMessage({ tone: 'error', text: reason.message }));
+-  };
+-
+-  const save = async () => {
+-    setBusy('save');
+-    setMessage(null);
+-    try {
+-      await write({ openrouter_model: openRouterModel.trim() || null });
+-      setMessage({ tone: 'ok', text: t('assistantSaved') });
+-    } catch (reason) {
+-      setMessage({ tone: 'error', text: reason instanceof Error ? reason.message : String(reason) });
+-    } finally {
+-      setBusy(null);
+-    }
+-  };
+-
+-  const loadCatalog = async () => {
+-    setBusy('catalog');
+-    setMessage(null);
+-    try {
+-      const models = await refreshNativeOpenRouterCatalog();
+-      setCatalog(models.filter((model) => model.capabilities.includes('speech_to_text')));
+-    } catch (reason) {
+-      setMessage({ tone: 'error', text: reason instanceof Error ? reason.message : String(reason) });
+-    } finally {
+-      setBusy(null);
+-    }
+-  };
+-
+-  return (
+-    <div className="space-y-2">
+-      <label className="flex w-fit cursor-pointer items-center gap-2 rounded-lg px-1 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:text-pink-600 dark:text-zinc-200 dark:hover:text-pink-400">
+-        <input type="checkbox" checked={enabled} onChange={(event) => void toggle(event.target.checked)} className="h-4 w-4 accent-pink-500" />
+-        {t('karaokeEnable')}
+-      </label>
+-
+-      {engine === 'open_router' && (
+-        <div className="space-y-1">
+-          <div className="flex items-center gap-2">
+-            <select value={openRouterModel} onChange={(event) => setOpenRouterModel(event.target.value)} className={INPUT}>
+-              <option value="">{t('assistantPickModel')}</option>
+-              {openRouterModel && !catalog.some((model) => model.id === openRouterModel) && (
+-                <option value={openRouterModel}>{openRouterModel}</option>
+-              )}
+-              {catalog.map((model) => <option key={model.id} value={model.id}>{model.name}</option>)}
+-            </select>
+-            <button
+-              type="button"
+-              onClick={() => void loadCatalog()}
+-              disabled={busy !== null}
+-              className="shrink-0 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:border-pink-400 hover:text-pink-600 disabled:opacity-50 dark:border-white/10 dark:text-zinc-300"
+-            >
+-              {busy === 'catalog' ? <Loader2 size={16} className="animate-spin" /> : t('refresh')}
+-            </button>
+-            <button
+-              type="button"
+-              onClick={() => void save()}
+-              disabled={busy !== null}
+-              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-xs font-semibold text-zinc-700 transition-colors hover:border-pink-400 hover:text-pink-600 disabled:opacity-50 dark:border-white/15 dark:text-zinc-200"
+-            >
+-              {busy === 'save' ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+-              {t('save')}
+-            </button>
+-          </div>
+-          <p className="text-[11px] leading-4 text-zinc-500">{t('karaokeOpenRouterHint')}</p>
+-        </div>
+-      )}
+-
+-      {message && (
+-        <span className={`text-xs ${message.tone === 'ok' ? 'text-emerald-600 dark:text-emerald-300' : 'text-red-600 dark:text-red-300'}`}>
+-          {message.text}
+-        </span>
+-      )}
+-    </div>
+-  );
+-};
++import React from 'react';
++export const KaraokeExtras: React.FC<{ engine: string }> = () => null;
+diff --git a/app/components/ProcessingModal.tsx b/app/components/ProcessingModal.tsx
+index d3cad41..e3015dd 100644
+--- a/app/components/ProcessingModal.tsx
++++ b/app/components/ProcessingModal.tsx
+@@ -351,7 +351,7 @@ export const ProcessingModal: React.FC<ProcessingModalProps> = ({ song, onClose,
+               </section>
+ 
+               <section className={CARD}>
+-                <Toggle checked={vstOn} onChange={setVstOn} label={t('processVst')} hint={t('processVstHint')} />
++                <Toggle checked={vstOn} onChange={setVstOn} label={t('processVst')} hint="Process native Linux VST3 plugins using defaults or saved state. Desktop editor windows are unavailable on Kaggle." />
+                 {vstOn && (
+                   <div className="mt-3 space-y-2">
+                     {!vstAvailable ? (
+@@ -368,9 +368,6 @@ export const ProcessingModal: React.FC<ProcessingModalProps> = ({ song, onClose,
+                             <input type="checkbox" checked={slot.enabled} onChange={event => setVstChain(chain => chain.map((entry, position) => (position === index ? { ...entry, enabled: event.target.checked } : entry)))} className="accent-pink-500" aria-label={slot.name} />
+                             <span className="min-w-0 flex-1 truncate text-xs text-zinc-800 dark:text-zinc-200" title={slot.path}>{index + 1}. {slot.name}</span>
+                             {slot.state_id && <Check size={12} className="shrink-0 text-emerald-500" aria-label={t('processVstConfigured')} />}
+-                            <button type="button" onClick={() => void configureVst(index)} className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold text-zinc-500 hover:text-pink-500">
+-                              <SlidersHorizontal size={12} />{t('processVstConfigure')}
+-                            </button>
+                             <button type="button" onClick={() => setVstChain(chain => chain.filter((_, position) => position !== index))} className="shrink-0 text-zinc-400 hover:text-rose-500" aria-label={t('processVstRemove')}>
+                               <Trash2 size={12} />
+                             </button>
+diff --git a/app/components/SetupGate.tsx b/app/components/SetupGate.tsx
+index 3da359e..dea213f 100644
+--- a/app/components/SetupGate.tsx
++++ b/app/components/SetupGate.tsx
+@@ -681,13 +681,11 @@ type Path = 'cuda' | 'vulkan' | 'directml' | 'cpu' | 'none';
+ const WHERE_IT_RUNS: { part: TranslationKey; name: string; nvidia: Path; other: Path; none: Path }[] = [
+   { part: 'hubPartSongs', name: 'yue2.cpp', nvidia: 'cuda', other: 'vulkan', none: 'cpu' },
+   { part: 'hubPartTraining', name: 'music-train', nvidia: 'cuda', other: 'none', none: 'none' },
+-  { part: 'hubPartListen', name: 'MOSS-Music', nvidia: 'cuda', other: 'cpu', none: 'cpu' },
+-  { part: 'hubPartTempo', name: 'Beat This!', nvidia: 'cuda', other: 'directml', none: 'cpu' },
+-  { part: 'hubPartStems', name: 'HT-Demucs', nvidia: 'cuda', other: 'cpu', none: 'cpu' },
+-  { part: 'hubPartKaraoke', name: 'Parakeet', nvidia: 'cuda', other: 'vulkan', none: 'cpu' },
+-  { part: 'hubPartKaraoke', name: 'Whisper', nvidia: 'cuda', other: 'cpu', none: 'cpu' },
+-  { part: 'hubPartAssistant', name: 'llama.cpp', nvidia: 'cuda', other: 'vulkan', none: 'cpu' },
+-  { part: 'hubPartMidi', name: 'MuScriptor', nvidia: 'cuda', other: 'cpu', none: 'cpu' },
++  { part: 'hubPartListen', name: 'MOSS-Music', nvidia: 'cpu', other: 'cpu', none: 'cpu' },
++  { part: 'hubPartTempo', name: 'Beat This!', nvidia: 'cpu', other: 'cpu', none: 'cpu' },
++  { part: 'hubPartStems', name: 'HT-Demucs', nvidia: 'cpu', other: 'cpu', none: 'cpu' },
++  { part: 'hubPartAssistant', name: 'llama.cpp', nvidia: 'cpu', other: 'cpu', none: 'cpu' },
++  { part: 'hubPartMidi', name: 'MuScriptor', nvidia: 'cpu', other: 'cpu', none: 'cpu' },
+ ];
+ 
+ /** The page's reference: every part of the studio, by card. */
+@@ -1111,7 +1109,9 @@ export const SetupGate: React.FC<{ onReady?: () => void; mode?: 'first-run' | 's
+                 <button
+                   type="button"
+                   onClick={() => {
+-                    void fetch('/setup/adopt', { method: 'POST' })
++                    const path = window.prompt('Folder path of your attached Kaggle model Dataset:');
++                    if (!path?.trim()) return;
++                    void fetch('/setup/adopt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: path.trim() }) })
+                       .then(async (response) => (response.ok ? response.json() : Promise.reject(new Error(await errorMessage(response)))))
+                       .then(async (body: { picked?: boolean; adopted?: string[]; copied?: { id: string; bytes: number }[]; refused?: AdoptRefusal[] } | null) => {
+                         if (!body?.picked) return;
+@@ -1256,22 +1256,6 @@ export const SetupGate: React.FC<{ onReady?: () => void; mode?: 'first-run' | 's
+               cancelUrl="/v1/separation/runtime/cancel"
+               engines={[{ id: 'htdemucs', label: 'HT-Demucs' }, { id: 'roformer', label: 'Mel-Band RoFormer' }]}
+             />
+-            <OptionalGroup
+-              title={t('karaokeSection')}
+-              purpose={t('karaokeOptionalPurpose')}
+-              statusUrl="/v1/karaoke/status"
+-              installUrl="/v1/karaoke/install"
+-              removeUrl="/v1/karaoke/remove"
+-              settingsUrl="/v1/karaoke/status"
+-              cancelUrl="/v1/karaoke/cancel"
+-              engines={[
+-                { id: 'parakeet', label: 'Parakeet' },
+-                { id: 'whisper', label: 'Whisper' },
+-                { id: 'open_router', label: 'OpenRouter', device: false },
+-              ]}
+-            >
+-              {(engine) => <KaraokeExtras engine={engine} />}
+-            </OptionalGroup>
+             {/* The training page's two packs and the MIDI transcriber, set up
+                 where they are used and listed here with the rest. */}
+             {mode === 'settings' && trainingInfo?.card_trains && (
+diff --git a/app/components/Sidebar.tsx b/app/components/Sidebar.tsx
+index 8849561..4a26488 100644
+--- a/app/components/Sidebar.tsx
++++ b/app/components/Sidebar.tsx
+@@ -132,6 +132,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
+         <nav className="flex min-h-0 w-full flex-1 flex-col gap-2 overflow-y-auto px-3 scrollbar-hide">
+           <NavItem icon={<Disc size={20} />} label={t('create')} active={currentView === 'create'} onClick={() => onNavigate('create')} isExpanded={isOpen} />
+           <NavItem icon={<Library size={20} />} label={t('library')} active={currentView === 'library'} onClick={() => onNavigate('library')} isExpanded={isOpen} />
++          <NavItem icon={<Disc size={20} />} label="Upload large WAV" active={false} onClick={() => window.open("/kaggle-upload.html", "_blank")} isExpanded={isOpen} />
+           <NavItem icon={<Search size={20} />} label={t('search')} active={currentView === 'search'} onClick={() => onNavigate('search')} isExpanded={isOpen} />
+           <NavItem icon={<Layers size={20} />} label={t('adaptersNav')} active={currentView === 'adapters'} onClick={() => onNavigate('adapters')} isExpanded={isOpen} />
+           <NavItem icon={<SlidersHorizontal size={20} />} label={t('studioTools')} active={currentView === 'tools'} onClick={() => onNavigate('tools')} isExpanded={isOpen} />
+diff --git a/app/components/SongDropdownMenu.tsx b/app/components/SongDropdownMenu.tsx
+index 7f36c91..9583e3f 100644
+--- a/app/components/SongDropdownMenu.tsx
++++ b/app/components/SongDropdownMenu.tsx
+@@ -1,7 +1,5 @@
+ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+ import { createPortal } from 'react-dom';
+-import { useKaraokeStatus } from '../services/studioQueries';
+-import { hasSungLines, karaokeReason } from '../services/karaoke';
+ import { Song } from '../types';
+ import { useI18n } from '../context/I18nContext';
+ import { openExternal } from '../services/externalLinks';
+@@ -77,42 +75,6 @@ const MenuDivider: React.FC = () => (
+     <div className="h-px bg-white/10 my-1 mx-2" />
+ );
+ 
+-/// Karaoke timings for one track, made on demand. The menu asks the service
+-/// whether karaoke is configured at all; with it off nothing is shown.
+-function useKaraoke(song: Song, onSongUpdate?: (song: Song) => void) {
+-    const { t: translate } = useI18n();
+-    const ready = useKaraokeStatus().data?.ready === true;
+-    const [busy, setBusy] = useState(false);
+-
+-    // A refusal used to be thrown out of an unawaited promise and land
+-    // nowhere: the menu item stopped spinning and nothing else happened, which
+-    // reads exactly like a button that does not work.
+-    const [failed, setFailed] = useState<string | null>(null);
+-    const make = async () => {
+-        setBusy(true);
+-        setFailed(null);
+-        try {
+-            const response = await fetch(`/v1/library/songs/${encodeURIComponent(song.id)}/karaoke`, {
+-                method: 'POST',
+-                headers: { 'Content-Type': 'application/json' },
+-                body: JSON.stringify({}),
+-            });
+-            const body = await response.json().catch(() => null);
+-            if (!response.ok) {
+-                setFailed(karaokeReason(translate, body?.error) || `${response.status}`);
+-                return;
+-            }
+-            onSongUpdate?.({ ...song, lrcContent: body.lrc as string });
+-        } catch (error) {
+-            setFailed(error instanceof Error ? error.message : String(error));
+-        } finally {
+-            setBusy(false);
+-        }
+-    };
+-
+-    return { ready, busy, make, failed };
+-}
+-
+ export const SongDropdownMenu: React.FC<SongDropdownMenuProps> = ({
+     song,
+     isOpen,
+@@ -172,7 +134,6 @@ export const SongDropdownMenu: React.FC<SongDropdownMenuProps> = ({
+         watch.observe(node);
+         return () => watch.disconnect();
+     }, [isOpen, direction, at]);
+-    const { ready: karaokeReady, busy: karaokeBusy, make: makeKaraoke, failed: karaokeFailed } = useKaraoke(song, actions.update);
+ 
+     useEffect(() => {
+         const handleClickOutside = (e: MouseEvent) => {
+@@ -316,20 +277,6 @@ export const SongDropdownMenu: React.FC<SongDropdownMenuProps> = ({
+                 />
+             )}
+ 
+-            {/* Karaoke: only offered once it is switched on in Settings, and
+-                only for a track that has both audio and written lyrics. */}
+-            {karaokeReady && song.audioUrl && hasSungLines(song.lyrics) && (
+-                <MenuItem
+-                    icon={karaokeBusy ? <Loader2 size={14} className="animate-spin" /> : <Mic2 size={14} />}
+-                    label={karaokeBusy ? t('karaokeMaking') : song.lrcContent ? t('karaokeReady') : t('karaokeMake')}
+-                    onClick={() => void makeKaraoke()}
+-                    disabled={karaokeBusy}
+-                />
+-            )}
+-            {karaokeFailed && (
+-                <p className="px-3 py-1.5 text-[11px] leading-4 text-rose-600 dark:text-rose-300">{karaokeFailed}</p>
+-            )}
+-
+             <MenuDivider />
+ 
+             {/* Library Actions */}
+diff --git a/app/components/StudioToolsPanel.tsx b/app/components/StudioToolsPanel.tsx
+index 64599d2..e290d57 100644
+--- a/app/components/StudioToolsPanel.tsx
++++ b/app/components/StudioToolsPanel.tsx
+@@ -5,7 +5,6 @@ import { useI18n } from '../context/I18nContext';
+ import { saveFile } from '../services/saveFile';
+ import { tempoAndKey } from '../services/songDownload';
+ import { DevicePicker } from './DevicePicker';
+-import { transcribeWithNativeOpenRouter } from '../services/nativeOpenRouter';
+ import { apiUrl } from '../services/apiBase';
+ import { openExternal } from '../services/externalLinks';
+ import { StemPlayer } from './StemPlayer';
+@@ -47,12 +46,6 @@ interface SeparationStatus {
+   run: { song_id: string; progress: number; done: boolean; error: string | null; stems: string[] } | null;
+ }
+ 
+-interface CatalogModel {
+-  id: string;
+-  name: string;
+-  capabilities: string[];
+-}
+-
+ const CARD = 'rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-white/3';
+ const CONTROL =
+   'w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-hidden focus:border-pink-500 disabled:opacity-50 dark:border-white/10 dark:bg-black/30 dark:text-white';
+@@ -72,13 +65,6 @@ export function StudioToolsPanel({ initialSongId }: { initialSongId?: string | n
+   const [confirmReplace, setConfirmReplace] = useState(false);
+   const [error, setError] = useState<string | null>(null);
+ 
+-  const [asrModels, setAsrModels] = useState<CatalogModel[]>([]);
+-  const [asrModel, setAsrModel] = useState('');
+-  const [asrFile, setAsrFile] = useState<File | null>(null);
+-  const [asrLanguage, setAsrLanguage] = useState('');
+-  const [asrBusy, setAsrBusy] = useState(false);
+-  const [asrText, setAsrText] = useState('');
+-  const [copied, setCopied] = useState(false);
+   const [query, setQuery] = useState('');
+   const filePicker = useRef<HTMLInputElement | null>(null);
+ 
+@@ -97,14 +83,6 @@ export function StudioToolsPanel({ initialSongId }: { initialSongId?: string | n
+ 
+   useEffect(() => {
+     void loadSongs().catch(() => undefined);
+-    void fetch('/v1/openrouter/catalog')
+-      .then(response => response.json())
+-      .then((body: { models?: CatalogModel[] }) => {
+-        const recognisers = (body.models ?? []).filter(model => model.capabilities.includes('speech_to_text'));
+-        setAsrModels(recognisers);
+-        setAsrModel(current => current || recognisers[0]?.id || '');
+-      })
+-      .catch(() => undefined);
+   }, [loadSongs]);
+ 
+   // The separation state, and which stems the chosen track already has.
+@@ -157,30 +135,6 @@ export function StudioToolsPanel({ initialSongId }: { initialSongId?: string | n
+     setBusy(false);
+   };
+ 
+-  const transcribe = async () => {
+-    if (!asrFile || !asrModel) return;
+-    setAsrBusy(true);
+-    setError(null);
+-    setAsrText('');
+-    try {
+-      setAsrText(await transcribeWithNativeOpenRouter(asrModel, asrFile, asrLanguage.trim() || undefined));
+-    } catch (reason) {
+-      setError(reason instanceof Error ? reason.message : String(reason));
+-    } finally {
+-      setAsrBusy(false);
+-    }
+-  };
+-
+-  const copyText = async () => {
+-    try {
+-      await navigator.clipboard.writeText(asrText);
+-      setCopied(true);
+-      window.setTimeout(() => setCopied(false), 1500);
+-    } catch {
+-      // Clipboard permission is not worth an error banner.
+-    }
+-  };
+-
+   // The list the user actually sees: filtered, and short enough to scan.
+   // A library of five thousand tracks is not a list to scroll: the search
+   // narrows it, and only the first handful of matches are drawn.
+@@ -203,7 +157,7 @@ export function StudioToolsPanel({ initialSongId }: { initialSongId?: string | n
+           <div>
+             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-500">{t('studioTools')}</p>
+             <h1 className="mt-1 text-2xl font-bold text-zinc-950 dark:text-white">{t('toolsHeading')}</h1>
+-            <p className="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">{t('toolsIntro')}</p>
++            <p className="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">Separate stems, convert audio to MIDI, edit MIDI, and process finished tracks.</p>
+           </div>
+           <button
+             onClick={() => void loadSongs()}
+@@ -478,63 +432,6 @@ export function StudioToolsPanel({ initialSongId }: { initialSongId?: string | n
+           </button>
+         </section>
+ 
+-        {/* Transcription. */}
+-        <section className={CARD}>
+-          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-white">
+-            <FileAudio size={17} className="text-pink-500" /> {t('transcribeAudio')}
+-          </div>
+-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{t('transcribeIntro')}</p>
+-
+-          <div className="mt-3 grid gap-2 md:grid-cols-3">
+-            <select value={asrModel} onChange={event => setAsrModel(event.target.value)} className={CONTROL}>
+-              {asrModels.length === 0 && <option value="">{t('noSpeechModel')}</option>}
+-              {asrModels.map(model => <option key={model.id} value={model.id}>{model.name}</option>)}
+-            </select>
+-            <button
+-              type="button"
+-              onClick={() => filePicker.current?.click()}
+-              className={`${CONTROL} text-left ${asrFile ? '' : 'text-zinc-400'}`}
+-            >
+-              {asrFile?.name ?? t('chooseAudioFile')}
+-            </button>
+-            <input
+-              value={asrLanguage}
+-              onChange={event => setAsrLanguage(event.target.value)}
+-              placeholder={t('languageOptional')}
+-              className={CONTROL}
+-            />
+-          </div>
+-          <input
+-            ref={filePicker}
+-            type="file"
+-            accept="audio/*"
+-            className="hidden"
+-            onChange={event => { setAsrFile(event.target.files?.[0] ?? null); event.target.value = ''; }}
+-          />
+-
+-          <button
+-            type="button"
+-            onClick={() => void transcribe()}
+-            disabled={!asrFile || !asrModel || asrBusy}
+-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-orange-500 to-pink-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+-          >
+-            {asrBusy ? <Loader2 size={14} className="animate-spin" /> : <FileAudio size={14} />} {t('transcribeAudio')}
+-          </button>
+-
+-          {asrText && (
+-            <div className="mt-3">
+-              <textarea readOnly value={asrText} rows={8} className={`${CONTROL} resize-y font-mono text-[13px] leading-5`} />
+-              <button
+-                type="button"
+-                onClick={() => void copyText()}
+-                className="mt-2 inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:border-pink-400 hover:text-pink-600 dark:border-white/15 dark:text-zinc-200"
+-              >
+-                {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? t('copied') : t('copy')}
+-              </button>
+-            </div>
+-          )}
+-        </section>
+-
+         {error && (
+           <p role="alert" className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-300">{error}</p>
+         )}
+diff --git a/app/components/TrainingPanel.tsx b/app/components/TrainingPanel.tsx
+index 2c7414b..bbd2e84 100644
+--- a/app/components/TrainingPanel.tsx
++++ b/app/components/TrainingPanel.tsx
+@@ -1,5 +1,5 @@
+ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+-import { karaokeStatusChanged, useSystemResources } from '../services/studioQueries';
++import { useSystemResources } from '../services/studioQueries';
+ import { AlertTriangle, BookOpen, Check, CheckSquare, ChevronDown, Clock, ChevronLeft, ChevronRight, Cpu, Download, FolderInput, FolderOpen, FolderOutput, Headphones, Library, Loader2, Mic2, MoreHorizontal, Music, Play, Plus, RotateCcw, Search, Square, Trash2, UploadCloud, Wand2, X } from 'lucide-react';
+ import { useI18n } from '../context/I18nContext';
+ import { AUDIO_ACCEPT } from '../services/audioFiles';
+@@ -352,13 +352,6 @@ const separateOnCard = async () => {
+   if (!response.ok) throw new Error(`Separation: HTTP ${response.status}`);
+ };
+ 
+-/** Turns on the recogniser dataset lyrics need: Whisper large-v3, fetched on its first use. */
+-const enableRecogniser = () =>
+-  fetch('/v1/karaoke/status', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: true, provider: 'whisper', whisper_model: 'whisper-large-v3' }) }).then(response => {
+-    if (!response.ok) throw new Error(`Karaoke: HTTP ${response.status}`);
+-    karaokeStatusChanged();
+-  });
+-
+ function songState(item: DatasetItem, job: PrepareStatus | null, datasetId: string, t: (key: string) => string): SongState {
+   const mine = job && job.dataset === datasetId ? job : null;
+   const failure = mine?.failures.find(entry => entry.item === item.id);
+@@ -490,7 +483,7 @@ const SongEditor: React.FC<{
+         <div className="flex flex-wrap items-start gap-2">
+           <p className={`min-w-0 flex-1 text-xs ${state.kind === 'working' ? 'text-pink-600 dark:text-pink-300' : state.kind === 'queued' ? 'text-zinc-500' : 'text-amber-600 dark:text-amber-300'}`}>{state.text}</p>
+           {(state.kind === 'failed' || state.kind === 'missing') && (
+-            <button type="button" onClick={() => onPrepare({ items: [item.id], lyrics: 'missing', style: 'missing' })} disabled={jobBusy} title={jobBusy ? t('trainingRedoBusy') : undefined} className={OUTLINE}>
++            <button type="button" onClick={() => onPrepare({ items: [item.id], lyrics: 'none', style: 'missing' })} disabled={jobBusy} title={jobBusy ? t('trainingRedoBusy') : undefined} className={OUTLINE}>
+               <RotateCcw size={13} />{t(state.kind === 'failed' ? 'trainingRetrySong' : 'trainingFinishSong')}
+             </button>
+           )}
+@@ -530,7 +523,6 @@ const SongEditor: React.FC<{
+               {t('trainingLyrics')}
+               {item.lyrics_source && <span className="ml-2 normal-case tracking-normal text-zinc-400">{item.lyrics_source === 'recognised' ? t('trainingLyricsRecognised') : t('trainingLyricsFrom').replace('{source}', item.lyrics_source)}</span>}
+             </span>
+-            <button type="button" onClick={() => onPrepare({ items: [item.id], lyrics: 'all', style: 'none' })} disabled={jobBusy} title={jobBusy ? t('trainingRedoBusy') : undefined} className={redo}><Mic2 size={12} />{t('trainingRecogniseAgain')}</button>
+           </span>
+           <textarea value={lyrics} disabled={working} onChange={event => setLyrics(event.target.value)} onBlur={() => lyrics !== item.lyrics && save({ lyrics })} rows={14} className={`${CONTROL} mt-1 font-mono text-xs`} />
+         </label>
+@@ -612,11 +604,6 @@ const SongsStep: React.FC<{
+               </button>
+             </>
+           )}
+-          {notice === 'recogniser_missing' && (
+-            <button type="button" onClick={() => void enableRecogniser().then(() => onPrepare({ lyrics: 'missing', style: 'none' })).catch(problem => onError(errorText(problem)))} disabled={jobBusy} className={OUTLINE}>
+-              <Mic2 size={13} />{t('trainingEnableRecogniser')}
+-            </button>
+-          )}
+         </div>
+       ))}
+ 
+@@ -636,13 +623,12 @@ const SongsStep: React.FC<{
+           </div>
+           {working && <button type="button" onClick={() => void cancelPrepare().then(onRefresh)} className={OUTLINE}><X size={13} />{t('trainingStop')}</button>}
+           {!working && !adding && ready < dataset.items.length && (
+-            <button type="button" onClick={() => onPrepare({ lyrics: 'missing', style: 'missing' })} disabled={jobBusy} className={OUTLINE}><Wand2 size={13} />{t('trainingFillMissing')}</button>
++            <button type="button" onClick={() => onPrepare({ lyrics: 'none', style: 'missing' })} disabled={jobBusy} className={OUTLINE}><Wand2 size={13} />{t('trainingFillMissing')}</button>
+           )}
+           <MoreMenu
+             items={[
+               { label: t('trainingAddLibrary'), icon: <Library size={14} />, onClick: () => setPicking(true), disabled: Boolean(adding) },
+-              { label: t('trainingAutofillAll'), icon: <Mic2 size={14} />, onClick: () => onPrepare({ lyrics: 'all', style: 'missing' }), disabled: jobBusy },
+-              ...(listenReady ? [{ label: t('trainingListenAll'), icon: <Headphones size={14} />, onClick: () => onPrepare({ lyrics: 'missing', style: 'all' }), disabled: jobBusy }] : []),
++              ...(listenReady ? [{ label: t('trainingListenAll'), icon: <Headphones size={14} />, onClick: () => onPrepare({ lyrics: 'none', style: 'all' }), disabled: jobBusy }] : []),
+               ...(state.item_style === 'caption' && !listenReady ? [{ label: t('trainingDescribeAll'), icon: <Wand2 size={14} />, onClick: () => void describe(dataset.items.map(item => item.id)), disabled: describing.length > 0 }] : []),
+             ]}
+           />
+@@ -1083,7 +1069,7 @@ export const TrainingPanel: React.FC = () => {
+       const next = await addPicked(id, files, (done, total) => setAdding({ done, total }));
+       if (next) replace(next);
+       setAdding(null);
+-      await prepareDataset(id, { lyrics: 'missing', style: 'missing' });
++      await prepareDataset(id, { lyrics: 'none', style: 'missing' });
+       await refresh();
+     } catch (problem) {
+       setAdding(null);
+@@ -1213,7 +1199,7 @@ export const TrainingPanel: React.FC = () => {
+           job={job}
+           adding={adding}
+           onAdd={files => void addAndPrepare(dataset.id, files)}
+-          onAddLibrary={ids => void addLibrarySongs(dataset.id, ids).then(next => { replace(next); return prepareDataset(dataset.id, { lyrics: 'missing', style: 'missing' }); }).then(refresh).catch(problem => setError(errorText(problem)))}
++          onAddLibrary={ids => void addLibrarySongs(dataset.id, ids).then(next => { replace(next); return prepareDataset(dataset.id, { lyrics: 'none', style: 'missing' }); }).then(refresh).catch(problem => setError(errorText(problem)))}
+           onPrepare={request => void prepare(request)}
+           onNext={() => setStep('train')}
+           onTrainAfter={on => void trainAfter(on)}
+diff --git a/app/components/VideoGeneratorModal.tsx b/app/components/VideoGeneratorModal.tsx
+index c05795a..b09e43e 100644
+--- a/app/components/VideoGeneratorModal.tsx
++++ b/app/components/VideoGeneratorModal.tsx
+@@ -2701,18 +2701,15 @@ export const VideoGeneratorModal: React.FC<VideoGeneratorModalProps> = ({ isOpen
+                         {song && lrcLinesRef.current.length === 0 && (
+                             <div className="bg-black/20 p-3 rounded-lg border border-white/5 space-y-2">
+                                 <label className="text-xs font-bold text-zinc-500 uppercase">{t('lyricsOverlay')}</label>
+-                                <p className="text-[11px] leading-4 text-zinc-400">{t('lyricsOverlayNeedsKaraoke')}</p>
+-                                <KaraokeAction
+-                                    song={song}
+-                                    unavailable={<p className="text-[11px] leading-4 text-zinc-400">{t('lyricsOverlayNeedsSetup')}</p>}
+-                                    onDone={(lrc) => {
+-                                        import('../services/lrc-parser').then(({ parseLrc }) => {
+-                                            lrcLinesRef.current = parseLrc(lrc);
+-                                            setLyricsEnabled(true);
+-                                        });
+-                                        window.dispatchEvent(new CustomEvent('yue:library-changed'));
+-                                    }}
+-                                />
++                                <p className="text-[11px] text-zinc-400">Import the LRC from your Timestamp notebook to overlay lyrics.</p>
++                                <input type="file" accept=".lrc,text/plain" className="text-xs" onChange={async event => {
++                                    const file = event.target.files?.[0];
++                                    event.target.value = '';
++                                    if (!file) return;
++                                    const { parseLrc } = await import('../services/lrc-parser');
++                                    lrcLinesRef.current = parseLrc(await file.text());
++                                    setLyricsEnabled(lrcLinesRef.current.length > 0);
++                                }} />
+                             </div>
+                         )}
+                         {lrcLinesRef.current.length > 0 && (
+diff --git a/app/services/adapters.ts b/app/services/adapters.ts
+index f3e34d7..a244243 100644
+--- a/app/services/adapters.ts
++++ b/app/services/adapters.ts
+@@ -187,7 +187,9 @@ export async function importAdapter(name: string, files: File[]): Promise<Instal
+ 
+ /** LoRAs from a folder the user picks in a system dialog, linked in without a copy. */
+ export async function importAdapterFolder(): Promise<{ picked: boolean; imported: Array<{ id: string; name: string; copied: boolean; already?: boolean }> }> {
+-  const response = await fetch('/v1/adapters/import-folder', { method: 'POST' });
++  const path = window.prompt('Folder path on Kaggle (for example an attached Dataset folder):');
++  if (!path?.trim()) return { picked: false, imported: [] };
++  const response = await fetch('/v1/adapters/import-folder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: path.trim() }) });
+   const body = await response.json().catch(() => ({}));
+   if (!response.ok) throw new Error(body.error || `LoRA folder: HTTP ${response.status}`);
+   return body;
+diff --git a/app/services/studioQueries.ts b/app/services/studioQueries.ts
+index 0c1be44..a2b8b57 100644
+--- a/app/services/studioQueries.ts
++++ b/app/services/studioQueries.ts
+@@ -45,7 +45,7 @@ const karaokeStatusKey = ['karaoke-status'] as const;
+ 
+ /** The karaoke switch and whether its recogniser is ready. */
+ export function useKaraokeStatus() {
+-  return useQuery({ queryKey: karaokeStatusKey, queryFn: () => readJson<KaraokeStatus>('/v1/karaoke/status'), refetchInterval: 15_000 });
++  return useQuery({ queryKey: karaokeStatusKey, queryFn: async (): Promise<KaraokeStatus> => ({ enabled: false, ready: false }), staleTime: Infinity });
+ }
+ 
+ /** The karaoke settings were written, here or by an agent. */
+diff --git a/crates/music-engine/src/yue_train.rs b/crates/music-engine/src/yue_train.rs
+index a5e71b8..7f819a9 100644
+--- a/crates/music-engine/src/yue_train.rs
++++ b/crates/music-engine/src/yue_train.rs
+@@ -190,8 +190,8 @@ impl Default for Recipe {
+             optimizer: "prodigy".into(),
+             learning_rate: 2e-4,
+             planner_lr_scale: 0.3,
+-            lyric_timing: true,
+-            cursor_weight: 0.08,
++            lyric_timing: false,
++            cursor_weight: 0.0,
+             grad_accum: 4,
+             warmup: 0,
+         }
+@@ -283,8 +283,6 @@ pub fn recipe_fields() -> Vec<RecipeField> {
+         tuned(choice("optimizer", "optimizer", &["prodigy", "adamw"])),
+         tuned(RecipeField { off_when: Some(FieldCondition { field: "optimizer", values: &["prodigy"] }), ..number("learning_rate", "optimizer", 0.0, 0.01, 0.00005) }),
+         tuned(number("planner_lr_scale", "optimizer", 0.05, 1.0, 0.05)),
+-        tuned(toggle("lyric_timing", "lyrics")),
+-        tuned(RecipeField { off_when: Some(FieldCondition { field: "lyric_timing", values: &["false"] }), ..number("cursor_weight", "lyrics", 0.0, 1.0, 0.01) }),
+     ]
+ }
+ 
+@@ -339,6 +337,7 @@ impl Recipe {
+         if !matches!(self.optimizer.as_str(), "prodigy" | "adamw") {
+             return Err(format!("unknown optimizer {}", self.optimizer));
+         }
++        if self.lyric_timing { return Err("Lyric alignment is handled by the separate Timestamp notebook".into()); }
+         let finite = [self.target_kl, self.alpha, self.learning_rate, self.planner_lr_scale, self.cursor_weight].iter().all(|value| value.is_finite());
+         if !finite || self.target_kl < 0.0 || self.alpha <= 0.0 || self.learning_rate <= 0.0 || self.planner_lr_scale <= 0.0 || !(0.0..=10.0).contains(&self.cursor_weight) {
+             return Err("a recipe number is out of range".into());
+diff --git a/crates/music-server/Cargo.toml b/crates/music-server/Cargo.toml
+index 82cbcca..1c047b1 100644
+--- a/crates/music-server/Cargo.toml
++++ b/crates/music-server/Cargo.toml
+@@ -22,8 +22,6 @@ acpp-server.workspace = true
+ dub-core = { git = "https://github.com/timoncool/dub-studio", rev = "d7d3f7600ff23c25ba497a1636002e429b571641" }
+ # "today" and dates the agent names, in this computer's time zone.
+ chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+-# The folder picker for "use models I already have", the same crate Dub Studio uses.
+-rfd = "0.17"
+ base64.workspace = true
+ hound = "3.5"
+ axum.workspace = true
+diff --git a/crates/music-server/src/acpp.rs b/crates/music-server/src/acpp.rs
+index f8f25ff..e04eec3 100644
+--- a/crates/music-server/src/acpp.rs
++++ b/crates/music-server/src/acpp.rs
+@@ -28,21 +28,8 @@ const READY_WITHIN: Duration = Duration::from_secs(60);
+ /// when it runs neither CUDA build and Auto falls to the processor then. A Mac on Apple silicon has one program, Metal
+ /// and the processor in it. An error when the card is asked for and there is none it runs on.
+ pub fn build_for(choice: &str) -> Result<Build> {
+-    if let Some(mac) = Build::for_this_mac() {
+-        return Ok(mac);
+-    }
+-    let hardware = crate::hardware::hardware();
+-    let card = match hardware.card_cuda {
+-        Some(crate::hardware::CudaBuild::Cuda13) => Some(Build::Cuda13),
+-        Some(crate::hardware::CudaBuild::Cuda12) => Some(Build::Cuda12),
+-        None if hardware.gpu_name.is_some() && !hardware.nvidia => Some(Build::Vulkan),
+-        None => None,
+-    };
+-    match choice {
+-        "cpu" => Ok(Build::Cpu),
+-        "gpu" | "cuda" => card.ok_or_else(|| anyhow!("there is no graphics card here audio.cpp computes on (an NVIDIA card needs a driver that runs CUDA 12.9 or 13); choose Auto or the processor")),
+-        _ => Ok(card.unwrap_or(Build::Cpu)),
+-    }
++    let _ = choice;
++    Ok(Build::Cpu)
+ }
+ 
+ /// Whether a build computes on the graphics card.
+diff --git a/crates/music-server/src/lib.rs b/crates/music-server/src/lib.rs
+index 477cd26..91875d0 100644
+--- a/crates/music-server/src/lib.rs
++++ b/crates/music-server/src/lib.rs
+@@ -22,6 +22,7 @@ mod pin_sha;
+ mod engine_runtime;
+ mod lyrics_db;
+ mod mcp;
++mod kaggle_upload;
+ mod lyrics_sync;
+ mod comfy_export;
+ mod remote;
+@@ -1118,7 +1119,7 @@ pub async fn serve() -> anyhow::Result<()> {
+             &studio_data_root().unwrap_or_else(|| std::path::PathBuf::from(".")),
+         )),
+         lyrics_sync_config: Arc::new(RwLock::new(
+-            persisted.as_ref().map(|settings| settings.lyrics_sync.clone().migrated()).unwrap_or_default(),
++            lyrics_sync::LyricsSyncConfig { enabled: false, provider: lyrics_sync::AsrProvider::None, ..Default::default() },
+         )),
+         hub: start_hub(),
+     };
+@@ -1159,6 +1160,9 @@ pub async fn serve() -> anyhow::Result<()> {
+ 
+     let app = Router::new()
+         .route("/health", get(health))
++        .route("/kaggle/uploads", post(kaggle_upload::start))
++        .route("/kaggle/uploads/{id}", get(kaggle_upload::status).post(kaggle_upload::chunk))
++        .route("/kaggle/uploads/{id}/finish", post(kaggle_upload::finish))
+         .route("/v1/capabilities", get(capabilities))
+         .route("/v1/configuration", get(configuration).put(update_configuration))
+         .route("/engine/options", get(engine_options).put(update_engine_options))
+@@ -1337,6 +1341,14 @@ pub async fn serve() -> anyhow::Result<()> {
+         // Covers and imported audio are megabytes, not kilobytes. The default
+         // two-megabyte cap rejected a generated cover by dropping the
+         // connection, which reaches the interface as "Failed to fetch".
++        .layer(axum::middleware::from_fn(|request: axum::extract::Request, next: axum::middleware::Next| async move {
++            let path = request.uri().path();
++            if path.starts_with("/v1/karaoke/") || path.ends_with("/karaoke")
++                || path == "/v1/openrouter/transcriptions" || path == "/v1/score/sections" {
++                return (StatusCode::NOT_FOUND, "Timestamp recognition is handled by the separate Timestamp notebook").into_response();
++            }
++            next.run(request).await
++        }))
+         .layer(DefaultBodyLimit::max(256 * 1024 * 1024));
+     // counted before the MCP tools take the router, so an agent's calls count as the features they use
+     let app = match &state.hub {
+@@ -2225,9 +2237,7 @@ async fn import_adapter_folder(State(state): State<AppState>, body: axum::body::
+     let named = serde_json::from_slice::<Value>(&body).ok().and_then(|value| value.get("path").and_then(Value::as_str).map(std::path::PathBuf::from));
+     let picked = match named {
+         Some(folder) => Some(folder),
+-        None => tokio::task::spawn_blocking(|| rfd::FileDialog::new().set_title("Folder with LoRA").pick_folder())
+-            .await
+-            .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?,
++        None => return Err(api_error(StatusCode::BAD_REQUEST, "Enter a folder path from an attached Kaggle Dataset".into())),
+     };
+     let Some(folder) = picked else {
+         return Ok(Json(serde_json::json!({ "picked": false, "imported": [] })));
+@@ -4617,21 +4627,7 @@ async fn restart_local_engine(State(state): State<AppState>) -> Result<Json<Valu
+ /// hands the path back; nothing changes until the user saves the options, the
+ /// same as every other field on that page.
+ async fn pick_engine_executable() -> Result<Json<Value>, (StatusCode, Json<ApiError>)> {
+-    let picked = tokio::task::spawn_blocking(|| {
+-        let mut dialog = rfd::FileDialog::new().set_title("The engine executable to run instead of the bundled one".to_string());
+-        // An extension filter would hide a Linux build, which has none.
+-        #[cfg(windows)]
+-        {
+-            dialog = dialog.add_filter("Engine executable", &["exe"]);
+-        }
+-        dialog.pick_file()
+-    })
+-    .await
+-    .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
+-    Ok(Json(serde_json::json!({
+-        "picked": picked.is_some(),
+-        "path": picked.map(|path| path.to_string_lossy().into_owned()),
+-    })))
++    Err(api_error(StatusCode::BAD_REQUEST, "The saved Kaggle engine is selected by the notebook; use the path field for an explicit Linux executable".into()))
+ }
+ 
+ /// A job is running and the engine the studio started is still a running process.
+@@ -6343,12 +6339,8 @@ async fn recognised_words(
+     language: Option<String>,
+     lyrics: String,
+ ) -> Result<Vec<(f64, String)>, (StatusCode, Json<ApiError>)> {
+-    if config.provider == lyrics_sync::AsrProvider::None {
+-        return Err(api_error(StatusCode::CONFLICT, "karaoke.no-recogniser".into()));
+-    }
+-    karaoke_words(state, config, path, language, lyrics)
+-        .await
+-        .map_err(|error| api_error(StatusCode::BAD_GATEWAY, error.to_string()))
++    let _ = (state, config, path, language, lyrics);
++    Err(api_error(StatusCode::NOT_FOUND, "Recognition is in the separate Timestamp notebook".into()))
+ }
+ 
+ /// HOT-Step's "match sections to score" for a cover: the source recording (an uploaded file or a
+@@ -7776,11 +7768,7 @@ async fn setup_adopt(State(state): State<AppState>, body: axum::body::Bytes) ->
+     let named = serde_json::from_slice::<Value>(&body).ok().and_then(|value| value.get("path").and_then(Value::as_str).map(std::path::PathBuf::from));
+     let picked = match named {
+         Some(folder) => Some(folder),
+-        None => tokio::task::spawn_blocking(move || {
+-            rfd::FileDialog::new().set_title("Folder with YuE2 models").pick_folder()
+-        })
+-        .await
+-        .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?,
++        None => return Err(api_error(StatusCode::BAD_REQUEST, "Enter the folder path of your attached model Dataset".into())),
+     };
+ 
+     let Some(folder) = picked else {
+@@ -7971,7 +7959,7 @@ fn update_catalogue(part: update_screen::Part) -> Vec<&'static downloads::Asset>
+     use update_screen::Part;
+     let mut assets: Vec<&'static downloads::Asset> = match part {
+         Part::Engine => engine_runtime::ASSETS.iter().collect(),
+-        Part::Karaoke => lyrics_sync::ASSETS.iter().collect(),
++        Part::Karaoke => Vec::new(),
+         Part::Separation => std::iter::once(&separation::MODEL).chain(roformer_set(true)).chain(roformer_set(false)).collect(),
+         Part::Midi => midi::SIZES.iter().flat_map(midi::weight_assets).collect(),
+         Part::Training => training::pack().iter().collect(),
+@@ -8291,6 +8279,8 @@ fn capability_engines_with(
+             installed: true,
+         });
+     }
++    for engine in &mut engines { engine.capabilities.retain(|capability| *capability != Capability::SpeechToText); }
++    engines.retain(|engine| !engine.capabilities.is_empty());
+     engines
+ }
+ 
+@@ -8630,14 +8620,12 @@ fn prepare_replay_synthesis(mut replay: Value, overrides: &ReplayMusicJobRequest
+ /// track the cloud drew no cover for wears the look's placeholder.
+ fn after_import(state: &AppState, song_id: &str) {
+     let (cover_state, cover_song) = (state.clone(), song_id.to_owned());
+-    let (timing_state, timing_song) = (state.clone(), song_id.to_owned());
+     tokio::spawn(async move {
+         draw_cover_for(cover_state.clone(), cover_song.clone()).await;
+         if let Err(error) = pin_placeholder(&cover_state, &cover_song).await {
+             eprintln!("[ERROR] no placeholder cover for {cover_song}: {error:#}");
+         }
+     });
+-    tokio::spawn(async move { time_lyrics_for(timing_state, timing_song).await });
+ }
+ 
+ /// The jobs still in flight, oldest first, so a reloaded window can show them.
+diff --git a/crates/music-server/src/library.rs b/crates/music-server/src/library.rs
+index ef5563f..f3027d2 100644
+--- a/crates/music-server/src/library.rs
++++ b/crates/music-server/src/library.rs
+@@ -115,7 +115,7 @@ impl Library {
+     /// separately used to put the database under `<cwd>/data` whenever the
+     /// service was started outside the desktop shell, so the same install
+     /// showed two different libraries depending on how it was launched.
+-    pub fn open_default()->Result<Self>{let root=crate::studio_data_root().unwrap_or_else(||env::current_dir().unwrap_or_else(|_|PathBuf::from(".")).join("data"));Self::open_at(root.join("library.sqlite"),root.join("media"))}
++    pub fn open_default()->Result<Self>{let root=env::var_os("YUE_LIBRARY_ROOT").map(PathBuf::from).or_else(crate::studio_data_root).unwrap_or_else(||env::current_dir().unwrap_or_else(|_|PathBuf::from(".")).join("data"));Self::open_at(root.join("library.sqlite"),root.join("media"))}
+  pub fn open_at(db_path:PathBuf,media_dir:PathBuf)->Result<Self>{if let Some(p)=db_path.parent(){fs::create_dir_all(p)?};let c=Connection::open(db_path)?;c.execute_batch("PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS songs(id TEXT PRIMARY KEY,title TEXT NOT NULL,audio_path TEXT,caption TEXT NOT NULL,lyrics TEXT NOT NULL,metadata_json TEXT NOT NULL,generation_settings_json TEXT NOT NULL,engine_id TEXT NOT NULL,profile_id TEXT,replay_request_json TEXT,audio_codes_json TEXT,source TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS playlists(id TEXT PRIMARY KEY,name TEXT NOT NULL,description TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS playlist_songs(playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,song_id TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,position INTEGER NOT NULL,PRIMARY KEY(playlist_id,song_id)); CREATE TABLE IF NOT EXISTS music_jobs(id TEXT PRIMARY KEY,submitted_at INTEGER NOT NULL,engine_id TEXT NOT NULL,title TEXT,style TEXT NOT NULL,lyrics TEXT NOT NULL,duration_seconds REAL NOT NULL,playlist_id TEXT,generation_settings_json TEXT NOT NULL,request_json TEXT NOT NULL,status TEXT NOT NULL,message TEXT NOT NULL DEFAULT '',attempt INTEGER NOT NULL DEFAULT 0,resumed_as TEXT); CREATE TABLE IF NOT EXISTS journal(id INTEGER PRIMARY KEY AUTOINCREMENT,at TEXT NOT NULL,source TEXT NOT NULL,tone TEXT NOT NULL DEFAULT '',verb TEXT NOT NULL DEFAULT '',kind TEXT NOT NULL DEFAULT '',target TEXT NOT NULL DEFAULT '',text TEXT NOT NULL DEFAULT '');")?;Ok(Self{connection:Arc::new(Mutex::new(c)),media_dir})}
+  pub fn list_songs(&self)->Result<Vec<Song>>{let c=self.connection.lock().unwrap();let mut s=c.prepare("SELECT id,title,audio_path,caption,lyrics,metadata_json,generation_settings_json,engine_id,profile_id,replay_request_json,audio_codes_json,source,created_at,updated_at FROM songs ORDER BY created_at DESC, id DESC")?;Ok(s.query_map([],row_song)?.collect::<rusqlite::Result<_>>()?)}
+  pub fn get_song(&self,id:&str)->Result<Option<Song>>{let c=self.connection.lock().unwrap();Ok(c.query_row("SELECT id,title,audio_path,caption,lyrics,metadata_json,generation_settings_json,engine_id,profile_id,replay_request_json,audio_codes_json,source,created_at,updated_at FROM songs WHERE id=?",[id],row_song).optional()?)}
+diff --git a/crates/music-server/src/listen.rs b/crates/music-server/src/listen.rs
+index 41c2a9e..5fc2b0e 100644
+--- a/crates/music-server/src/listen.rs
++++ b/crates/music-server/src/listen.rs
+@@ -117,20 +117,7 @@ fn seconds_within(peaks: &[(f64, f64)], budget: f64) -> Option<f64> {
+ /// Q8_0 where the card holds it for two minutes of a song, Q4_K_M where it does not, the processor with Q4_K_M
+ /// where not even a minute fits or the card does not run the captioner's CUDA 13.
+ pub fn hearing(hardware: &crate::hardware::Hardware) -> Hearing {
+-    // the Mac's captioner computes on Metal in the memory it shares with the system, which the table does not measure
+-    if cfg!(target_os = "macos") {
+-        return Hearing { lm: "moss-lm-q8_0.gguf", on_card: true, seconds: MAX_SECONDS };
+-    }
+-    let budget = hardware.total_vram_gb - CARD_RESERVE_GB;
+-    let cuda13 = hardware.card_cuda == Some(crate::hardware::CudaBuild::Cuda13);
+-    if cuda13 {
+-        if let Some(seconds) = seconds_within(&PEAK_Q8_0, budget).filter(|seconds| *seconds >= 120.0) {
+-            return Hearing { lm: "moss-lm-q8_0.gguf", on_card: true, seconds };
+-        }
+-        if let Some(seconds) = seconds_within(&PEAK_Q4_K_M, budget) {
+-            return Hearing { lm: "moss-lm-q4_k_m.gguf", on_card: true, seconds };
+-        }
+-    }
++    let _ = hardware;
+     Hearing { lm: "moss-lm-q4_k_m.gguf", on_card: false, seconds: PROCESSOR_SECONDS }
+ }
+ 
+@@ -202,6 +189,7 @@ pub fn hear_batch(
+     if !hearing.on_card {
+         command.env("CUDA_VISIBLE_DEVICES", "-1");
+     }
++    music_core::process::ensure_dies_with_parent(&mut command);
+     quiet(&mut command);
+     let mut child = command.spawn().with_context(|| format!("start {}", exe.display()))?;
+     let stderr = child.stderr.take().context("the captioner's messages")?;
+diff --git a/crates/music-server/src/main.rs b/crates/music-server/src/main.rs
+index bb2249f..9383363 100644
+--- a/crates/music-server/src/main.rs
++++ b/crates/music-server/src/main.rs
+@@ -7,6 +7,23 @@ fn main() -> anyhow::Result<()> {
+     if !music_engine::process_group::bind_children_to_this_process() {
+         eprintln!("this process could not create its own job object; the engine is stopped by the supervisor only");
+     }
++    if let Some(directory) = std::env::var_os("YUE_UI_DIR") {
++        let root = std::fs::canonicalize(directory)?;
++        music_server::set_asset_source(Box::new(move |path| {
++            let relative = path.trim_start_matches('/');
++            let relative = if relative.is_empty() { "index.html" } else { relative };
++            if std::path::Path::new(relative).components().any(|part| !matches!(part, std::path::Component::Normal(_))) { return None; }
++            let file = std::fs::canonicalize(root.join(relative)).ok()?;
++            if !file.starts_with(&root) || !file.is_file() { return None; }
++            let mime = match file.extension().and_then(|s| s.to_str()).unwrap_or("") {
++                "html" => "text/html; charset=utf-8", "js" | "mjs" => "text/javascript", "css" => "text/css",
++                "json" | "map" => "application/json", "svg" => "image/svg+xml", "png" => "image/png",
++                "jpg" | "jpeg" => "image/jpeg", "webp" => "image/webp", "ico" => "image/x-icon",
++                "woff" => "font/woff", "woff2" => "font/woff2", "wasm" => "application/wasm", _ => "application/octet-stream",
++            };
++            Some((std::fs::read(file).ok()?, mime.into()))
++        }));
++    }
+     music_server::apply_saved_gpu();
+     // the port is decided before the async workers start: deciding it can wait on netsh
+     music_engine::yue_server::engine_port();
+diff --git a/crates/music-server/src/mcp.rs b/crates/music-server/src/mcp.rs
+index fc7ccf5..8f2dda7 100644
+--- a/crates/music-server/src/mcp.rs
++++ b/crates/music-server/src/mcp.rs
+@@ -2502,7 +2502,9 @@ fn tools() -> &'static [Tool] {
+                 schema: || id_only("job_id", "song job id"),
+                 call: |args| send(Method::DELETE, format!("/v1/music/jobs/{}", segment(&text(args, "job_id")?)), json!({})),
+             },
+-        ]
++        ].into_iter().filter(|tool| !tool.name.starts_with("karaoke_") && !tool.name.starts_with("recogniser_")
++            && !matches!(tool.name, "openrouter_transcribe" | "score_match_sections" | "recognizer_install" | "recognizer_remove" | "recognizer_cancel"))
++            .collect()
+     })
+ }
+ 
+diff --git a/crates/music-server/src/prepare.rs b/crates/music-server/src/prepare.rs
+index 5608183..f84cc94 100644
+--- a/crates/music-server/src/prepare.rs
++++ b/crates/music-server/src/prepare.rs
+@@ -196,11 +196,11 @@ pub async fn start(
+         return Err(api_error(StatusCode::BAD_REQUEST, "no songs to prepare".into()));
+     }
+     // "again" sends the songs back to the start of the step
+-    state.training.reset_states(&id, &chosen, request.lyrics == Fill::All, request.style == Fill::All).map_err(crate::training_error)?;
++    state.training.reset_states(&id, &chosen, false, request.style == Fill::All).map_err(crate::training_error)?;
+     let job = Job {
+         dataset: id,
+         items: request.items,
+-        lyrics: request.lyrics != Fill::None,
++        lyrics: false,
+         style: request.style != Fill::None,
+         language: request.language,
+         train: request.train,
+@@ -338,7 +338,7 @@ async fn describe_style_of(state: &AppState, audio: std::path::PathBuf, lyrics:
+         return Err(api_error(StatusCode::CONFLICT, "auto-describe (MOSS-Music) is not installed; install it on the training page".into()));
+     }
+     // the tempo is measured on the card the machine's runtime reaches
+-    let card = state.lyrics_sync.onnx_card(crate::lyrics_sync::OnnxFlavour::Auto).map_err(|error| api_error(StatusCode::CONFLICT, format!("{error:#}")))?;
++    let card = state.lyrics_sync.onnx_card(crate::lyrics_sync::OnnxFlavour::Cpu).map_err(|error| api_error(StatusCode::CONFLICT, format!("{error:#}")))?;
+     if state.training.active_run().await.is_some() || state.prepare.lock().unwrap_or_else(|poisoned| poisoned.into_inner()).as_ref().is_some_and(|job| !job.finished) {
+         return Err(api_error(StatusCode::CONFLICT, "the card is training or preparing songs; describe once it is free".into()));
+     }
+@@ -557,6 +557,7 @@ async fn run(state: &AppState, job: &Job) -> anyhow::Result<()> {
+ /// them knows. Each song is stored as found the moment its words are there;
+ /// gives the timed text of each, which lays out better than the plain lines.
+ async fn lyrics_branch(state: &AppState, job: &Job, lyric_items: &[&training::DatasetItem]) -> anyhow::Result<HashMap<String, String>> {
++    if !lyric_items.is_empty() { anyhow::bail!("Enter lyrics manually; recognition is in the separate Timestamp notebook"); }
+     use training::LyricsState;
+     let id = job.dataset.as_str();
+     let shared = state.prepare.clone();
+@@ -790,7 +791,7 @@ async fn listen_branch(state: &AppState, job: &Job, style_items: &[&training::Da
+         } else {
+             update(&shared, |status| status.notices.push("listen_on_cpu"));
+         }
+-        let card = state.lyrics_sync.onnx_card(crate::lyrics_sync::OnnxFlavour::Auto)?;
++        let card = state.lyrics_sync.onnx_card(crate::lyrics_sync::OnnxFlavour::Cpu)?;
+         let (captioner, moss, facts_dir) = (state.training.captioner(), state.training.moss_dir(), state.training.audio_facts_dir());
+         let ids: Vec<String> = style_items.iter().map(|item| item.id.clone()).collect();
+         let audio: Vec<PathBuf> = ids.iter().map(|item| state.training.item_audio(id, item)).collect::<anyhow::Result<_>>()?;
+diff --git a/crates/music-server/src/training.rs b/crates/music-server/src/training.rs
+index 5bb7b43..5bb03b5 100644
+--- a/crates/music-server/src/training.rs
++++ b/crates/music-server/src/training.rs
+@@ -394,7 +394,7 @@ pub(crate) fn pack() -> &'static [Asset] {
+             vram_gb: None,
+             note: "",
+         }];
+-        assets.extend(yue_train::TRAINING_FILES.iter().map(|file| Asset {
++        assets.extend(yue_train::TRAINING_FILES.iter().filter(|file| file.id != "yue2-lyric-aligner").map(|file| Asset {
+             id: file.id,
+             label: file.label,
+             kind: AssetKind::Model,
+@@ -1369,6 +1369,7 @@ impl Training {
+             command.env("GGML_BACKEND", "CUDA0");
+             #[cfg(windows)]
+             command.creation_flags(0x0800_0000);
++            music_core::process::ensure_dies_with_parent(command.as_std_mut());
+             let mut child = command.spawn().with_context(|| format!("start {}", trainer.display()))?;
+             let stdout = child.stdout.take().context("trainer output")?;
+             let stderr = child.stderr.take().context("trainer errors")?;
+diff --git a/crates/music-server/src/vst.rs b/crates/music-server/src/vst.rs
+index ba50d37..c13c1e4 100644
+--- a/crates/music-server/src/vst.rs
++++ b/crates/music-server/src/vst.rs
+@@ -228,7 +228,7 @@ fn hide_window(command: &mut Command) {
+ }
+ 
+ #[cfg(not(windows))]
+-fn hide_window(_: &mut Command) {}
++fn hide_window(command: &mut Command) { music_core::process::ensure_dies_with_parent(command); }
+ 
+ #[cfg(test)]
+ mod tests {
+diff --git a/rust-toolchain.toml b/rust-toolchain.toml
+index 8349eeb..246cb22 100644
+--- a/rust-toolchain.toml
++++ b/rust-toolchain.toml
+@@ -1,3 +1,2 @@
+ [toolchain]
+-channel = "stable-x86_64-pc-windows-msvc"
+-components = ["rustfmt", "clippy"]
++channel = "1.99.1"

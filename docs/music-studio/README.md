@@ -5,8 +5,7 @@
 [Complete tool guide PDF](../../Music-Studio-Guide.pdf) ·
 [Editable guide](GUIDE.md) · [Validation](VALIDATION.md)
 
-This is a separate full browser studio based on the pinned asb-42 Linux fork
-of timoncool's YuE2 Studio. Existing FP16 music generation and Song Timestamp
+This is a separate full browser studio based on official YuE2 Studio **3.8.5**. Existing FP16 music generation and Song Timestamp
 Studio notebooks and datasets remain usable.
 
 ## First time: save one private Dataset
@@ -24,10 +23,10 @@ Studio notebooks and datasets remain usable.
 5. Wait for **PRIVATE MUSIC STUDIO DATASET SUBMITTED**, then allow Kaggle to
    process the Dataset. Its title is **Music Studio Dataset <identity>**.
 
-The selected 18 assets total **24,770,652,419 bytes** (about 24.77 GB), plus
+The selected 18 assets total **26,237,668,217 bytes** (about 26.24 GB), plus
 the compiled runtime. The first compilation needs at least **7 GiB measured
 free disk**. Model upload needs room for only the largest missing file
-(about 8.71 GB) plus reserve, after compiler intermediates are removed. The
+(about 5.19 GB) plus reserve, after compiler intermediates are removed. The
 SDK uploads one verified file at a time in one Dataset creation request.
 Successfully uploaded, newly downloaded cache files are released; attached
 inputs and existing source files are preserved.
@@ -59,8 +58,8 @@ T4 environment recorded in this repository. Startup reports an older driver
 before model loading; it cannot install or upgrade Kaggle's host driver.
 
 Generation uses the Q8 GGUF model on **GPU 0**. The second T4's memory is not
-pooled. Stems and Parakeet/Whisper recognition are explicitly configured for
-CPU. The bundled local Gemma writer uses CPU llama.cpp; the MIDI and MOSS
+pooled. HT-Demucs and RoFormer stems run on CPU. Timestamp/speech recognition and
+forced-alignment weights are excluded. The bundled local Gemma writer uses CPU llama.cpp; the MIDI and MOSS
 caption helpers are native CPU builds too. Actual performance needs a Kaggle run.
 
 The current Kaggle image must load the saved Linux binaries; rebuild on the
@@ -72,8 +71,8 @@ broken installation ready.
 
 The browser studio includes song generation, ABC score planning/editing,
 MIDI editing/import, replay/re-render, covers, library/playlists, six-stem
-HT-Demucs separation, MuScriptor Medium audio-to-MIDI, Parakeet/Whisper
-karaoke, audio processing/reference mastering, lyric video controls, artwork,
+HT-Demucs and RoFormer separation, MuScriptor Medium audio-to-MIDI,
+audio processing/reference mastering, video controls with external LRC import, artwork,
 local/external writing providers, LoRA application, MOSS style description,
 player/visualizer/Webamp and authenticated MCP.
 
@@ -82,17 +81,25 @@ Each 4-MiB piece is hashed and previous pieces are checked before resume.
 Finished imports are idempotent and retain source SHA256/length. The original
 small-file import remains available. No audio conversion is required.
 
-The pinned Linux fork's feature set differs from current Windows Studio.
-Windows VST hosting, native desktop integration, AB2/chord-variety and newer
-extension/continuation controls are not provisioned. **LoRA training is not
-provisioned for T4**; training-base weights are deliberately excluded.
-The PDF covers every available panel plus these boundaries. It does not
-present unavailable controls as completed features.
+The official release includes **AB2 sampling, chord variety, re-render extension
+(+15 to +120 seconds), and score continuation**. Native Linux VST3 offline
+processing is bundled; Windows plugins and desktop plugin editor windows require
+a local desktop.
+
+**LoRA training** uses the pinned INT8 ConvRot trainer with upstream's Turing F32
+fallback and its four training models. Fast/Balanced/Thorough recipes do not need
+lyric timestamps. Enter lyrics/styles manually or use music-style description;
+there is no recognition service or forced aligner. Training and generation use
+one selected T4, one heavy job at a time. Source support and successful compilation
+are distinct from a live Kaggle training run; see [validation](VALIDATION.md).
+
+The local MOSS style helper uses its Q4_K_M CPU model, not the larger Q8 build.
+The video editor can import LRC produced by your separate Timestamp notebook.
 
 ## Preserve and restore songs
 
 Generated audio, the SQLite library, settings, installed adapters, resumable
-uploads and logs live in **/kaggle/working/music_studio**. Temporary models
+uploads, training datasets/runs, MIDI files, VST state, skins, videos and logs live in **/kaggle/working/music_studio**. Temporary models
 and runtime state live under **/kaggle/temp/music_studio_runtime**; they do
 not become a second model pack in your saved song output.
 
@@ -104,7 +111,9 @@ For a later session, attach the saved output alongside the model Dataset.
 Startup restores one saved `music_studio` library into empty working output.
 Use `RESTORE_LIBRARY_PATH` for an explicit folder if several are attached;
 use `'none'` to start a fresh library. An existing working library is not
-overwritten. The SQLite backup path accounts for a saved WAL file.
+overwritten. Restores first stage a complete SQLite backup and media, then publish with a
+verified recovery receipt. An interrupted restore can resume without merging
+into new work. The SQLite backup includes committed WAL pages.
 
 Keep source WAVs and manual corrections. Code-publication permission does not
 publish your recordings or private project files.
@@ -117,12 +126,14 @@ publish your recordings or private project files.
 - GPU/runtime identity: `music_studio/runtime-identity.json`
 - Model/engine ready check: `music_studio/ready-check.json`
 - Dataset: `music_studio_dataset/dataset-upload.json`, `dataset-error.json`
-- One-time compiler log: `/kaggle/temp/music_studio_build/runtime-build.log`
+- One-time compiler log: `/kaggle/temp/music_studio_build/music-studio-v2/runtime-build.log`
 
 Stop the prior cell for a port/VRAM conflict. The launcher does not kill
 unrecognized processes. A CUDA startup failure is not converted into CPU
 generation. Interrupted, owned extraction staging can be retried automatically.
-An old Cloudflare URL/key stops being valid after restart.
+A URL is shown only after Cloudflare reports a registered tunnel connection.
+An old Cloudflare URL/key stops being valid after restart. The launcher is bound
+to its notebook kernel; a kernel exit shuts down owned studio/build processes.
 
 ## Rebuild and sources
 
@@ -140,4 +151,5 @@ conventions of the repository's existing Music Production System guide.
 
 Read [component notices](../../music_studio/NOTICES.md) before commercial use.
 YuE2's individual-creator permission does not automatically cover the companion,
-SheetSage2 or MuScriptor. The standard Studio path uses the companion.
+SheetSage2 or MuScriptor. The companion has Auto/On/Off controls; Auto may enable
+it for a trained adapter.

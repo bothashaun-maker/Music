@@ -12,10 +12,10 @@ def build():
     sources_path = ROOT / 'music_studio/sources.json'
     sources = json.loads(sources_path.read_text())
     sources['patches'] = {name: hashlib.sha256((ROOT / 'music_studio' / name).read_bytes()).hexdigest()
-                          for name in ('build_runtime.py', 'patches.py', 'kaggle_upload.rs', 'upload.html')}
+                          for name in ('build_runtime.py', 'patches.py', 'kaggle_upload.rs', 'upload.html', 'studio.patch')}
     sources_path.write_text(json.dumps(sources, indent=2) + '\n')
     files = {str(p.relative_to(ROOT)): p.read_text() for p in sorted((ROOT / 'music_studio').iterdir())
-             if p.is_file() and p.suffix in ('.py', '.json', '.md', '.rs', '.html')}
+             if p.is_file() and p.suffix in ('.py', '.json', '.md', '.rs', '.html', '.patch')}
     packed = zlib.compress(json.dumps(files, sort_keys=True).encode(), 9)
     payload = base64.b64encode(packed).decode()
     digest = hashlib.sha256(packed).hexdigest()
@@ -28,7 +28,7 @@ Run this notebook **once**, with **Accelerator None** and **Internet ON**.
 Enable your private Kaggle Secret **KAGGLE_API_TOKEN** for this notebook.
 The cell checks authentication first, builds the Linux x86-64/T4 runtime,
 and automatically creates **one private Music Studio Dataset** containing
-the runtime and all selected tools/models (about 24.77 GB of models plus runtime).
+the runtime and all selected tools/models (about 26.24 GB of models plus runtime).
 It uploads one verified file at a time; the complete model set is never held
 twice on local disk. The first compilation takes time. Progress and errors
 remain under `/kaggle/working/music_studio_dataset` and the named build log.
@@ -61,16 +61,19 @@ startup never generates a diagnostic song.
 
 This is the separate YuE2 Studio Linux browser interface: create songs, inspect
 and edit scores/MIDI, re-render, cover/restyle recordings, manage a library,
-split stems, make MIDI, time karaoke, process audio, create lyric videos,
+split stems, make MIDI, process audio, create videos,
 use LoRAs and drive the studio through MCP. It does not replace the existing
 native FP16/ComfyUI notebooks. Generation uses the saved Q8 GGUF model on GPU 0;
-the second T4's memory is not pooled. Stems and speech recognition default to CPU.
+the second T4's memory is not pooled. Stems run on CPU.
 The local writer, MIDI and style-description helpers also use CPU builds.
 
-This pinned Linux fork has a different feature set from newer Windows releases.
-T4 LoRA training, Windows VST plugins, AB2/chord-variety and newer extension/
-continuation controls are not provisioned. The guide covers every available
-panel plus alternatives and limitations. No subscription/API key is required
+Official Studio 3.8.5 includes AB2 sampling, chord variety, song extension,
+score continuation and a Turing-compatible LoRA trainer. Training and generation
+share one T4, one job at a time. CPU helpers include HT-Demucs, RoFormer and
+MuScriptor. Native Linux VST3 plugins can process files; Windows plugins and
+remote plugin editor windows are unavailable. Timestamp/speech recognition
+is excluded. The video editor can import LRC from your separate Timestamp notebook.
+The guide covers every available panel and the remaining Kaggle limitations. No subscription/API key is required
 for the included local tools; optional external providers have their own terms.
 
 Saved songs, SQLite library, settings, LoRAs and logs live under
@@ -100,6 +103,7 @@ for relative, contents in json.loads(zlib.decompress(packed)).items():
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(contents)
 task_env = dict(os.environ)
+task_env['MUSIC_STUDIO_PARENT_PID'] = str(os.getpid())
 task_env['PYTHONPATH'] = str(support) + os.pathsep + task_env.get('PYTHONPATH', '')
 '''+ extras + f'''
 task = subprocess.Popen([sys.executable, '-u', '-m', {mode!r}], env=task_env,

@@ -1,17 +1,18 @@
 # Music Studio component notices
 
-Music Studio v1 packages the Linux browser fork of YuE2 Studio. The existing
+Music Studio v2 packages official YuE2 Studio 3.8.5 for Linux browsers. The existing
 FP16 ComfyUI and Song Timestamp Studio notebooks are separate products.
 
-- YuE2 Studio: Ilya Timonin / timoncool, MIT. Linux browser port: asb-42, MIT.
+- YuE2 Studio: Ilya Timonin / timoncool, MIT.
   https://github.com/timoncool/YuE2-Studio
-  https://github.com/asb-42/yue2-studio
 - yue2.cpp: ServeurpersoCom and timoncool, MIT. GGML retains its MIT notice.
   https://github.com/ServeurpersoCom/yue2.cpp
 - HOT-Step native MIDI and caption tools: MIT; upstream dependencies retain
   their notices. https://github.com/timoncool/HOT-Step-CPP
-- Whisper / whisper.cpp: MIT. ONNX Runtime: MIT.
-  https://github.com/ggml-org/whisper.cpp
+- audio.cpp / BSRoformer.cpp: retain MIT and their dependency notices.
+  https://github.com/timoncool/audio.cpp
+  https://github.com/timoncool/BSRoformer.cpp
+- ONNX Runtime (Beat This! tempo): MIT.
   https://github.com/microsoft/onnxruntime
 - llama.cpp: MIT. Cloudflared: Apache-2.0.
   https://github.com/ggml-org/llama.cpp
@@ -35,19 +36,23 @@ relicenses a model or the user's input material.
   conditions. It does not automatically extend to other bundled models.
   https://github.com/multimodal-art-projection/YuE/blob/main/MODEL_LICENSE
 - SheetSage2 and the Mothersuperior decoder companion: CC BY-NC 4.0. The Studio
-  applies the companion in its standard generation path. Do not treat this
+  offers Auto/On/Off for the companion (Auto enables it for applicable trained
+  adapters). Do not treat this
   complete bundle as unrestricted commercial software/model use.
   https://huggingface.co/m-a-p/SheetSage2
   https://huggingface.co/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4
+- The INT8 ConvRot training base, VAE encoder, tokenizer and training SheetSage2
+  retain their source model terms. Training data needs its own authorization.
+  https://huggingface.co/scragnog/YuE2-GGUF
+- Mel-Band RoFormer voc_fv6 retains its model author terms.
+  https://huggingface.co/chenmozhijin/BSRoformer-GGUF
 - MuScriptor: CC BY-NC 4.0.
   https://huggingface.co/cocktailpeanut/muscriptor-medium
 - Gemma: Google's Gemma terms and prohibited-use policy; preserve its notices.
   https://ai.google.dev/gemma/terms
   https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf
-- Parakeet TDT v3: CC BY 4.0.
-  https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3
 - HT-Demucs 6 stems and Beat This!: MIT.
-  https://huggingface.co/StemSplitio/htdemucs-6s-onnx
+  https://huggingface.co/audio-cpp/audio.cpp-gguf
   https://github.com/CPJKU/beat_this
 - MOSS-Music: Apache-2.0.
   https://huggingface.co/OpenMOSS-Team/MOSS-Music-8B-Instruct
@@ -67,9 +72,10 @@ The Studio storage patch introduces YUE_LIBRARY_ROOT for durable output. A
 native resumable WAV/MP3 upload module and browser page preserve original audio
 over the tunnel. These patches do not replace model inference or audio DSP.
 
-The Linux fork predates some newer Windows Studio features. This v1 provides
-the fork's actual browser interface and tools, not a promise of every feature in
-upstream 3.8.x. AB2/chord-variety, newer score-continuation/extension controls,
-Windows VST hosting and native desktop window features are not advertised as
-available here. LoRA application is available; LoRA training is not provisioned
-for the T4 build. The guide covers these limits and each supported tool.
+This profile includes AB2/chord-variety, score continuation, song extension and
+an INT8 ConvRot CUDA trainer with the upstream Turing fallback. Musical score
+and MIDI transcription remain available. Timestamp recognition, speech-to-text,
+automatic karaoke timing and MMS lyric alignment are excluded, including model
+downloads and UI/MCP actions. The video editor accepts external LRC.
+Native Linux VST3 offline processing is included; Windows VSTs and remote desktop
+plugin editor windows are outside Kaggle's browser workflow.

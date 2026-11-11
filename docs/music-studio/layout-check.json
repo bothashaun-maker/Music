@@ -1,5 +1,5 @@
 {
-  "pages": 26,
+  "pages": 27,
   "layout": [
     {
       "section": "desk",
@@ -26,7 +26,7 @@
       "section": "tour",
       "page": 5,
       "scale": 1,
-      "body_bottom": 240.1,
+      "body_bottom": 263.1,
       "min_font": 9
     },
     {
@@ -46,9 +46,9 @@
     {
       "section": "settings",
       "page": 8,
-      "scale": 1,
-      "body_bottom": 150.4,
-      "min_font": 9
+      "scale": 0.98,
+      "body_bottom": 92.23,
+      "min_font": 8.82
     },
     {
       "section": "score",
@@ -89,7 +89,7 @@
       "section": "stems",
       "page": 14,
       "scale": 1,
-      "body_bottom": 280.8,
+      "body_bottom": 266.1,
       "min_font": 9
     },
     {
@@ -100,24 +100,24 @@
       "min_font": 9
     },
     {
-      "section": "karaoke",
+      "section": "extend",
       "page": 16,
       "scale": 1,
-      "body_bottom": 295.5,
+      "body_bottom": 280.8,
       "min_font": 9
     },
     {
       "section": "process",
       "page": 17,
       "scale": 1,
-      "body_bottom": 324.9,
+      "body_bottom": 280.8,
       "min_font": 9
     },
     {
       "section": "video",
       "page": 18,
       "scale": 1,
-      "body_bottom": 310.2,
+      "body_bottom": 295.5,
       "min_font": 9
     },
     {
@@ -135,45 +135,52 @@
       "min_font": 9
     },
     {
-      "section": "describe",
+      "section": "training",
       "page": 21,
+      "scale": 1,
+      "body_bottom": 222.0,
+      "min_font": 9
+    },
+    {
+      "section": "describe",
+      "page": 22,
       "scale": 1,
       "body_bottom": 310.2,
       "min_font": 9
     },
     {
       "section": "art",
-      "page": 22,
+      "page": 23,
       "scale": 1,
       "body_bottom": 229.8,
       "min_font": 9
     },
     {
       "section": "mcp",
-      "page": 23,
+      "page": 24,
       "scale": 1,
       "body_bottom": 280.8,
       "min_font": 9
     },
     {
       "section": "archive",
-      "page": 24,
+      "page": 25,
       "scale": 1,
       "body_bottom": 266.1,
       "min_font": 9
     },
     {
       "section": "triage",
-      "page": 25,
+      "page": 26,
       "scale": 1,
       "body_bottom": 95.1,
       "min_font": 9
     },
     {
       "section": "terms",
-      "page": 26,
+      "page": 27,
       "scale": 1,
-      "body_bottom": 220.8,
+      "body_bottom": 154.7,
       "min_font": 9
     }
   ]

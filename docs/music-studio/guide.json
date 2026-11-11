@@ -1,7 +1,7 @@
 {
   "brand": "JESUSJUICEPRODUCTIONS",
   "subtitle": "The practical guide to your Kaggle browser studio.\nCreate, edit, re-perform, process and preserve your music.",
-  "edition": "EDITION I · MUSIC STUDIO v1 · 11 NOVEMBER 2026",
+  "edition": "EDITION II · MUSIC STUDIO v2 · 11 NOVEMBER 2026",
   "pages": [
     {
       "id": "desk",
@@ -48,7 +48,7 @@
         {
           "type": "note",
           "title": "Separate from your working notebooks",
-          "text": "This browser studio is an additional experiment. Your native FP16 music creator, Song Timestamp Studio, and their saved datasets remain separate. The v1 studio uses Q8 GGUF weights."
+          "text": "This browser studio uses the official YuE2 Studio 3.8.5 with Q8 GGUF weights. Your existing native FP16 creator and separate Timestamp notebook remain available. Timestamp recognition is excluded from Music Studio."
         },
         {
           "type": "links",
@@ -87,7 +87,7 @@
         {
           "type": "note",
           "title": "Disk and time",
-          "text": "The model set is about 24.77 GB plus the runtime. Uploads stream one verified file at a time; the largest is about 8.71 GB. Runtime compilation needs at least 7 GiB free initially. Actual space is checked. First-time compilation/downloads take time; no timing guarantee is made."
+          "text": "The model set is about 26.24 GB plus the runtime. Uploads stream one verified file at a time; the largest is about 5.19 GB. Runtime compilation needs at least 7 GiB free initially. Actual space is checked. First-time compilation/downloads take time; no timing guarantee is made."
         },
         {
           "type": "text",
@@ -117,7 +117,7 @@
         },
         {
           "type": "text",
-          "text": "GPU 0 runs generation. The second T4’s memory is separate and is not automatically combined. Stems, recognition and the writing assistant use the documented CPU paths. No diagnostic song starts during setup."
+          "text": "GPU 0 runs generation and LoRA training, one heavy job at a time. The second T4 has separate memory. Stems, MIDI, the writing assistant and music-style description use CPU. No diagnostic song starts during setup."
         },
         {
           "type": "text",
@@ -151,15 +151,15 @@
             ],
             [
               "Studio tools",
-              "Stems, karaoke, MIDI and audio processing"
+              "HT-Demucs / RoFormer stems, audio-to-MIDI and audio processing"
             ],
             [
               "LoRA",
-              "Browse/import compatible style adapters; apply them to a song"
+              "Browse/import adapters, prepare training material and train on the T4"
             ],
             [
               "Settings",
-              "Music model, engine device, assistant, recognition and network access"
+              "Music model, engine device, writer, artwork and network access"
             ]
           ],
           "widths": [
@@ -172,9 +172,8 @@
           "text": "The player follows you between panels. Select a track before opening a track-specific tool. Track menus contain actions that do not fit on the main card. A generated result, a stem and a processed version can be separate library items."
         },
         {
-          "type": "note",
-          "title": "Version scope",
-          "text": "This v1 uses the pinned Linux browser fork, whose feature set differs from newer Windows Studio releases. The guide describes available controls. Windows VST hosting, T4 LoRA training, AB2/chord-variety and newer extension/continuation controls are not provisioned."
+          "type": "text",
+          "text": "The official 3.8.5 release includes AB2, chord variety, re-render extension and score continuation. The notebook supplies native Linux tools and a CUDA trainer with the upstream Turing fix. Windows plugins and desktop editor windows require a local desktop. Recognition is handled in your separate notebook."
         }
       ]
     },
@@ -296,6 +295,14 @@
             [
               "Batch / variations",
               "More candidates consume more memory and compute"
+            ],
+            [
+              "Solver: Midpoint / AB2",
+              "Choose the acoustic sampling method; compare at the same steps and seed"
+            ],
+            [
+              "Chord variety / sections",
+              "Encourage varied harmonic choices during score planning"
             ]
           ],
           "widths": [
@@ -314,7 +321,7 @@
         },
         {
           "type": "text",
-          "text": "The AB2 solver and newer chord-variety controls shown in some Windows videos are not controls of this pinned browser release."
+          "text": "Advanced settings include Midpoint or AB2 acoustic solvers and chord-variety controls. Start with the offered defaults. AB2 changes acoustic sampling; chord variety changes composition. Compare one setting at a time with both seeds pinned."
         }
       ]
     },
@@ -392,7 +399,7 @@
         },
         {
           "type": "text",
-          "text": "Newer Windows continuation/extension controls are outside this build. To lengthen a piece here, revise its composition/lyrics and render another version, or arrange the accepted sections in REAPER."
+          "text": "Re-render also offers +15, +30, +60, +90 or +120 seconds when the saved source has enough context room. A duration ceiling is not a promise that the model will use every second. Keep both the source and extended version."
         }
       ]
     },
@@ -407,7 +414,7 @@
             "Choose Upload large WAV in the sidebar. The upload page opens in the same authenticated studio.",
             "Choose your original WAV or MP3, up to 2 GiB, then press Upload / Resume. The notebook cell must remain running.",
             "Wait for Ready in Library. Each 4 MiB piece has a checksum. If the connection fails, choose the same file and resume; previously saved pieces are checked against it.",
-            "Return to Studio and open Library. Select the imported recording before using covers, stems, MIDI, karaoke or processing.",
+            "Return to Studio and open Library. Select the imported recording before using covers, stems, MIDI or processing.",
             "Inspect the source filename and checksum when you need a provenance check. The imported audio has not been transcoded."
           ]
         },
@@ -456,9 +463,9 @@
         {
           "type": "steps",
           "items": [
-            "Select the song in Library and open Stem separation under its tools/actions.",
+            "Select the source song in Library, open Studio tools and choose HT-Demucs for six stems or Mel-Band RoFormer for vocals/instrumental.",
             "Choose the stems you want to keep. The model predicts all six even when you export fewer.",
-            "Begin with the default overlap. Run once and wait for completion; the provided ONNX path uses CPU.",
+            "Begin with the offered overlap. Run once and wait for completion. HT-Demucs uses the bundled audio.cpp CPU server; RoFormer uses its own CPU tool.",
             "Audition isolated parts and the recombined mix. Check difficult vocal tails, guitar/piano overlap and transitions.",
             "Save the useful stems and their source/settings. Use the isolated vocal for subsequent analysis only after listening."
           ]
@@ -470,7 +477,7 @@
         },
         {
           "type": "text",
-          "text": "For your existing dedicated RoFormer Stem Studio, continue using its own notebook and Dataset. This studio’s HT-Demucs model is an additional integrated option, not a claim that it beats that setup."
+          "text": "The integrated RoFormer option is additional to your dedicated Stem Studio. It uses voc_fv6 Q8_0. Keep using the separate notebook when you need its other models or floating-point export."
         }
       ]
     },
@@ -501,28 +508,28 @@
       ]
     },
     {
-      "id": "karaoke",
-      "title": "Time lyrics and karaoke",
-      "kicker": "PARAKEET OR WHISPER · REVIEW EVERY LINE",
+      "id": "extend",
+      "title": "Extend a song. Continue an idea.",
+      "kicker": "RE-RENDER EXTENSION · OPENING SCORE · YOUR OWN MELODY",
       "blocks": [
         {
           "type": "steps",
           "items": [
-            "Select the finished audio you intend to publish. In recognition settings choose the bundled Parakeet INT8 or Whisper large-v3-turbo provider.",
-            "Keep speech VAD off for singing. Review the lyric text and remove implementation notes before alignment.",
-            "Run karaoke/timing on the selected song. These recognition paths use CPU in this bundle.",
-            "Listen around line starts, repeated choruses, instrumental gaps and the last line. Correct mistakes before using timestamps in a video.",
-            "Save the available timed lyric files with the exact audio version they describe."
+            "For a longer performance, open a generated track’s menu → Re-render. Choose an available extension from +15 to +120 seconds, set the acoustic seed and render a new version.",
+            "For composition from an idea, import a short recording or hum. Use SheetSage2 to transcribe its melody, or write/import the opening in the MIDI/ABC editor.",
+            "Send the opening score into Create. Enable Continue score, choose Full or Melody planning, and describe the desired style and song structure.",
+            "Compose the continuation, inspect the resulting score, then render the performance. Compare where the original idea returns as a hook.",
+            "For a chord bed, use the score editor’s accompaniment/chord tools and suitable instruments. Keep the source MIDI/ABC alongside the chosen render."
           ]
         },
         {
           "type": "note",
-          "title": "Your existing Timestamp Studio",
-          "text": "Integrated recognition is not a replacement for the corrected timing workflow and manual REAPER references in your separate Song Timestamp Studio. Recognition success or matched-word percentage is not a measured timing-accuracy bound."
+          "title": "Two different operations",
+          "text": "Re-render extension works from a stored generated track. Continue score develops an opening melody into composition. Audio-to-score and audio-to-MIDI are musical tools; speech/timestamp recognition is not installed here."
         },
         {
           "type": "text",
-          "text": "Parakeet has language limits; Whisper may hallucinate over music or omit difficult singing. A different mix or re-render can change timing, so do not reuse old cues without checking them."
+          "text": "Use short, clear reference material first. Inspect notes, key, meter and section boundaries before spending time on a long render."
         }
       ]
     },
@@ -535,7 +542,7 @@
           "type": "steps",
           "items": [
             "Select the track or stem and open the audio processing tool.",
-            "Choose one operation at a time: the available noise reduction, spectral/vocal processing or reference mastering controls.",
+            "Choose an operation: naturalizer/spectral processing, reference mastering, or a native Linux VST3 chain. Adjust one stage at a time.",
             "Audition before and after on several sections. Match listening level so louder does not automatically seem better.",
             "Keep the processed take as a new version only when it improves the intended result.",
             "Export the chosen version, then check the file in your DAW. Retain the untouched source and settings."
@@ -543,8 +550,8 @@
         },
         {
           "type": "note",
-          "title": "Desktop plugin limits",
-          "text": "Windows VST hosting is not part of this Linux browser build. Use your local REAPER installation for your own Windows plugins, detailed mixing and final mastering."
+          "title": "Plugins on Kaggle",
+          "text": "Attach a Dataset containing native Linux .vst3 bundles with Contents/x86_64-linux/*.so, then restart Studio and scan plugins. The launcher links these bundles into the host’s plugin folder. Kaggle cannot run Windows VST DLLs or show desktop plugin editors. Use default/saved compatible state for offline processing; use local REAPER for desktop editing."
         },
         {
           "type": "text",
@@ -560,8 +567,8 @@
         {
           "type": "steps",
           "items": [
-            "Select the approved audio version. Review its lyrics and karaoke timing first.",
-            "Open the video/clip tool. Choose landscape 16:9, square 1:1 or vertical 9:16 as offered.",
+            "Select the approved audio version. If you want lyric overlays, export its LRC from your separate Timestamp notebook.",
+            "Open the video/clip tool. In Text, import that LRC file. Choose landscape 16:9, square 1:1 or vertical 9:16 as offered.",
             "Choose a background/cover you may use. Add title, lyric layers, visualizer and supported effects; keep text readable.",
             "Preview a difficult section: a repeated chorus, a long line and the ending. Then render the clip.",
             "Download/save the video and play the exported file from beginning to end. Check audio sync, text clipping, transitions and final duration."
@@ -621,12 +628,38 @@
         },
         {
           "type": "note",
-          "title": "Training on this setup",
-          "text": "This v1 does not provision a T4 trainer or training-base weights. The pinned trainer’s BF16 path calls for newer hardware. The training panel is documented for orientation, not presented as a working T4 feature."
+          "title": "Training on T4",
+          "text": "Studio 3.8.5 and the pinned HOT-Step trainer include the Turing F32 fallback for INT8 ConvRot training. Training weights and a CUDA SM75 trainer are included. No lyric aligner is installed. The source supports T4; actual training, VRAM use and speed still require a live Kaggle run."
         },
         {
           "type": "text",
-          "text": "On suitable newer hardware the upstream workflow prepares recordings, lyrics/styles, trains an adapter, reviews checkpoints and applies a selected result. Do not start downloading a training pack on this T4 notebook expecting it to become a tested training configuration."
+          "text": "Use the Training page for your own recordings and manually supplied lyrics/styles. The fast, balanced and thorough recipes train from mastered mixes without lyric timestamps. The next page covers preparation and checkpoints."
+        }
+      ]
+    },
+    {
+      "id": "training",
+      "title": "Train a music adapter",
+      "kicker": "YOUR RECORDINGS · MANUAL LYRICS · CHECKPOINTS",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Open Training and create a training dataset. Add recordings from the library or upload them; use material you may train on.",
+            "Enter correct lyrics and section tags for each vocal song, or mark a song instrumental. Enter its style. Describe style can suggest musical metadata; it does not recognize lyrics.",
+            "Check that every item is ready. Choose Fast for a first trial, or Balanced / Thorough for more updates. Leave lyric timing off; the recognition and forced-alignment models are absent.",
+            "Start training with generation idle. Studio releases the generation engine while the CUDA trainer uses the selected T4. Keep the notebook running and inspect progress/loss.",
+            "Review a saved checkpoint, install/apply the adapter and compare a short test with fixed seeds. Save training datasets, runs and accepted adapters through Kaggle output files."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Persistent training work",
+          "text": "Datasets and runs are linked into /kaggle/working/music_studio/training. Training models stay in the read-only model Dataset. Preserve output files before ending Kaggle; the model Dataset does not automatically save your new checkpoints."
+        },
+        {
+          "type": "text",
+          "text": "This notebook does not pool both T4 GPUs. Use one heavy GPU job at a time. If training runs out of memory, retain logs/checkpoints and review the recipe; do not start a second engine."
         }
       ]
     },
@@ -648,11 +681,11 @@
         {
           "type": "note",
           "title": "Memory",
-          "text": "The two MOSS files total about 10.43 GB on disk. That is separate from its runtime memory. Do not compare download size with available VRAM or launch several models simply because there are two T4s."
+          "text": "The CPU captioner uses the MOSS F16 audio tower and Q4_K_M language model, about 6.91 GB on disk together. Runtime memory is separate. The CPU profile analyzes up to two minutes of a track and avoids competing for generation VRAM."
         },
         {
           "type": "text",
-          "text": "Describing a track and training a LoRA are separate operations. The captioning tools are included; T4 LoRA training is not. External/cloud description providers are optional and require your own configuration."
+          "text": "Music-style description and training are separate operations. Correct the proposed genre, instruments and BPM yourself. Lyrics are entered manually; external writing providers are optional."
         }
       ]
     },
@@ -798,8 +831,8 @@
               "Re-select the same source file in Upload large WAV and resume"
             ],
             [
-              "Recognition is wrong",
-              "Review provider/language/audio; keep VAD off for singing"
+              "Training items incomplete",
+              "Enter lyrics with sections, or mark instrumental; enter/review styles"
             ]
           ],
           "widths": [
@@ -832,7 +865,7 @@
           "rows": [
             [
               "Studio / C++ engines",
-              "MIT; retain upstream notices"
+              "MIT; retain upstream/dependency notices"
             ],
             [
               "YuE2 base weights",
@@ -847,8 +880,8 @@
               "Google Gemma terms and use policy"
             ],
             [
-              "HT-Demucs / Whisper / Beat This!",
-              "MIT; Parakeet retains CC BY attribution"
+              "HT-Demucs / Beat This!",
+              "MIT; audio.cpp and RoFormer code retain their own notices"
             ],
             [
               "MOSS / Cloudflared",
@@ -862,11 +895,11 @@
         },
         {
           "type": "text",
-          "text": "The standard Studio generation path includes the Mothersuperior companion. The complete bundle is therefore not presented as unrestricted commercial use. Keep the model Dataset private and review the terms relevant to your intended work."
+          "text": "Realaudio/companion selection is Auto, On or Off. The companion has its own model terms; turning it off does not change the terms of other tools used. Keep the model Dataset private and review the licenses relevant to the selected workflow."
         },
         {
           "type": "text",
-          "text": "The PDF follows the visual format of your existing Music Production System guide. It describes the actual v1 browser build and its selected tools, with unavailable newer Windows/hardware features identified."
+          "text": "The PDF follows the visual format of your existing Music Production System guide. It describes the official 3.8.5 browser build and its selected tools, with unavailable newer Windows/hardware features identified."
         },
         {
           "type": "links",
@@ -884,6 +917,10 @@
               "url": "https://github.com/bothashaun-maker/Music/blob/main/docs/music-studio/VALIDATION.md"
             }
           ]
+        },
+        {
+          "type": "text",
+          "text": "No Whisper, Parakeet, speech recognizer or MMS forced-alignment model is included. Musical score transcription remains available. RoFormer model usage follows its author’s terms; do not assume an unrestricted commercial license."
         }
       ]
     }

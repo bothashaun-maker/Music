@@ -11,8 +11,32 @@ import time
 import urllib.error
 import urllib.request
 
-PROFILE = 'music-studio-v1'
+PROFILE = 'music-studio-v2'
 HERE = Path(__file__).resolve().parent
+
+
+def bind_parent(expected=None):
+    """Bind the launcher or its child to its actual Linux parent, checking the race."""
+    import ctypes
+    import signal
+    expected = os.getppid() if expected is None else int(expected)
+    if expected <= 1:
+        raise RuntimeError('The notebook parent exited before startup.')
+    libc = ctypes.CDLL(None, use_errno=True)
+    if libc.prctl(1, signal.SIGTERM, 0, 0, 0) != 0:
+        raise OSError(ctypes.get_errno(), 'Could not bind Music Studio to its notebook parent')
+    if os.getppid() != expected:
+        os.kill(os.getpid(), signal.SIGTERM)
+        raise RuntimeError('The notebook parent exited during startup.')
+
+
+def notebook_process():
+    """Install cleanup signals before binding a module entry point to Jupyter."""
+    import signal
+    def stop(*_):
+        raise SystemExit(0)
+    signal.signal(signal.SIGTERM, stop)
+    bind_parent(os.environ.get('MUSIC_STUDIO_PARENT_PID', os.getppid()))
 
 
 def sha256(path):

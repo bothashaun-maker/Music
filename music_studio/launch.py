@@ -1,7 +1,6 @@
 """Start the saved native studio; model preparation belongs to the CPU builder."""
 from __future__ import annotations
 
-import ctypes
 import fcntl
 import json
 import os
@@ -16,7 +15,7 @@ import time
 import urllib.error
 import urllib.request
 
-from .common import elf_arch, extract, find_pack, fingerprint, scrub, sha256, write_json
+from .common import bind_parent, elf_arch, extract, find_pack, fingerprint, notebook_process, scrub, sha256, write_json
 
 
 def request(url, *, method='GET', payload=None, headers=None, timeout=10):
@@ -58,15 +57,10 @@ def check_gpu(index):
 def owned_child(arguments, *, env, cwd, log):
     output = open(log, 'ab', buffering=0)
 
-    def parent_death():
-        # Linux kills the owned child if this notebook launcher exits unexpectedly.
-        ctypes.CDLL(None).prctl(1, signal.SIGTERM)
-        if os.getppid() == 1:
-            os._exit(1)
-
+    parent = os.getpid()
     try:
         return subprocess.Popen(list(map(str, arguments)), env=env, cwd=cwd, stdout=output,
-                                stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=parent_death)
+                                stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=lambda: bind_parent(parent))
     finally:
         output.close()
 
@@ -82,6 +76,38 @@ def stop(child):
         child.wait(timeout=5)
 
 
+def tunnel_address(log):
+    """A reserved Quick Tunnel name alone does not prove an edge connection."""
+    if not re.search(r'Registered tunnel connection\b', log):
+        return None
+    urls = re.findall(r'https://[a-z0-9-]+\.trycloudflare\.com', log)
+    return urls[-1] if urls else None
+
+
+def link_plugins(input_root, runtime):
+    """Expose attached Linux VST3 bundles in the host's application plugin folder."""
+    folder = runtime / 'vst/vst3'
+    folder.mkdir(exist_ok=True)
+    chosen = {}
+    for bundle in Path(input_root).rglob('*.vst3'):
+        binaries = list((bundle / 'Contents/x86_64-linux').glob('*.so'))
+        if not bundle.is_dir() or not binaries:
+            continue
+        for binary in binaries:
+            elf_arch(binary)
+        if bundle.name in chosen and chosen[bundle.name] != bundle.resolve():
+            raise RuntimeError('Two attached Linux plugins have the same bundle name: ' + bundle.name)
+        chosen[bundle.name] = bundle.resolve()
+    for previous in folder.iterdir():
+        if not previous.is_symlink():
+            raise RuntimeError('Unexpected files in the runtime plugin-link folder were retained: ' + str(previous))
+        if previous.name not in chosen or previous.resolve() != chosen[previous.name]:
+            previous.unlink()
+    for name, target in chosen.items():
+        if not (folder / name).is_symlink():
+            (folder / name).symlink_to(target, target_is_directory=True)
+
+
 def materialize(pack, manifest, runtime, state):
     """Place only links in temporary state; saved library files contain no model links."""
     for record in manifest['files']:
@@ -95,7 +121,7 @@ def materialize(pack, manifest, runtime, state):
         elif destination.exists():
             raise RuntimeError('Existing temporary asset differs; retained for review: ' + str(destination))
         destination.symlink_to(source)
-    for name, target in [('karaoke/runtime/onnx', 'onnx'), ('karaoke/runtime/whisper', 'whisper'), ('assistant/runtime/cpu', 'writer')]:
+    for name, target in [('karaoke/runtime/onnx', 'onnx'), ('assistant/runtime/cpu', 'writer'), ('audiocpp/runtime/audiocpp-cpu', 'audio'), ('separation/runtime/bsroformer-cpu', 'roformer')]:
         destination = state / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         if not destination.exists():
@@ -103,42 +129,85 @@ def materialize(pack, manifest, runtime, state):
 
 
 def restore_library(output, input_root, selection='auto'):
-    """Restore only into an empty working library; never overwrite current work."""
-    if (output / 'library.sqlite').exists():
+    """Stage a complete backup, then publish it with a resumable, verified commit."""
+    output = Path(output)
+    stage = output / '.restore-stage'
+    owner = stage / '.owner.json'
+    ready = stage / '.ready.json'
+    if (output / 'library.sqlite').exists() or selection == 'none':
         return
-    if selection == 'none':
-        return
-    if selection != 'auto':
-        candidates = [Path(selection)]
-    else:
-        candidates = sorted({p.parent for p in Path(input_root).rglob('library.sqlite')
-                             if (p.parent / 'media').is_dir() and p.parent.name == 'music_studio'})
-    if not candidates:
-        return
-    if len(candidates) != 1:
-        raise RuntimeError('Several saved Music Studio libraries are attached. Set RESTORE_LIBRARY_PATH to one folder, or none.')
-    source = candidates[0].resolve()
-    if not (source / 'library.sqlite').is_file() or not (source / 'media').is_dir():
-        raise RuntimeError('Restore folder must contain library.sqlite and media.')
-    files = [p for name in ('media', 'adapters', 'uploads') for p in (source / name).rglob('*') if p.is_file()]
-    if any(p.is_symlink() for p in files):
-        raise RuntimeError('Restore library contains symlinks; no user files were copied.')
-    required = sum(p.stat().st_size for p in files) + (source / 'library.sqlite').stat().st_size
-    if shutil.disk_usage(output).free < required + 512 * 1024**2:
-        raise RuntimeError('Insufficient disk to restore the saved library; source remains untouched.')
-    for name in ('media', 'adapters', 'uploads'):
-        if (source / name).exists():
-            if (output / name).exists() and any((output / name).iterdir()):
+    if stage.exists():
+        if not owner.is_file() or json.loads(owner.read_text()).get('target') != str(output.resolve()):
+            raise RuntimeError('Unknown restore staging files were retained: ' + str(stage))
+        if not ready.is_file():
+            # Only the marked, unpublished copy is disposable. Working files stay.
+            shutil.rmtree(stage)
+    if not ready.is_file():
+        if selection != 'auto':
+            candidates = [Path(selection)]
+        else:
+            candidates = sorted({p.parent for p in Path(input_root).rglob('library.sqlite')
+                                 if (p.parent / 'media').is_dir() and p.parent.name == 'music_studio'})
+        if not candidates:
+            return
+        if len(candidates) != 1:
+            raise RuntimeError('Several saved Music Studio libraries are attached. Select one RESTORE_LIBRARY_PATH, or none.')
+        source = candidates[0].resolve()
+        if not (source / 'library.sqlite').is_file() or not (source / 'media').is_dir():
+            raise RuntimeError('Restore folder must contain library.sqlite and media.')
+        names = [name for name in ('media', 'adapters', 'uploads', 'training', 'skins', 'videos', 'processing', 'midi') if (source / name).exists()]
+        if (source / 'studio-settings.json').is_file() and not (output / 'studio-settings.json').exists():
+            names.append('studio-settings.json')
+        for name in names:
+            destination = output / name
+            if destination.is_symlink() or (destination.exists() and (not destination.is_dir() or any(destination.iterdir()))):
                 raise RuntimeError('Restore would merge into existing work: ' + name)
-            shutil.copytree(source / name, output / name, dirs_exist_ok=True)
-    # SQLite backup includes a valid WAL when the saved input has one.
-    import sqlite3
-    with sqlite3.connect((source / 'library.sqlite').as_uri() + '?mode=ro', uri=True) as old:
-        with sqlite3.connect(output / 'library.sqlite') as new:
-            old.backup(new)
-    if (source / 'studio-settings.json').is_file() and not (output / 'studio-settings.json').exists():
-        shutil.copy2(source / 'studio-settings.json', output / 'studio-settings.json')
-    print('Restored saved Music Studio library:', source, flush=True)
+        originals = [source / 'library.sqlite']
+        for name in names:
+            path = source / name
+            originals += [path, *path.rglob('*')] if path.is_dir() else [path]
+        if any(p.is_symlink() for p in originals):
+            raise RuntimeError('Restore library contains symlinks; no user files were copied.')
+        required = sum(p.stat().st_size for p in originals if p.is_file())
+        if shutil.disk_usage(output).free < required + 512 * 1024**2:
+            raise RuntimeError('Insufficient disk to restore the saved library; source remains untouched.')
+        stage.mkdir()
+        write_json(owner, {'target': str(output.resolve()), 'source': str(source)})
+        for name in names:
+            if (source / name).is_dir():
+                shutil.copytree(source / name, stage / name)
+            else:
+                shutil.copy2(source / name, stage / name)
+        # SQLite backup includes committed WAL pages without modifying attached input.
+        import sqlite3
+        with sqlite3.connect((source / 'library.sqlite').as_uri() + '?mode=ro', uri=True) as old:
+            with sqlite3.connect(stage / 'library.sqlite') as new:
+                old.backup(new)
+        names.append('library.sqlite')  # Published last: the service cannot open a partial restore.
+        files = {str(p.relative_to(stage)): {'bytes': p.stat().st_size, 'sha256': sha256(p)}
+                 for name in names for p in ([stage / name] if (stage / name).is_file() else (stage / name).rglob('*')) if p.is_file()}
+        write_json(ready, {'names': names, 'files': files})
+    receipt = json.loads(ready.read_text())
+    for name in receipt['names']:
+        pending, target = stage / name, output / name
+        if pending.exists():
+            if target.exists():
+                if not target.is_dir() or any(target.iterdir()):
+                    raise RuntimeError('Restore target contains work; retained for review: ' + str(target))
+                target.rmdir()
+            pending.replace(target)
+        # A move interrupted before its acknowledgement is safe to resume, only
+        # when the moved content still matches this transaction's exact bytes.
+        expected = {n: r for n, r in receipt['files'].items() if n == name or n.startswith(name + '/')}
+        present = {str(p.relative_to(output)) for p in ([target] if target.is_file() else target.rglob('*')) if p.is_file()}
+        if present != set(expected) or target.is_symlink():
+            raise RuntimeError('Restored files changed during recovery; no current work was overwritten.')
+        for relative, record in expected.items():
+            path = output / relative
+            if path.is_symlink() or path.stat().st_size != record['bytes'] or sha256(path) != record['sha256']:
+                raise RuntimeError('Restored content differs; retained for review: ' + relative)
+    shutil.rmtree(stage)
+    print('Restored saved Music Studio library.', flush=True)
 
 
 def settings(output, *, key, gpu):
@@ -148,13 +217,13 @@ def settings(output, *, key, gpu):
     else:
         previous = dict(configuration={'selections': [
             dict(capability='music_generation', mode='local', local_engine='yue2-cpp', cloud_model=None),
-            dict(capability='speech_to_text', mode='local', local_engine=None, cloud_model=None),
             dict(capability='prompt_enhancement', mode='local', local_engine=None, cloud_model=None),
             dict(capability='cover_art', mode='local', local_engine=None, cloud_model=None)]},
-            lyrics_sync=dict(enabled=True, provider='parakeet', runtime='cpu', whisper_model='large-v3-turbo', whisper_vad=False),
+            lyrics_sync=dict(enabled=False, provider='none', runtime='cpu'),
             assistant=dict(provider='managed', managed_model='gemma-4-e4b-q4_0'),
             cover_auto=False, selected_profile_id='quality-q8', selected_component_ids=None,
-            separation=dict(runtime='cpu', stems=['drums', 'bass', 'other', 'vocals', 'guitar', 'piano'], overlap=0.25))
+            separation=dict(runtime='cpu', engine='htdemucs', stems=['drums', 'bass', 'other', 'vocals', 'guitar', 'piano'], overlap=0.25))
+    previous['lyrics_sync'] = dict(enabled=False, provider='none', runtime='cpu')
     previous['network'] = {'enabled': True, 'key': key}
     # Explicit CUDA prevents an engine failure becoming an unnoticed CPU render.
     previous['engine_options'] = dict(backend='cuda', keep_loaded=False, max_batch=1, max_seq=16384,
@@ -168,13 +237,16 @@ def install_runtime(pack, manifest, cache):
     location = cache / record['sha256'][:16]
     runtime = location / 'runtime'
     stamp = location / '.verified.json'
+    if stamp.exists() and json.loads(stamp.read_text()).get('archive_sha256') != record['sha256']:
+        raise RuntimeError('Runtime cache identity differs; retained for review: ' + str(location))
     if not stamp.exists():
         if location.exists():
             raise RuntimeError('An interrupted runtime extraction exists. Retained for diagnosis: ' + str(location))
         stage = cache / (record['sha256'][:16] + '.partial')
         marker = stage / '.extracting.json'
         if stage.exists():
-            if not marker.is_file() or json.loads(marker.read_text()).get('archive_sha256') != record['sha256']:
+            proof = marker if marker.is_file() else stage / '.verified.json'
+            if not proof.is_file() or json.loads(proof.read_text()).get('archive_sha256') != record['sha256']:
                 raise RuntimeError('Unknown files in extraction staging directory were preserved: ' + str(stage))
             shutil.rmtree(stage)
         stage.mkdir()
@@ -184,12 +256,12 @@ def install_runtime(pack, manifest, cache):
         expected = json.loads((staged_runtime / 'build-manifest.json').read_text())
         if expected['source_fingerprint'] != record['source_fingerprint']:
             raise RuntimeError('Runtime archive has the wrong source identity.')
-        for binary in ['music-server', 'engine/yue-server', 'midi/ace-midi', 'caption/ace-caption', 'writer/llama-server', 'whisper/whisper-cli', 'cloudflared']:
+        for binary in ['music-server', 'engine/yue-server', 'audio/audiocpp_server', 'roformer/bs_roformer-cli', 'caption/ace-caption', 'training/music-train', 'vst/vst-host', 'writer/llama-server', 'cloudflared']:
             elf_arch(staged_runtime / binary)
             (staged_runtime / binary).chmod(0o700)
         write_json(stage / '.verified.json', {'archive_sha256': record['sha256']})
-        marker.unlink()
         stage.replace(location)
+        (location / '.extracting.json').unlink(missing_ok=True)
     return runtime
 
 
@@ -215,14 +287,19 @@ def launch(dataset='auto', *, output_root='/kaggle/working/music_studio', gpu=0,
         cache = Path(runtime_root).resolve()
         cache.mkdir(parents=True, exist_ok=True)
         runtime = install_runtime(pack, manifest, cache)
-        state = cache / 'state'
+        link_plugins(input_root, runtime)
+        state = cache / ('state-' + manifest['runtime']['source_fingerprint'][:16])
         state.mkdir(exist_ok=True)
         materialize(pack, manifest, runtime, state)
-        # User-installed LoRAs are writable output, separate from the fixed Dataset.
-        adapters = output / 'adapters'
-        adapters.mkdir(exist_ok=True)
-        if not (state / 'adapters').exists():
-            (state / 'adapters').symlink_to(adapters, target_is_directory=True)
+        # Persist every writable project area, keeping models outside saved output.
+        for name in ('adapters', 'skins', 'videos', 'training/datasets', 'training/runs', 'processing/vst', 'midi/files', 'logs'):
+            target, link = output / name, state / name
+            target.mkdir(parents=True, exist_ok=True)
+            link.parent.mkdir(parents=True, exist_ok=True)
+            if not link.exists():
+                link.symlink_to(target, target_is_directory=True)
+            elif not link.is_symlink() or link.resolve() != target.resolve():
+                raise RuntimeError('Unexpected project-state path was retained: ' + str(link))
         port_free(port)
         port_free(18087)
         key = secrets.token_hex(32)
@@ -233,14 +310,15 @@ def launch(dataset='auto', *, output_root='/kaggle/working/music_studio', gpu=0,
                    YUE_ENGINE_BIN=str(runtime / 'engine/yue-server'), YUE_UI_DIR=str(runtime / 'ui'),
                    YUE_STUDIO_PORT=str(port), YUE_ENGINE_PORT='18087', YUE_ENGINE_HOST='127.0.0.1',
                    YUE_ENGINE_BASE_URL='http://127.0.0.1:18087', YUE_BIND_ADDR='127.0.0.1',
-                   YUE_MIDI_BIN=str(runtime / 'midi/ace-midi'), YUE_CAPTION_BIN=str(runtime / 'caption/ace-caption'),
+                   YUE_AUDIOCPP_SERVER=str(runtime / 'audio/audiocpp_server'), YUE_CAPTION_BIN=str(runtime / 'caption/ace-caption'),
+                   YUE_TRAIN_BIN=str(runtime / 'training/music-train'), MUSIC_VST_HOST_BIN=str(runtime / 'vst/vst-host'),
                    CUDA_DEVICE_ORDER='PCI_BUS_ID', CUDA_VISIBLE_DEVICES=str(gpu),
                    ORT_DYLIB_PATH=str(runtime / 'onnx/libonnxruntime.so'))
         # Do not put a different engine's libggml on this process's loader path.
         # Each executable was built with $ORIGIN; only NVIDIA's shared runtime is common.
         env['LD_LIBRARY_PATH'] = str(runtime / 'cuda') + os.pathsep + env.get('LD_LIBRARY_PATH', '')
-        executables = ['music-server', 'engine/yue-server', 'midi/ace-midi', 'caption/ace-caption',
-                       'writer/llama-server', 'whisper/whisper-cli']
+        executables = ['music-server', 'engine/yue-server', 'audio/audiocpp_server', 'roformer/bs_roformer-cli',
+                       'caption/ace-caption', 'training/music-train', 'vst/vst-host', 'writer/llama-server']
         linked = subprocess.run(['ldd', *[str(runtime / name) for name in executables]],
                                 env=env, capture_output=True, text=True)
         if linked.returncode or 'not found' in linked.stdout:
@@ -286,18 +364,18 @@ def launch(dataset='auto', *, output_root='/kaggle/working/music_studio', gpu=0,
             while time.monotonic() < deadline:
                 if tunnel.poll() is not None:
                     raise RuntimeError('Cloudflare exited. ' + scrub(tunnel_log.read_text(errors='replace')[-2000:]))
-                urls = re.findall(r'https://[a-z0-9-]+\.trycloudflare\.com', tunnel_log.read_text(errors='replace'))
-                if urls:
-                    address = urls[-1]
+                registered = tunnel_address(tunnel_log.read_text(errors='replace'))
+                if registered:
+                    address = registered
                     break
                 time.sleep(1)
             else:
-                raise RuntimeError('Cloudflare did not return a link. The local studio ran; see logs/cloudflare.log.')
+                raise RuntimeError('Cloudflare did not register a tunnel connection. See logs/cloudflare.log and rerun startup.')
         write_json(status_path, dict(stage='ready', public=public, studio_port=port))
         print('\nOPEN MUSIC STUDIO: ' + address + '/?key=' + key, flush=True)
         print('Keep this cell running. Create starts only when you press it in Studio.', flush=True)
         print('Songs, library and logs: ' + str(output), flush=True)
-        print('Song generation uses GPU ' + str(gpu) + '. Stems, recognition, writer, MIDI and style description use CPU; T4 LoRA training is not provisioned.', flush=True)
+        print('Song generation and LoRA training use GPU ' + str(gpu) + ' one job at a time. Stems, writer, MIDI and style description use CPU.', flush=True)
         while service.poll() is None:
             if tunnel is not None and tunnel.poll() is not None:
                 raise RuntimeError('Cloudflare stopped. Saved songs are retained; restart this startup cell for a fresh link.')
@@ -314,6 +392,6 @@ def launch(dataset='auto', *, output_root='/kaggle/working/music_studio', gpu=0,
 
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(SystemExit(0)))
+    notebook_process()
     launch(dataset=os.environ.get('MUSIC_STUDIO_DATASET_PATH', 'auto'), gpu=int(os.environ.get('MUSIC_STUDIO_GPU', '0')),
            restore=os.environ.get('MUSIC_STUDIO_RESTORE_LIBRARY', 'auto'))

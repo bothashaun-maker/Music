@@ -64,9 +64,13 @@
 - Preserve native resumable WAV/MP3 upload and YUE_LIBRARY_ROOT patches. Startup
   may restore one saved library only into empty working output; never overwrite
   current work. Keep private user audio, lyrics and projects out of GitHub.
-- The Linux fork has a different feature set from newer Windows Studio. Do not
-  claim T4 LoRA training, Windows VSTs, AB2/chord-variety or newer continuation
-  controls are provisioned. Explain actual tool/model license boundaries.
+- Music Studio v2 uses official 3.8.5 with AB2/chord-variety, score continuation
+  and extension. The pinned trainer includes Turing support; distinguish source/
+  compilation evidence from live T4 inference. Native Linux VST3 offline only.
+- User explicitly removed timestamp/speech recognition from Music Studio. Keep
+  recognition controls, downloads and MMS alignment out; preserve musical score
+  transcription, MIDI and external LRC import. Do not modify the separate
+  Timestamp notebook. Explain actual tool/model license boundaries.
 - Distinguish local compilation/browser/CPU checks and mocked Dataset uploads
   from live Kaggle GPU inference or authenticated Dataset creation. See
   docs/music-studio/VALIDATION.md for evidence and remaining limits.

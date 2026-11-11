@@ -11,18 +11,26 @@ import subprocess
 import sys
 import tarfile
 
-from .common import HERE, elf_arch, extract, fingerprint, sha256, transfer, write_json
+from .common import HERE, PROFILE, bind_parent, elf_arch, extract, fingerprint, sha256, transfer, write_json
 
 
 def command(arguments, *, cwd, env=None, log=None):
     print('Build:', ' '.join(map(str, arguments[:5])), flush=True)
     log = Path(log or Path(cwd) / 'build.log')
     with log.open('ab') as output:
-        result = subprocess.run(list(map(str, arguments)), cwd=cwd, env=env,
-                                stdout=output, stderr=subprocess.STDOUT)
-    if result.returncode:
+        parent = os.getpid()
+        child = subprocess.Popen(list(map(str, arguments)), cwd=cwd, env=env,
+                                 stdout=output, stderr=subprocess.STDOUT,
+                                 start_new_session=True, preexec_fn=lambda: bind_parent(parent))
+        try:
+            result = child.wait()
+        finally:
+            if child.poll() is None:
+                from .launch import stop
+                stop(child)
+    if result:
         tail = log.read_text(errors='replace')[-5000:]
-        raise RuntimeError(f'Build command failed ({result.returncode}); {log}\n{tail}')
+        raise RuntimeError(f'Build command failed ({result}); {log}\n{tail}')
 
 
 def checkout(spec, destination, log):
@@ -57,7 +65,7 @@ def copy_runtime(build, binary, destination):
     elf_arch(candidates[0])
     shutil.copy2(candidates[0], destination / binary)
     for library in build.rglob('*.so*'):
-        if library.is_file() and library.name.startswith(('libggml', 'libllama', 'libwhisper', 'libmtmd')):
+        if library.is_file() and library.name.startswith(('libggml', 'libllama', 'libmtmd')):
             target = destination / library.name
             if not target.exists():
                 # Dereference into one real versioned file; preserve its alias as a local link.
@@ -179,7 +187,7 @@ def build(work, *, jobs=2, cuda=True):
     jobs = max(1, min(int(jobs), os.cpu_count() or 2))
     env = dict(os.environ)
     log = work / 'runtime-build.log'
-    env.update(CARGO_HOME=str(work / 'cargo'), RUSTUP_HOME=str(work / 'rustup'), CARGO_BUILD_JOBS=str(jobs))
+    env.update(CARGO_HOME=str(work / 'cargo'), RUSTUP_HOME=str(work / 'rustup'), RUSTUP_TOOLCHAIN=sources['rust_toolchain'], CARGO_BUILD_JOBS=str(jobs))
     installer = transfer(sources['rustup'], work / 'rustup-init')
     installer.chmod(0o700)
     command([installer, '-y', '--no-modify-path', '--profile', 'minimal', '--default-toolchain', sources['rust_toolchain']], cwd=work, env=env, log=log)
@@ -228,26 +236,26 @@ def build(work, *, jobs=2, cuda=True):
     command(['cmake', '--build', engine / 'build-kaggle', '--target', 'yue-server', '--parallel', jobs], cwd=work, env=env, log=log)
     copy_runtime(engine / 'build-kaggle', 'yue-server', bundle / 'engine')
     tools_source = checkout(sources['tools'], work / 'tools-source', log)
-    command(['git', 'submodule', 'update', '--init', '--recursive', '--depth', '1', 'engine/ggml', 'engine/vendor/vst3sdk'], cwd=tools_source, log=log)
-    target = tools_source / 'engine/build-kaggle'
-    # Auxiliary MIDI/caption tools use the CPU build verified here. Keep the
-    # CUDA music engine independent; do not advertise untested trainer/GPU paths.
+    command(['git', 'submodule', 'update', '--init', '--recursive', '--depth', '1', 'engine/ggml'], cwd=tools_source, log=log)
+    command(['git', 'submodule', 'update', '--init', '--depth', '1', 'engine/vendor/vst3sdk'], cwd=tools_source, log=log)
+    command(['git', 'submodule', 'update', '--init', '--depth', '1', 'base', 'pluginterfaces', 'public.sdk'],
+            cwd=tools_source / 'engine/vendor/vst3sdk', log=log)
+    target = tools_source / 'engine/build-cpu'
     cpu_common = [flag for flag in common if not flag.startswith(('-DGGML_CUDA=', '-DCMAKE_CUDA', '-DCUDAToolkit_ROOT=', '-DCMAKE_EXE_LINKER_FLAGS='))]
     cpu_common += ['-DGGML_CUDA=OFF']
     command(['cmake', '-S', tools_source / 'engine', '-B', target, *cpu_common], cwd=work, env=env, log=log)
-    command(['cmake', '--build', target, '--target', 'ace-midi', 'ace-caption', '--parallel', jobs], cwd=work, env=env, log=log)
-    copy_runtime(target, 'ace-midi', bundle / 'midi')
+    command(['cmake', '--build', target, '--target', 'ace-caption', 'vst-host', '--parallel', jobs], cwd=work, env=env, log=log)
     copy_runtime(target, 'ace-caption', bundle / 'caption')
-    whisper = checkout(sources['whisper'], work / 'whisper-source', log)
-    command(['cmake', '-S', whisper, '-B', whisper / 'build-kaggle', '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
-             '-DGGML_CUDA=OFF', '-DGGML_NATIVE=OFF', '-DWHISPER_BUILD_TESTS=OFF', '-DCMAKE_BUILD_RPATH=$ORIGIN',
-             '-DCMAKE_INSTALL_RPATH=$ORIGIN', '-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON'], cwd=work, env=env, log=log)
-    command(['cmake', '--build', whisper / 'build-kaggle', '--target', 'whisper-cli', '--parallel', jobs], cwd=work, env=env, log=log)
-    copy_runtime(whisper / 'build-kaggle', 'whisper-cli', bundle / 'whisper')
+    copy_runtime(target, 'vst-host', bundle / 'vst')
+    # The INT8 ConvRot trainer includes the upstream Turing F32 fallback.
+    trainer = tools_source / 'engine/build-training'
+    command(['cmake', '-S', tools_source / 'engine', '-B', trainer, *common], cwd=work, env=env, log=log)
+    command(['cmake', '--build', trainer, '--target', 'ace-train', '--parallel', jobs], cwd=work, env=env, log=log)
+    copy_runtime(trainer, 'ace-train', bundle / 'training')
+    (bundle / 'training/ace-train').rename(bundle / 'training/music-train')
     for label, source, names in [
         ('yue2.cpp', engine, ('LICENSE', 'ggml/LICENSE', 'vendor/cpp-httplib/LICENSE')),
-        ('HOT-Step', tools_source, ('LICENSE', 'engine/LICENSE', 'engine/ggml/LICENSE', 'engine/vendor/cpp-httplib/LICENSE')),
-        ('whisper.cpp', whisper, ('LICENSE',)),
+        ('HOT-Step', tools_source, ('LICENSE', 'engine/LICENSE', 'engine/ggml/LICENSE', 'engine/vendor/cpp-httplib/LICENSE', 'engine/vendor/vst3sdk/LICENSE.txt', 'engine/vendor/vst3sdk/base/LICENSE.txt', 'engine/vendor/vst3sdk/pluginterfaces/LICENSE.txt', 'engine/vendor/vst3sdk/public.sdk/LICENSE.txt')),
     ]:
         for name in names:
             original = source / name
@@ -273,7 +281,7 @@ def build(work, *, jobs=2, cuda=True):
             if p.is_file() and p.name.startswith(('LICENSE', 'EULA')):
                 shutil.copy2(p, notice / ('NVIDIA-' + p.name))
     for record in sources['runtime_assets']:
-        if record['id'] not in ('onnxruntime', 'llama.cpp'):
+        if record['id'] not in ('onnxruntime', 'llama.cpp', 'audiocpp', 'roformer'):
             continue
         downloaded = transfer(record, work / record['name'])
         extracted = extract(downloaded, work / ('unpack-' + record['id']))
@@ -286,6 +294,16 @@ def build(work, *, jobs=2, cuda=True):
             for p in extracted.rglob('LICENSE*'):
                 if p.is_file():
                     shutil.copy2(p, notice / ('ONNX-' + p.name))
+        elif record['id'] in ('audiocpp', 'roformer'):
+            binary = 'audiocpp_server' if record['id'] == 'audiocpp' else 'bs_roformer-cli'
+            folder = bundle / ('audio' if record['id'] == 'audiocpp' else 'roformer')
+            matches = [p for p in extracted.rglob(binary) if p.is_file()]
+            if len(matches) != 1:
+                raise RuntimeError('Pinned helper archive has an unexpected layout: ' + binary)
+            elf_arch(matches[0])
+            # Preserve libgomp, CPU backend plugins and all SONAME aliases, each
+            # beside its own executable; no global cross-engine GGML loader path.
+            shutil.copytree(matches[0].parent, folder, symlinks=True, dirs_exist_ok=True)
         else:
             copy_runtime(extracted, 'llama-server', bundle / 'writer')
             for p in extracted.rglob('*'):
@@ -297,10 +315,10 @@ def build(work, *, jobs=2, cuda=True):
     cloudflared = transfer(sources['cloudflared'], bundle / 'cloudflared')
     cloudflared.chmod(0o700)
     elf_arch(cloudflared)
-    write_json(bundle / 'build-manifest.json', dict(profile='music-studio-v1', source_fingerprint=identity,
+    write_json(bundle / 'build-manifest.json', dict(profile=PROFILE, source_fingerprint=identity,
                sources=sources, architecture='x86_64', cuda_architectures=[75], build_mode='cuda' if cuda else 'cpu',
                system=platform.platform(), glibc=platform.libc_ver(), tools={'midi': 'cpu', 'caption': 'cpu', 'writer': 'cpu',
-               'recognition': 'cpu', 'stems': 'cpu', 'training': 'not provisioned; no trainer weights bundled'}))
+               'recognition': 'excluded', 'stems': 'cpu', 'training': 'cuda-sm75; INT8 ConvRot base; no lyric aligner', 'vst': 'native Linux VST3 offline host'}))
     with tarfile.open(archive.with_suffix('.partial'), 'w:gz', dereference=False) as output:
         output.add(bundle, arcname='runtime')
     archive.with_suffix('.partial').replace(archive)

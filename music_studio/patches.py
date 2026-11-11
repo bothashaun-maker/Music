@@ -1,10 +1,19 @@
-"""Small auditable changes to the immutable Linux Studio source checkout."""
+"""Kaggle browser/storage/upload patches against the pinned official Studio."""
 from pathlib import Path
+import subprocess
 from .common import HERE
 
 
 def apply(studio):
     studio = Path(studio)
+    patch = HERE / 'studio.patch'
+    # A fixed source diff keeps feature removals reviewable and fail-closed.
+    check = subprocess.run(['git', 'apply', '--check', str(patch)], cwd=studio, capture_output=True)
+    if check.returncode == 0:
+        subprocess.run(['git', 'apply', str(patch)], cwd=studio, check=True)
+    elif subprocess.run(['git', 'apply', '--reverse', '--check', str(patch)], cwd=studio,
+                        capture_output=True).returncode:
+        raise RuntimeError('Pinned Music Studio source patch no longer applies: ' + check.stderr.decode(errors='replace'))
     library = studio / 'crates/music-server/src/library.rs'
     old = 'let root=crate::studio_data_root().unwrap_or_else('
     new = 'let root=env::var_os("YUE_LIBRARY_ROOT").map(PathBuf::from).or_else(crate::studio_data_root).unwrap_or_else('

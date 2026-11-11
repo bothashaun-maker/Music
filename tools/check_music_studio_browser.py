@@ -37,6 +37,20 @@ def check(base='http://127.0.0.1:8791', key='local-test-key'):
     rpc = call('/mcp', method='POST', data={'jsonrpc': '2.0', 'id': 1, 'method': 'tools/list', 'params': {}})
     tools = rpc['result']['tools']
     assert len(tools) > 50
+    names = {tool['name'] for tool in tools}
+    assert not any(name.startswith(('karaoke_', 'recogniser_')) for name in names)
+    assert 'openrouter_transcribe' not in names and 'score_match_sections' not in names
+    assert {'score_transcribe', 'midi_transcribe', 'song_replay', 'score_compose'} <= names
+    create = next(tool for tool in tools if tool['name'] == 'song_create')['inputSchema']['properties']
+    assert 'ab2' in create['solver']['enum'] and 'harmony' in create and 'abc_continue' in create
+    for path in ('/v1/karaoke/status', '/v1/karaoke/install', '/v1/library/songs/unused/karaoke',
+                 '/v1/openrouter/transcriptions', '/v1/score/sections'):
+        try:
+            call(path, method='GET' if path.endswith('/status') else 'POST', data=None if path.endswith('/status') else {})
+        except urllib.error.HTTPError as error:
+            assert error.code == 404, (path, error.code)
+        else:
+            raise AssertionError('Recognition action is still enabled: ' + path)
     with tempfile.TemporaryDirectory(prefix='music-studio-browser-') as temporary:
         path = Path(temporary) / 'music-studio-upload-test.wav'
         period = array('h')
@@ -91,6 +105,7 @@ def check(base='http://127.0.0.1:8791', key='local-test-key'):
             page.get_by_text('music-studio-upload-test', exact=True).first.wait_for(timeout=10000)
             page.get_by_role('button', name='Studio tools', exact=True).click()
             page.wait_for_timeout(500)
+            assert page.get_by_role('button', name='Transcribe audio', exact=True).count() == 0
             if os.environ.get('MUSIC_STUDIO_SCREENSHOT'):
                 page.screenshot(path=os.environ['MUSIC_STUDIO_SCREENSHOT'], full_page=True)
             # UI-only fixture lets us inspect controls on a machine without models.
@@ -103,6 +118,11 @@ def check(base='http://127.0.0.1:8791', key='local-test-key'):
             page.reload()
             page.get_by_role('button', name='Create', exact=True).click()
             page.locator('textarea').first.wait_for(timeout=15000)
+            assert page.locator('option[value="ab2"]').count() == 1
+            advanced = page.get_by_role('button', name='Advanced', exact=True)
+            if advanced.get_attribute('aria-expanded') == 'false':
+                advanced.click()
+            page.get_by_text('Chord variety', exact=True).first.wait_for(timeout=10000)
             browser.close()
         assert not errors, errors
     return dict(native_library_import=True, source_bytes=len(original), source_sha256=digest,

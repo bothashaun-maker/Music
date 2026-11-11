@@ -1,17 +1,18 @@
 {
   "schema": 1,
-  "profile": "music-studio-v1",
+  "profile": "music-studio-v2",
   "studio": {
-    "repository": "https://github.com/asb-42/yue2-studio.git",
-    "commit": "39efbdf7d260f9530de5a82247fb09e871fe54ad"
+    "repository": "https://github.com/timoncool/YuE2-Studio.git",
+    "commit": "2c7d30c343fbc6e8363f8c6357dcfb2215c53606",
+    "version": "3.8.5"
   },
   "engine": {
     "repository": "https://github.com/timoncool/yue2.cpp.git",
-    "commit": "1141479c725b803a3649c900fd3e6fcb27f6f595"
+    "commit": "16be2f550a1a4b989264e6a81df86c5d2d6490cc"
   },
   "tools": {
     "repository": "https://github.com/timoncool/HOT-Step-CPP.git",
-    "commit": "3e7a077875652fa93529bc2c97efad74a1943352"
+    "commit": "2ef93a1c2714f2f6584c1ccb4dbebb5d3c698a58"
   },
   "rust_toolchain": "1.99.1",
   "cuda_architectures": [
@@ -80,6 +81,20 @@
       "source": "https://developer.download.nvidia.com/compute/cuda/redist/libnvvm/linux-x86_64/libnvvm-linux-x86_64-13.0.88-archive.tar.xz",
       "bytes": 43645408,
       "sha256": "17ef1665b63670887eeba7d908da5669fa8c66bb73b5b4c1367f49929c086353"
+    },
+    {
+      "id": "audiocpp",
+      "name": "audiocpp-server-linux-cpu-x64.tar.gz",
+      "source": "https://github.com/timoncool/audio.cpp/releases/download/server-2fd98400/audiocpp-server-linux-cpu-x64.tar.gz",
+      "bytes": 29655093,
+      "sha256": "e11ef639857377588c5b2e58c2318155df04374a77a4b3a34fe4f5217316537a"
+    },
+    {
+      "id": "roformer",
+      "name": "BSRoformer-linux-cpu-x64.tar.gz",
+      "source": "https://github.com/timoncool/BSRoformer.cpp/releases/download/studio-0.1.1/BSRoformer-linux-cpu-x64.tar.gz",
+      "bytes": 5849988,
+      "sha256": "65eb3cf26dfed0a23f01906a9f179ae7ab503f2bdac4f411e49ec902a5addafd"
     }
   ],
   "node": {
@@ -94,22 +109,19 @@
     "sha256": "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10",
     "bytes": 20838840
   },
-  "whisper": {
-    "repository": "https://github.com/ggml-org/whisper.cpp.git",
-    "commit": "d1be6fde11ac6e0407606b4e42fe72d34add8037"
-  },
   "cloudflared": {
     "name": "cloudflared-linux-amd64",
     "source": "https://github.com/cloudflare/cloudflared/releases/download/2026.10.3/cloudflared-linux-amd64",
     "bytes": 40227721,
     "sha256": "053b80b0a23031a038fdbf3c073f59f82b8f1f152aa67971d7383ffafc0dbab0"
   },
-  "packager_revision": "v1",
+  "packager_revision": "v2-no-recognition",
   "patches": {
-    "build_runtime.py": "68e11f8be4e1d7e34059ccba802c50470ebedc2f419c4e486d4cd3b713bd0638",
-    "patches.py": "241ead76ba0db95a605df98d43bcd13394ef2f6dee28987f99b76826b6b19c13",
+    "build_runtime.py": "5b45e2310d5e0bbd6b90f3304428689b98aa89e01e4e6cc8df9e03fe6248d42b",
+    "patches.py": "ca608ae5d0a56c30b89ab0e2321cbae1eca34a7f21c28eb59be9cf17b7a9cdab",
     "kaggle_upload.rs": "3b2778596d2a699b11f1316ea6745a355999d990b7f5f5e62d91851e1c3c5311",
-    "upload.html": "eb78d1be41909fd952ef25a46adbd94b1f515402d607b8eb50e792373af1a94d"
+    "upload.html": "eb78d1be41909fd952ef25a46adbd94b1f515402d607b8eb50e792373af1a94d",
+    "studio.patch": "210f65e8ef6cd8d4665287cefa2e33bd54e9ee7f7a0de7fce9699347bac450aa"
   },
   "cuda_version": "13.0.2",
   "minimum_driver_major": 580
