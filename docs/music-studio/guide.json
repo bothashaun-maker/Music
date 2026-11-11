@@ -1,0 +1,891 @@
+{
+  "brand": "JESUSJUICEPRODUCTIONS",
+  "subtitle": "The practical guide to your Kaggle browser studio.\nCreate, edit, re-perform, process and preserve your music.",
+  "edition": "EDITION I · MUSIC STUDIO v1 · 11 NOVEMBER 2026",
+  "pages": [
+    {
+      "id": "desk",
+      "title": "Your studio desk",
+      "kicker": "START HERE · ONE DATASET · ONE STARTUP CELL",
+      "blocks": [
+        {
+          "type": "lead",
+          "text": "Create a song, work on its score, or bring in a recording you already have. This guide follows the actual Linux browser studio supplied with Music-Studio.ipynb."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "What you need",
+            "Where to go"
+          ],
+          "rows": [
+            [
+              "Prepare the saved tools/models",
+              "Music-Studio-Dataset.ipynb · CPU · first time only"
+            ],
+            [
+              "Open your studio",
+              "Music-Studio.ipynb · T4 ×2 · every session"
+            ],
+            [
+              "Create or re-perform a song",
+              "Create; Library → track menu → Re-render"
+            ],
+            [
+              "Work on a recording",
+              "Upload large WAV; then Library / Studio tools"
+            ],
+            [
+              "Save your work",
+              "Library downloads; Kaggle output files"
+            ]
+          ],
+          "widths": [
+            0.43,
+            0.57
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Separate from your working notebooks",
+          "text": "This browser studio is an additional experiment. Your native FP16 music creator, Song Timestamp Studio, and their saved datasets remain separate. The v1 studio uses Q8 GGUF weights."
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "label": "Open Music-Studio.ipynb",
+              "url": "https://github.com/bothashaun-maker/Music/blob/main/Music-Studio.ipynb"
+            },
+            {
+              "label": "Open automatic Dataset builder",
+              "url": "https://github.com/bothashaun-maker/Music/blob/main/Music-Studio-Dataset.ipynb"
+            },
+            {
+              "label": "Read setup and current validation",
+              "url": "https://github.com/bothashaun-maker/Music/blob/main/docs/music-studio/README.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dataset",
+      "title": "Prepare once. Save privately.",
+      "kicker": "ACCELERATOR NONE · INTERNET ON",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Import Music-Studio-Dataset.ipynb into Kaggle. Select Accelerator None and enable Internet.",
+            "In Kaggle Secrets, enable KAGGLE_API_TOKEN for this notebook. Keep the value in Secrets. Leave DATASET_OWNER blank unless username detection needs your Kaggle username.",
+            "Run its one code cell. Authentication is checked before compilation. It builds the pinned x86-64/T4 runtime and automatically creates one private Music Studio Dataset.",
+            "Wait for PRIVATE MUSIC STUDIO DATASET SUBMITTED, open the printed Dataset link, and allow Kaggle processing to finish.",
+            "In the GPU notebook choose Add Input → Your Datasets → the new Music Studio Dataset. Attach this one Dataset."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Disk and time",
+          "text": "The model set is about 24.77 GB plus the runtime. Uploads stream one verified file at a time; the largest is about 8.71 GB. Runtime compilation needs at least 7 GiB free initially. Actual space is checked. First-time compilation/downloads take time; no timing guarantee is made."
+        },
+        {
+          "type": "text",
+          "text": "The builder never overwrites an existing Dataset. An interrupted final request may have reached Kaggle: inspect its page before retrying. A submission receipt is not proof that Kaggle has finished processing."
+        }
+      ]
+    },
+    {
+      "id": "session",
+      "title": "Open a session",
+      "kicker": "GPU T4 ×2 · INTERNET ON · SAVED DATASET ATTACHED",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Import a fresh Music-Studio.ipynb. Attach the saved Music Studio Dataset, select GPU T4 ×2, and enable Internet.",
+            "Stop any other music/movie/image startup cell in this Kaggle runtime. Run Music Studio’s single startup cell.",
+            "Wait for asset verification and the CUDA engine ready check. Open the printed OPEN MUSIC STUDIO link, including its private access key.",
+            "Keep the cell running while working in your browser. Choose your job and press Create or its tool button yourself.",
+            "Before finishing, preserve your library and media using Kaggle output files. Stop the startup cell to close its owned studio and tunnel processes."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "The link is temporary",
+          "text": "Each startup creates a fresh Cloudflare URL/key. Keep it private and use the latest link. An old bookmark is not a permanent studio address. A tunnel problem does not erase songs already saved on Kaggle."
+        },
+        {
+          "type": "text",
+          "text": "GPU 0 runs generation. The second T4’s memory is separate and is not automatically combined. Stems, recognition and the writing assistant use the documented CPU paths. No diagnostic song starts during setup."
+        },
+        {
+          "type": "text",
+          "text": "Use the current Kaggle GPU image. This CUDA 13 runtime needs NVIDIA driver 580 or newer; startup checks it before loading the model."
+        }
+      ]
+    },
+    {
+      "id": "tour",
+      "title": "Find the right panel",
+      "kicker": "CREATE · LIBRARY · STUDIO TOOLS · LORA · SETTINGS",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Panel",
+            "Use it for"
+          ],
+          "rows": [
+            [
+              "Create",
+              "Title, style, lyrics, score, quality, seeds and generation"
+            ],
+            [
+              "Library",
+              "Listen, rename, like, organize, inspect settings and reuse a track"
+            ],
+            [
+              "Upload large WAV",
+              "Verified resumable WAV/MP3 imports without conversion"
+            ],
+            [
+              "Studio tools",
+              "Stems, karaoke, MIDI and audio processing"
+            ],
+            [
+              "LoRA",
+              "Browse/import compatible style adapters; apply them to a song"
+            ],
+            [
+              "Settings",
+              "Music model, engine device, assistant, recognition and network access"
+            ]
+          ],
+          "widths": [
+            0.3,
+            0.7
+          ]
+        },
+        {
+          "type": "text",
+          "text": "The player follows you between panels. Select a track before opening a track-specific tool. Track menus contain actions that do not fit on the main card. A generated result, a stem and a processed version can be separate library items."
+        },
+        {
+          "type": "note",
+          "title": "Version scope",
+          "text": "This v1 uses the pinned Linux browser fork, whose feature set differs from newer Windows Studio releases. The guide describes available controls. Windows VST hosting, T4 LoRA training, AB2/chord-variety and newer extension/continuation controls are not provisioned."
+        }
+      ]
+    },
+    {
+      "id": "create",
+      "title": "Make your first song",
+      "kicker": "A CLEAR STYLE · LYRICS WITH ROOM TO SING",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Open Create. Give the song a useful title; it becomes a library label.",
+            "Write the style in English: language, genre/era, vocal character, instruments, mood, production and tempo. Describe the sound rather than depending on an artist’s name.",
+            "Write the sung words with section tags on separate lines: [Verse 1], [Pre-Chorus], [Chorus], [Bridge], [Outro]. Leave a blank line between sections.",
+            "Choose a score mode. Full plans melody and chords; Melody uses a melodic plan; Off generates without a symbolic score. Leave ABC empty to let the selected mode compose it.",
+            "For the first manual trial choose a modest duration ceiling and one variation. Press Create once. Watch its progress in Library and listen through the ending."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "An example style",
+          "text": "English, melodic synth-pop, expressive female lead, analog bass, clean drums, warm pads, hopeful mood, clear balanced mix, 112 BPM."
+        },
+        {
+          "type": "text",
+          "text": "Duration is a ceiling, not a promise. Enough lyric material and clear sections help; a longer limit alone does not produce a longer complete song. Keep the original request and the version you prefer."
+        }
+      ]
+    },
+    {
+      "id": "lyrics",
+      "title": "Shape words and vocals",
+      "kicker": "SECTION TAGS · SYLLABLES · INSTRUMENTALS",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Keep nearby lyric lines similar in syllable count. Sparse, singable wording gives the model more room than a paragraph of prose. Avoid putting instructions such as “male singer enters” in the lyrics: the model can sing those words."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Goal",
+            "Practical starting point"
+          ],
+          "rows": [
+            [
+              "Clear delivery",
+              "Short lines; avoid packing many words into a fast section"
+            ],
+            [
+              "A recurring hook",
+              "Write the chorus in full at each intended return"
+            ],
+            [
+              "A duet",
+              "Describe both singers in the style; structure the exchange by sections"
+            ],
+            [
+              "An instrumental",
+              "Choose the instrumental option where offered; use empty section tags if necessary"
+            ],
+            [
+              "Another language",
+              "Name the sung language first in the style; keep section tags in English"
+            ]
+          ],
+          "widths": [
+            0.32,
+            0.68
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Listen before committing",
+          "text": "An instrumental request can still produce vocal sounds; duets and voice/register prompts are not exact singer assignments. Check the whole result. Do not treat the preset name as a quality guarantee."
+        },
+        {
+          "type": "text",
+          "text": "Use the assistant to draft or revise words, then review them yourself. For a cover, the original syllable pattern is particularly important. Changes in syllables can shift the melody’s phrasing."
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "title": "Choose settings with purpose",
+      "kicker": "ONE CHANGE AT A TIME · SAVE THE REQUEST",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Control",
+            "What it changes"
+          ],
+          "rows": [
+            [
+              "Duration ceiling",
+              "Maximum generation length; the model can end earlier"
+            ],
+            [
+              "Composition / LM seed",
+              "Score and semantic choices; pin when comparing composition"
+            ],
+            [
+              "Sound / noise seed",
+              "Acoustic realization; change for another performance"
+            ],
+            [
+              "Steps",
+              "Acoustic solver work; more steps take longer and may change the sound"
+            ],
+            [
+              "Guidance / CFG",
+              "Prompt-conditioning strength; begin with the offered default"
+            ],
+            [
+              "Temperature / top-p / top-k",
+              "Sampling variety; larger changes can reduce consistency"
+            ],
+            [
+              "Batch / variations",
+              "More candidates consume more memory and compute"
+            ]
+          ],
+          "widths": [
+            0.38,
+            0.62
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Start with one song and one variation. Keep model, prompt and seeds fixed when comparing a setting. Export the request/settings alongside the keeper; a title alone does not identify how a version was made."
+        },
+        {
+          "type": "note",
+          "title": "T4 baseline",
+          "text": "The launcher chooses Q8, CUDA, one-song batching, staged model loading and a bounded context. It fails instead of silently substituting CPU generation. Do not choose a larger model simply because two T4s appear in the session."
+        },
+        {
+          "type": "text",
+          "text": "The AB2 solver and newer chord-variety controls shown in some Windows videos are not controls of this pinned browser release."
+        }
+      ]
+    },
+    {
+      "id": "score",
+      "title": "Read and revise the score",
+      "kicker": "ABC IS THE COMPOSITION · AUDIO IS THE PERFORMANCE",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Use Full or Melody planning when you want an editable score. Inspect the returned score in the track’s details.",
+            "Use the score action to put it back into Create. Save a copy of the original ABC before editing.",
+            "Open the score/MIDI editor, or make a small ABC edit: one note, one chord, tempo or key. Keep the two voices and the measure structure valid.",
+            "Apply the editor’s changes back to the score. Check the score mode and lyrics, then create another performance.",
+            "Compare the result with the original. Preserve both versions until the revision is accepted."
+          ]
+        },
+        {
+          "type": "text",
+          "text": "ABC notation includes the meter, note-length unit, tempo, key and voice declarations. YuE2 uses its own score conventions; generic notation imported from elsewhere may need adjustment. A malformed score can fail or produce a poor result."
+        },
+        {
+          "type": "note",
+          "title": "Register changes",
+          "text": "Moving the vocal line by an octave changes the notes, not just a voice label. Review the range and adjust the style description too. Neither a score nor a seed promises an exact singer identity."
+        }
+      ]
+    },
+    {
+      "id": "midi-edit",
+      "title": "Compose and edit MIDI",
+      "kicker": "DRAW · PLAY · IMPORT · APPLY",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Open the MIDI editor from the relevant score or MIDI track. Choose the track/instrument before editing notes.",
+            "Draw notes on the piano roll or record from an available keyboard input. Set tempo and grid so the phrase is easy to inspect.",
+            "For an existing .mid file, use MIDI import. Select the intended vocal and instrumental tracks and review octave choices.",
+            "Play back the editor to check the composition. MIDI playback is a synthesizer preview, not YuE2’s final voice or production.",
+            "Save MIDI, or Apply the composition to an ABC score and send it through the song generator."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Browser permissions",
+          "text": "Open the HTTPS Cloudflare link. AudioWorklet/MIDI functions can depend on a secure browser context and device permission. Click Play once to allow browser audio. A disconnected controller does not stop note drawing or file import."
+        },
+        {
+          "type": "text",
+          "text": "Keep the original .mid and the exported ABC. MIDI tempo, instrument choices and lyrics do not necessarily transfer perfectly between tools; inspect the imported result before a long render."
+        }
+      ]
+    },
+    {
+      "id": "replay",
+      "title": "Re-render a keeper",
+      "kicker": "KEEP THE COMPOSITION · TRY A DIFFERENT REALIZATION",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "In Library, select the source song and open its track menu → Re-render.",
+            "To replay the same setup, retain the stored codes, seed and settings. To explore a different performance, change the sound seed or offered acoustic settings.",
+            "For a musical change, reuse and edit the ABC score instead. Re-rendering stored semantic codes does not invent new lyrics or rewrite the composition.",
+            "Give the new result a distinguishing title and compare it at matched listening level.",
+            "Keep the source track, request and codes. Delete a version only after reviewing the exported keeper."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "What exact replay means here",
+          "text": "The stored request/codes are reused. Hardware, software, quantization and numerical kernels can affect byte-level reproducibility. Do not equate a changed audio file with a new composition, or promise identical bytes across different engines."
+        },
+        {
+          "type": "text",
+          "text": "Newer Windows continuation/extension controls are outside this build. To lengthen a piece here, revise its composition/lyrics and render another version, or arrange the accepted sections in REAPER."
+        }
+      ]
+    },
+    {
+      "id": "upload",
+      "title": "Bring in your recording",
+      "kicker": "ORIGINAL WAV/MP3 · RESUMABLE · NO CONVERSION",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Choose Upload large WAV in the sidebar. The upload page opens in the same authenticated studio.",
+            "Choose your original WAV or MP3, up to 2 GiB, then press Upload / Resume. The notebook cell must remain running.",
+            "Wait for Ready in Library. Each 4 MiB piece has a checksum. If the connection fails, choose the same file and resume; previously saved pieces are checked against it.",
+            "Return to Studio and open Library. Select the imported recording before using covers, stems, MIDI, karaoke or processing.",
+            "Inspect the source filename and checksum when you need a provenance check. The imported audio has not been transcoded."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "If a transfer pauses",
+          "text": "Pause stops after the current network operation. A completed import is not repeated when you resume the same upload. An incomplete transfer is retained in output storage; it is not a ready library song."
+        },
+        {
+          "type": "text",
+          "text": "The studio’s original import control remains available for small files. Use the resumable route for large originals over Cloudflare. The pinned library import supports WAV and MP3; do not rename another format to make it look like one."
+        }
+      ]
+    },
+    {
+      "id": "cover",
+      "title": "Cover or restyle a song",
+      "kicker": "SOURCE MELODY → REVIEWED ABC → NEW PERFORMANCE",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Upload your recording and select it in Library. Choose its cover/transcribe-score action.",
+            "Let SheetSage2 estimate the melody. Inspect the score and correct obvious errors before generating.",
+            "Use Melody mode for a melody-only score. Supply the original lyrics, or new lines with a matching syllable pattern and compatible stresses.",
+            "Describe the target arrangement in the style. Check the voice range, tempo and any transposition.",
+            "Create a new song from that score and listen against the source. Keep the original recording and transcription artifacts."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "A cover is a new performance",
+          "text": "The tool estimates a symbolic melody and re-synthesizes it. Timing, voice, harmony and arrangement can change; extraction is not perfect source separation or an exact audio-to-audio copy."
+        },
+        {
+          "type": "text",
+          "text": "Use recordings you have the necessary rights to use. SheetSage2 and the decoder companion have separate non-commercial terms; YuE2’s individual-creator exception does not automatically extend to them."
+        }
+      ]
+    },
+    {
+      "id": "stems",
+      "title": "Separate six stems",
+      "kicker": "DRUMS · BASS · OTHER · VOCALS · GUITAR · PIANO",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Select the song in Library and open Stem separation under its tools/actions.",
+            "Choose the stems you want to keep. The model predicts all six even when you export fewer.",
+            "Begin with the default overlap. Run once and wait for completion; the provided ONNX path uses CPU.",
+            "Audition isolated parts and the recombined mix. Check difficult vocal tails, guitar/piano overlap and transitions.",
+            "Save the useful stems and their source/settings. Use the isolated vocal for subsequent analysis only after listening."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Quality limits",
+          "text": "Separation can leave bleed, remove transients or create artifacts. More overlap costs more time and is not a guarantee of better sound. Keep the original full mix. This integrated tool exports 44.1 kHz stereo PCM16 WAV stems. Use the separate Stem Studio when its floating-point export is required."
+        },
+        {
+          "type": "text",
+          "text": "For your existing dedicated RoFormer Stem Studio, continue using its own notebook and Dataset. This studio’s HT-Demucs model is an additional integrated option, not a claim that it beats that setup."
+        }
+      ]
+    },
+    {
+      "id": "audio-midi",
+      "title": "Turn audio into MIDI",
+      "kicker": "MUSCRIPTOR MEDIUM · NOTES ARE AN ESTIMATE",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Select a song, isolated stem or processed version. Open Audio to MIDI.",
+            "Choose the bundled Medium model. Other model sizes are not included in the saved Dataset.",
+            "Start transcription and inspect the live notes/progress. The native CPU helper uses the saved model.",
+            "Open the result in the piano-roll editor. Audition it against the original, mute tracks and correct note starts, lengths and instruments.",
+            "Save .mid for your DAW, or use a reviewed part as the song’s score input."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "A transcription is not the master",
+          "text": "Polyphonic mixtures can produce extra/missing notes and wrong instrument assignments. A vocal stem can be easier to inspect than a dense full mix. Check tempo and alignment when importing into REAPER."
+        },
+        {
+          "type": "text",
+          "text": "MuScriptor’s weights are CC BY-NC 4.0. The MIDI editor itself does not require that transcription model when you draw notes or import your own MIDI."
+        }
+      ]
+    },
+    {
+      "id": "karaoke",
+      "title": "Time lyrics and karaoke",
+      "kicker": "PARAKEET OR WHISPER · REVIEW EVERY LINE",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Select the finished audio you intend to publish. In recognition settings choose the bundled Parakeet INT8 or Whisper large-v3-turbo provider.",
+            "Keep speech VAD off for singing. Review the lyric text and remove implementation notes before alignment.",
+            "Run karaoke/timing on the selected song. These recognition paths use CPU in this bundle.",
+            "Listen around line starts, repeated choruses, instrumental gaps and the last line. Correct mistakes before using timestamps in a video.",
+            "Save the available timed lyric files with the exact audio version they describe."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Your existing Timestamp Studio",
+          "text": "Integrated recognition is not a replacement for the corrected timing workflow and manual REAPER references in your separate Song Timestamp Studio. Recognition success or matched-word percentage is not a measured timing-accuracy bound."
+        },
+        {
+          "type": "text",
+          "text": "Parakeet has language limits; Whisper may hallucinate over music or omit difficult singing. A different mix or re-render can change timing, so do not reuse old cues without checking them."
+        }
+      ]
+    },
+    {
+      "id": "process",
+      "title": "Process and master audio",
+      "kicker": "COMPARE BEFORE/AFTER · KEEP THE ORIGINAL",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Select the track or stem and open the audio processing tool.",
+            "Choose one operation at a time: the available noise reduction, spectral/vocal processing or reference mastering controls.",
+            "Audition before and after on several sections. Match listening level so louder does not automatically seem better.",
+            "Keep the processed take as a new version only when it improves the intended result.",
+            "Export the chosen version, then check the file in your DAW. Retain the untouched source and settings."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Desktop plugin limits",
+          "text": "Windows VST hosting is not part of this Linux browser build. Use your local REAPER installation for your own Windows plugins, detailed mixing and final mastering."
+        },
+        {
+          "type": "text",
+          "text": "Noise reduction and vocal processing can remove desired texture or add artifacts. Reference mastering matches aspects of a sound; it does not establish rights to the reference or guarantee a release-ready result."
+        }
+      ]
+    },
+    {
+      "id": "video",
+      "title": "Make a lyric video",
+      "kicker": "FINISH AUDIO FIRST · THEN RENDER",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Select the approved audio version. Review its lyrics and karaoke timing first.",
+            "Open the video/clip tool. Choose landscape 16:9, square 1:1 or vertical 9:16 as offered.",
+            "Choose a background/cover you may use. Add title, lyric layers, visualizer and supported effects; keep text readable.",
+            "Preview a difficult section: a repeated chorus, a long line and the ending. Then render the clip.",
+            "Download/save the video and play the exported file from beginning to end. Check audio sync, text clipping, transitions and final duration."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Where the work happens",
+          "text": "This release’s video tools use browser media/WebAssembly APIs. Keep the browser tab open and allow audio. Older browsers or restrictive privacy settings may block audio/video capabilities."
+        },
+        {
+          "type": "text",
+          "text": "Use CapCut or REAPER/video editing tools when the browser render cannot meet your delivery needs. A layout preset does not certify a platform’s current delivery specifications."
+        }
+      ]
+    },
+    {
+      "id": "writer",
+      "title": "Write with the assistant",
+      "kicker": "LOCAL GEMMA · OR YOUR EXPLICIT PROVIDER",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Open assistant settings. The saved bundle includes Gemma E4B Q4 and a CPU llama.cpp runtime.",
+            "Describe what you want the assistant to write or revise: the full song, lyrics, style or an existing score.",
+            "Review the returned words and musical instructions. Keep sung text separate from production guidance.",
+            "Apply only the parts you accept. Check that the score still fits the lyrics before rendering.",
+            "For an external provider, configure it yourself in Settings and review its own charges/privacy terms before use."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Local does not mean on your laptop",
+          "text": "The local assistant runs inside Kaggle. CPU writing can take time and uses host RAM. Avoid running several heavy analysis tasks together. A provider error should be diagnosed from its log, not treated as proof that the song engine failed."
+        },
+        {
+          "type": "text",
+          "text": "Gemma’s custom terms apply. The notebook contains no API key and does not automatically buy credits or submit a request to a paid provider."
+        }
+      ]
+    },
+    {
+      "id": "lora",
+      "title": "Use a style adapter",
+      "kicker": "APPLICATION IS INCLUDED · T4 TRAINING IS NOT",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Open LoRA/Adapters. Browse the catalog or import a compatible adapter you may use.",
+            "Check its model family and whether it targets composition or sound. A similarly named adapter for another engine is not compatible.",
+            "Select it in Create and begin with its documented strength/trigger word. Change one adapter at a time.",
+            "Compare with the same prompt and seeds without that adapter. Reject unwanted voice, pronunciation or mix changes.",
+            "Save accepted adapters and their source/license notes with your output library."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Training on this setup",
+          "text": "This v1 does not provision a T4 trainer or training-base weights. The pinned trainer’s BF16 path calls for newer hardware. The training panel is documented for orientation, not presented as a working T4 feature."
+        },
+        {
+          "type": "text",
+          "text": "On suitable newer hardware the upstream workflow prepares recordings, lyrics/styles, trains an adapter, reviews checkpoints and applies a selected result. Do not start downloading a training pack on this T4 notebook expecting it to become a tested training configuration."
+        }
+      ]
+    },
+    {
+      "id": "describe",
+      "title": "Describe audio by ear",
+      "kicker": "MOSS-MUSIC · TEMPO ANALYSIS · EDIT THE RESULT",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Select a recording and use its Describe style/audio action when available.",
+            "The saved pack includes the MOSS audio tower, language model and Beat This! tempo model; its native captioner is built with the other runtime tools.",
+            "Wait for the native CPU analysis. A dense track and a large model can take time; keep other heavy jobs idle.",
+            "Review the proposed genre, instruments, mood and BPM. Treat them as observations to correct, not authoritative metadata.",
+            "Use the useful description in your next style prompt or preparation record."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Memory",
+          "text": "The two MOSS files total about 10.43 GB on disk. That is separate from its runtime memory. Do not compare download size with available VRAM or launch several models simply because there are two T4s."
+        },
+        {
+          "type": "text",
+          "text": "Describing a track and training a LoRA are separate operations. The captioning tools are included; T4 LoRA training is not. External/cloud description providers are optional and require your own configuration."
+        }
+      ]
+    },
+    {
+      "id": "art",
+      "title": "Artwork, player and library",
+      "kicker": "ORGANIZE THE WORK · AUDITION THE KEEPER",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Tool",
+            "Practical use"
+          ],
+          "rows": [
+            [
+              "Library / playlists / likes",
+              "Name candidates, group a project, mark keepers and inspect source/settings"
+            ],
+            [
+              "Cover art / pattern",
+              "Choose a deterministic pattern, upload your image, or use supported photo search"
+            ],
+            [
+              "Player / equalizer",
+              "Audition the selected song; monitor changes at an appropriate volume"
+            ],
+            [
+              "Visualizer / Winamp mode",
+              "Playback display and browser-player mode; this is not mastering"
+            ],
+            [
+              "Metadata / request export",
+              "Keep style, lyrics, score, seeds and version history with the audio"
+            ]
+          ],
+          "widths": [
+            0.37,
+            0.63
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Automatic cover generation starts off. Photo searches and optional generation may use external services. Review source credits and terms; an attractive image does not establish rights. A pattern or your own image avoids relying on a stock result."
+        },
+        {
+          "type": "note",
+          "title": "Browser versus desktop",
+          "text": "The Linux fork uses browser playback/Webamp. Desktop window shaping, Explorer integration and Windows-only plugins are not part of the Kaggle experience. Browser sound may require an initial click."
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "title": "Drive it with an agent",
+      "kicker": "OPTIONAL MCP AUTOMATION · SAME PRIVATE STUDIO",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Open the studio’s MCP/agent settings and inspect the available connection information. The service exposes /mcp.",
+            "Connect your own MCP-capable agent to the current HTTPS studio address plus /mcp, using the studio access key as a Bearer authorization header.",
+            "Ask the agent to inspect studio status and available tools before changing anything. Tool counts can vary by release.",
+            "Give a bounded instruction, such as drafting lyrics or preparing a song for review. Review prompts and settings before generation.",
+            "Stop or disconnect the agent when finished. A new notebook startup rotates the URL/key; update the connection then."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "Keep the key private",
+          "text": "The public tunnel uses the same authentication guard for the UI and API. Do not put its key in GitHub, a shared prompt or a public notebook output. Your connected chat agent is not automatically connected to this new MCP endpoint."
+        },
+        {
+          "type": "text",
+          "text": "MCP exposes real studio actions, not just a read-only help page. An agent can create, modify or remove work through supported tools. Use your own explicit instructions and preserve the original versions."
+        }
+      ]
+    },
+    {
+      "id": "archive",
+      "title": "Save and restore your work",
+      "kicker": "MODEL DATASET ≠ SONG LIBRARY",
+      "blocks": [
+        {
+          "type": "steps",
+          "items": [
+            "Keep the approved audio, request/settings, score/codes, MIDI, stems, lyrics and any final video together.",
+            "Stop the startup cell before taking a final library snapshot so SQLite can close cleanly.",
+            "Save a Kaggle version with output files, or download the library/media you want to retain. A draft or notebook containing logs is not an audio backup.",
+            "For a later session, attach that saved output as another Kaggle input alongside the one model Dataset. Startup can restore a single saved Music Studio library into empty working output.",
+            "If there are multiple saved libraries, set RESTORE_LIBRARY_PATH to the desired library folder. Existing working libraries are preserved; restore does not overwrite them."
+          ]
+        },
+        {
+          "type": "note",
+          "title": "What is durable",
+          "text": "/kaggle/working/music_studio contains the library, media, settings, adapters, uploads and logs. Model links and runtime state live in temporary storage. Saving the model Dataset alone does not save a newly generated song."
+        },
+        {
+          "type": "text",
+          "text": "Save a new private project version after substantial changes. Preserve original recordings and manual corrections. Never publish private audio/projects merely because the code repository is public."
+        }
+      ]
+    },
+    {
+      "id": "triage",
+      "title": "When something stops",
+      "kicker": "READ THE STAGE · KEEP THE EVIDENCE",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Symptom",
+            "Next action"
+          ],
+          "rows": [
+            [
+              "No matching Dataset",
+              "Attach Music Studio Dataset; the older FP16 dataset is different"
+            ],
+            [
+              "Builder authentication failure",
+              "Enable the private Kaggle Secret; check DATASET_OWNER if needed"
+            ],
+            [
+              "Runtime build failed",
+              "Read runtime-build.log; keep the interrupted build for diagnosis"
+            ],
+            [
+              "Port busy / low free VRAM",
+              "Stop the previous startup cell; unrelated processes are not killed"
+            ],
+            [
+              "CUDA engine failed",
+              "Read studio.log and runtime-identity.json; do not switch blindly to CPU"
+            ],
+            [
+              "Cloudflare link failed",
+              "Use the latest link/key; inspect cloudflare.log; keep saved media"
+            ],
+            [
+              "Upload stopped",
+              "Re-select the same source file in Upload large WAV and resume"
+            ],
+            [
+              "Recognition is wrong",
+              "Review provider/language/audio; keep VAD off for singing"
+            ]
+          ],
+          "widths": [
+            0.39,
+            0.61
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Startup status, ready checks and runtime identity are saved with logs under music_studio. Dataset upload diagnostics live under music_studio_dataset. A FutureWarning is not the same as a failed model job."
+        },
+        {
+          "type": "note",
+          "title": "Validation scope",
+          "text": "Read VALIDATION.md for exactly what ran during development. Local compilation, browser/API tests and mocked private upload tests do not establish T4 speed, full-song quality, live Cloudflare reliability or a successful authenticated Kaggle upload."
+        }
+      ]
+    },
+    {
+      "id": "terms",
+      "title": "Know the tool boundaries",
+      "kicker": "COMPONENT TERMS · SOURCE VERSIONS · PRACTICAL LIMITS",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Component",
+            "Terms / scope"
+          ],
+          "rows": [
+            [
+              "Studio / C++ engines",
+              "MIT; retain upstream notices"
+            ],
+            [
+              "YuE2 base weights",
+              "CC BY-NC plus individual-creator permission under its conditions"
+            ],
+            [
+              "SheetSage2 / companion / MuScriptor",
+              "Separate CC BY-NC terms; no blanket creator exception"
+            ],
+            [
+              "Gemma",
+              "Google Gemma terms and use policy"
+            ],
+            [
+              "HT-Demucs / Whisper / Beat This!",
+              "MIT; Parakeet retains CC BY attribution"
+            ],
+            [
+              "MOSS / Cloudflared",
+              "Apache-2.0; other dependencies retain their terms"
+            ]
+          ],
+          "widths": [
+            0.43,
+            0.57
+          ]
+        },
+        {
+          "type": "text",
+          "text": "The standard Studio generation path includes the Mothersuperior companion. The complete bundle is therefore not presented as unrestricted commercial use. Keep the model Dataset private and review the terms relevant to your intended work."
+        },
+        {
+          "type": "text",
+          "text": "The PDF follows the visual format of your existing Music Production System guide. It describes the actual v1 browser build and its selected tools, with unavailable newer Windows/hardware features identified."
+        },
+        {
+          "type": "links",
+          "items": [
+            {
+              "label": "Component notices and source links",
+              "url": "https://github.com/bothashaun-maker/Music/blob/main/music_studio/NOTICES.md"
+            },
+            {
+              "label": "Pinned model catalog",
+              "url": "https://github.com/bothashaun-maker/Music/blob/main/music_studio/catalog.json"
+            },
+            {
+              "label": "Validation record",
+              "url": "https://github.com/bothashaun-maker/Music/blob/main/docs/music-studio/VALIDATION.md"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

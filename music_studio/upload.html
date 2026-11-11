@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Music Studio · Upload song</title>
+<style>body{background:#0d0e10;color:#eee8e4;font:16px/1.6 system-ui;max-width:720px;margin:7vh auto;padding:24px}h1{font-size:32px}a{color:#76dcdd}button,input{font:inherit;padding:12px;margin:8px 0;border-radius:8px;border:1px solid #444;background:#151618;color:inherit}button{background:#a94b61;cursor:pointer}button:disabled{opacity:.4}progress{width:100%;height:24px;accent-color:#76dcdd}pre{white-space:pre-wrap;color:#c9c5c2}small{color:#969393}</style>
+<h1>Upload your song</h1><p>The original WAV or MP3 goes into your Music Studio library. No conversion is required. Transfers use verified 4 MiB pieces and resume when you choose the same file again.</p>
+<input id="file" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg"><br><button id="send">Upload / Resume</button> <button id="stop" disabled>Pause</button>
+<progress id="progress" max="1" value="0"></progress><pre id="status" role="status">Choose one file, up to 2 GiB.</pre>
+<p><a href="/">Return to Music Studio</a> · Open Library after the upload says ready.</p><small>The notebook startup cell must remain running. Saved songs and incomplete transfers use Kaggle output storage.</small>
+<script>
+const $=id=>document.getElementById(id);let paused=false;
+const digest=async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(x=>x.toString(16).padStart(2,'0')).join('');
+async function call(path,options={}){const r=await fetch('/kaggle/uploads'+path,options);if(!r.ok)throw Error(await r.text());return r.json()}
+async function retry(fn){let last;for(let n=0;n<4;n++){if(paused)throw Error('Paused. Choose the same file and Upload / Resume to continue.');try{return await fn()}catch(e){last=e;if(n<3)await new Promise(r=>setTimeout(r,1000*(n+1)))}}throw last}
+$('stop').onclick=()=>{paused=true};
+$('send').onclick=async()=>{const file=$('file').files[0];if(!file)return;paused=false;$('send').disabled=true;$('stop').disabled=false;try{
+ if(file.size<=0||file.size>2*1024**3||!(/\.(wav|mp3)$/i.test(file.name)))throw Error('Choose a WAV or MP3 no larger than 2 GiB.');
+ $('status').textContent='Checking this file…';const first=await digest(file.slice(0,4*1024**2));
+ const fingerprint=await digest(new Blob([file.name+'\n'+file.size+'\n'+file.lastModified+'\n'+first]));
+ const start=await call('',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,bytes:file.size,fingerprint})});
+ for(const chunk of start.chunks||[]){if(paused)throw Error('Paused.');$('status').textContent='Verifying saved pieces…';if(await digest(file.slice(chunk.offset,chunk.offset+chunk.bytes))!==chunk.sha256)throw Error('The selected file differs from its saved upload. Choose the original file.');}
+ let offset=start.received;if(start.song_id){$('status').textContent='Already in your Music Studio library.';$('progress').value=1;return}
+ while(offset<file.size){if(paused)throw Error('Paused. Upload / Resume continues from the last saved piece.');const blob=file.slice(offset,offset+4*1024**2),hash=await digest(blob),position=offset;
+  const answer=await retry(()=>call('/'+start.id+'?offset='+position+'&sha256='+hash,{method:'POST',body:blob}));offset=answer.received;$('progress').value=offset/file.size;$('status').textContent=Math.round(100*offset/file.size)+'% uploaded';}
+ $('status').textContent='Verifying and importing your original audio…';const result=await retry(()=>call('/'+start.id+'/finish',{method:'POST'}));if(!result.ready)throw Error('Import is not ready.');$('status').textContent='Ready in Library. Original audio preserved.\n'+(result.source_sha256?'SHA256: '+result.source_sha256:'');$('progress').value=1;
+ }catch(e){$('status').textContent=e.message}finally{$('send').disabled=false;$('stop').disabled=true}};
+</script></html>

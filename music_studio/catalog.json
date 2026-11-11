@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "profile": "music-studio-v1",
+  "reviewed": "2026-11-11",
+  "assets": [
+    {
+      "name": "generation-YuE2-3B-Q8_0.gguf",
+      "path": "models/yue2-cpp/YuE2-3B-Q8_0.gguf",
+      "role": "generation",
+      "source": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/64b030e3deb6e8150d2b7c0db641ef5a17eca8a3/YuE2-3B-Q8_0.gguf",
+      "bytes": 3810232064,
+      "sha256": "41121ce97786d7795a325bcf123ca196956c03bb252c9e75384cfc1f2fc19e6b",
+      "license": "CC-BY-NC-4.0; individual-creator permission for YuE2 base weights only"
+    },
+    {
+      "name": "generation-YuE2-Vae-F32.gguf",
+      "path": "models/yue2-cpp/YuE2-Vae-F32.gguf",
+      "role": "generation",
+      "source": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/64b030e3deb6e8150d2b7c0db641ef5a17eca8a3/YuE2-Vae-F32.gguf",
+      "bytes": 530497344,
+      "sha256": "93e49dfb1970e89ad64cacb17cf13b5d05f6bb30ef7ed3adae3050bcb728638a",
+      "license": "CC-BY-NC-4.0; individual-creator permission for YuE2 base weights only"
+    },
+    {
+      "name": "cover-SheetSage2-Q8_0.gguf",
+      "path": "models/yue2-cpp/SheetSage2-Q8_0.gguf",
+      "role": "cover",
+      "source": "https://huggingface.co/Serveurperso/YuE2-GGUF/resolve/64b030e3deb6e8150d2b7c0db641ef5a17eca8a3/SheetSage2-Q8_0.gguf",
+      "bytes": 957571488,
+      "sha256": "4507d8c1d9245f312c0894ea610ab18fbcbf31443764b5bd6a60e4b6df59e973",
+      "license": "CC-BY-NC-4.0"
+    },
+    {
+      "name": "companion-nar_lora_joint_v9.safetensors",
+      "path": "models/yue2-cpp/nar_lora_joint_v9.safetensors",
+      "role": "companion",
+      "source": "https://huggingface.co/Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4/resolve/e2e63d859f3af879baf1b4d4e9f22d1eeda6fde5/nar_lora_joint_v9.safetensors",
+      "bytes": 140560592,
+      "sha256": "585f303da1d5252d228d1e8ac6d4c4d11d970df9297406935cc8bdafa49cfa7e",
+      "license": "CC-BY-NC-4.0"
+    },
+    {
+      "name": "stems-htdemucs_6s_fp16weights.onnx",
+      "path": "separation/models/htdemucs/htdemucs_6s_fp16.onnx",
+      "role": "stems",
+      "source": "https://huggingface.co/StemSplitio/htdemucs-6s-onnx/resolve/49df9b6989cf2150840ea65b0bef77a2e471b678/htdemucs_6s_fp16weights.onnx",
+      "bytes": 136428532,
+      "sha256": "7ce55792e2231c93fbf92de95f5fd5b3a5e6c89f7db690dfd693e8f1dce56869",
+      "license": "MIT"
+    },
+    {
+      "name": "karaoke-encoder-model.int8.onnx",
+      "path": "karaoke/models/parakeet/encoder-model.int8.onnx",
+      "role": "karaoke",
+      "source": "https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce/encoder-model.int8.onnx",
+      "bytes": 652183999,
+      "sha256": "6139d2fa7e1b086097b277c7149725edbab89cc7c7ae64b23c741be4055aff09",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "name": "karaoke-decoder_joint-model.int8.onnx",
+      "path": "karaoke/models/parakeet/decoder_joint-model.int8.onnx",
+      "role": "karaoke",
+      "source": "https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce/decoder_joint-model.int8.onnx",
+      "bytes": 18202004,
+      "sha256": "eea7483ee3d1a30375daedc8ed83e3960c91b098812127a0d99d1c8977667a70",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "name": "karaoke-nemo128.onnx",
+      "path": "karaoke/models/parakeet/nemo128.onnx",
+      "role": "karaoke",
+      "source": "https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce/nemo128.onnx",
+      "bytes": 139764,
+      "sha256": "a9fde1486ebfcc08f328d75ad4610c67835fea58c73ba57e3209a6f6cf019e9f",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "name": "karaoke-vocab.txt",
+      "path": "karaoke/models/parakeet/vocab.txt",
+      "role": "karaoke",
+      "source": "https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce/vocab.txt",
+      "bytes": 93939,
+      "sha256": "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "name": "karaoke-config.json",
+      "path": "karaoke/models/parakeet/config.json",
+      "role": "karaoke",
+      "source": "https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/8f23f0c03c8761650bdb5b40aaf3e40d2c15f1ce/config.json",
+      "bytes": 97,
+      "sha256": "666903c76b9798caf2c210afd4f6cd60b08a8dbf9800ec8d7a3bc0d2148ac466",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "name": "writer-gemma-4-E4B_q4_0-it.gguf",
+      "path": "assistant/models/gemma-4-E4B_q4_0-it.gguf",
+      "role": "writer",
+      "source": "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf/resolve/4b4a2c1d584be7264f87aac328a1bc739ce81b6c/gemma-4-E4B_q4_0-it.gguf",
+      "bytes": 5154941280,
+      "sha256": "676c35070db6dbe52f93e9c864ee0fba4eddea94b9c875d9cb10daff453fbaee",
+      "license": "Gemma terms"
+    },
+    {
+      "name": "writer-README.md",
+      "path": "notices/GEMMA_MODEL_CARD.md",
+      "role": "writer",
+      "source": "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf/resolve/4b4a2c1d584be7264f87aac328a1bc739ce81b6c/README.md",
+      "bytes": 29233,
+      "sha256": "6c8dbc23d482d76d6a02e6804941fae6dccdcd20e6372c26e4dec35e21348607",
+      "license": "Gemma terms"
+    },
+    {
+      "name": "midi-config.json",
+      "path": "midi/models/muscriptor-medium/config.json",
+      "role": "midi",
+      "source": "https://huggingface.co/cocktailpeanut/muscriptor-medium/resolve/27246ba68bd4d8f98bdec10a6edf8d7cf42a8826/config.json",
+      "bytes": 126,
+      "sha256": "43e13a70fc9ae0af36b7447c06f3eac2282daeb69d79c1ff840ede7fdaa26a3b",
+      "license": "CC-BY-NC-4.0"
+    },
+    {
+      "name": "midi-model.safetensors",
+      "path": "midi/models/muscriptor-medium/model.safetensors",
+      "role": "midi",
+      "source": "https://huggingface.co/cocktailpeanut/muscriptor-medium/resolve/27246ba68bd4d8f98bdec10a6edf8d7cf42a8826/model.safetensors",
+      "bytes": 1228144472,
+      "sha256": "ac80adbdf85d87231735fd948af7013441c0afced316c4e9067fd5d8a7fb97ec",
+      "license": "CC-BY-NC-4.0"
+    },
+    {
+      "name": "caption-moss-aud-f16.gguf",
+      "path": "training/models/moss/moss-aud-f16.gguf",
+      "role": "caption",
+      "source": "https://huggingface.co/scragnog/MOSS-Music-8B-Instruct-GGUF/resolve/9fe86435bd542bf29cbf4984e9e0ab0ea8ca7e00/moss-aud-f16.gguf",
+      "bytes": 1724480640,
+      "sha256": "014b971719a9b46586ea78ea3d15f39ac0f1932678e30c72fa63222f8aea5f79",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "caption-moss-lm-q8_0.gguf",
+      "path": "training/models/moss/moss-lm-q8_0.gguf",
+      "role": "caption",
+      "source": "https://huggingface.co/scragnog/MOSS-Music-8B-Instruct-GGUF/resolve/9fe86435bd542bf29cbf4984e9e0ab0ea8ca7e00/moss-lm-q8_0.gguf",
+      "bytes": 8709513792,
+      "sha256": "482e1e82c66f819401708c82b3eaa1dd6635c68a211f03b645b0055d0b7b031b",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "whisper-ggml-large-v3-turbo.bin",
+      "path": "karaoke/models/whisper/ggml-large-v3-turbo.bin",
+      "role": "whisper",
+      "source": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo.bin",
+      "bytes": 1624555275,
+      "sha256": "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69",
+      "license": "MIT"
+    },
+    {
+      "name": "tempo-beat_this.onnx",
+      "path": "training/models/audio-facts/beat_this.onnx",
+      "role": "tempo",
+      "source": "https://raw.githubusercontent.com/mosynthkey/beat_this_cpp/07ab790a9ec2eda8093d52d249e3ec4f0510ee72/onnx/beat_this.onnx",
+      "bytes": 83077778,
+      "sha256": "c5c1466e08abdb03fdeb50668a06f244b787d564c212490482231a9cfbe9ccbd",
+      "license": "MIT"
+    }
+  ]
+}

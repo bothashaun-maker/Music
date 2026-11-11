@@ -1,3 +1,14 @@
+# Music Studio — browser studio on Kaggle
+
+[**Music-Studio.ipynb**](Music-Studio.ipynb) · [**Automatic private Dataset builder**](Music-Studio-Dataset.ipynb) · [**26-page tool guide PDF**](Music-Studio-Guide.pdf) · [Setup](docs/music-studio/README.md) · [Validation](docs/music-studio/VALIDATION.md)
+
+Build the **Music Studio Dataset** once on CPU; attach that one saved input to the
+T4 ×2 studio and run its single startup cell. This separate Linux browser studio
+adds score/MIDI editing, library tools, replay, covers, stems, karaoke, processing,
+video controls and MCP. Use **Upload large WAV** for resumable original imports.
+The guide covers its actual tools and the Linux/T4 feature limits. Existing FP16
+music creation and Song Timestamp Studio notebooks remain available below.
+
 # JJP Music Production System
 
 **[Open the 16-page production guide](JJP_Music_Production_System.pdf)** · **[Music Launch Desk](MUSIC_LAUNCH_DESK.md)** · [Editable guide](MUSIC_PRODUCTION_SYSTEM.md)

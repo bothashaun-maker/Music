@@ -35,3 +35,38 @@
   includes project data/lyrics, the user explicitly authorized publishing the
   exact `Studio17_REAPER_Repair.zip` here because chat downloads were blocked.
   This permission covers that archive only, not other private projects or audio.
+
+
+## Music Studio browser notebook (11 November 2026)
+
+- User explicitly requested a separate Music-Studio notebook, a separate automatic
+  save Dataset notebook named Music Studio Dataset, a PDF covering all tools in
+  the format of the existing music PDF, and publication to this Music repository.
+- Deliverables: Music-Studio.ipynb, Music-Studio-Dataset.ipynb,
+  Music-Studio-Guide.pdf. Sources: music_studio/. Rebuild with
+  tools/build_music_studio_notebooks.py and tools/build_music_studio_pdf.py.
+  Editable PDF content: docs/music-studio/guide.json. Match the existing dark,
+  coral/cyan, numbered-section PDF design; keep the original PDF unchanged.
+- Preserve one private model Dataset. Use the existing working native direct
+  dataset_create_new(public=False) method; no custom datasets.get/status gate,
+  no manual upload/save cell, no overwrite/version of an existing Dataset.
+  Upload one verified file at a time and release only owned temporary downloads.
+- This is an additional full Linux browser interface, not a replacement for the
+  native FP16/ComfyUI or corrected Timestamp Studio branches. Do not change their
+  engines, datasets, graphs or defaults during Music Studio work.
+- Pin sources/models/toolchain in music_studio/sources.json and catalog.json.
+  CPU builder compiles x86-64 CUDA 13 SM75 runtime once; normal GPU startup uses
+  the saved runtime, verifies weights, checks CUDA readiness and opens an
+  authenticated Cloudflare link. Never auto-generate a diagnostic song.
+- Keep library/media under /kaggle/working/music_studio; model links/runtime are
+  temporary so output saves do not duplicate all weights. Preserve originals,
+  resumable upload checks, exact byte checks and idempotent imports.
+- Preserve native resumable WAV/MP3 upload and YUE_LIBRARY_ROOT patches. Startup
+  may restore one saved library only into empty working output; never overwrite
+  current work. Keep private user audio, lyrics and projects out of GitHub.
+- The Linux fork has a different feature set from newer Windows Studio. Do not
+  claim T4 LoRA training, Windows VSTs, AB2/chord-variety or newer continuation
+  controls are provisioned. Explain actual tool/model license boundaries.
+- Distinguish local compilation/browser/CPU checks and mocked Dataset uploads
+  from live Kaggle GPU inference or authenticated Dataset creation. See
+  docs/music-studio/VALIDATION.md for evidence and remaining limits.

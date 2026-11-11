@@ -1,0 +1,180 @@
+{
+  "pages": 26,
+  "layout": [
+    {
+      "section": "desk",
+      "page": 2,
+      "scale": 1,
+      "body_bottom": 249.7,
+      "min_font": 9
+    },
+    {
+      "section": "dataset",
+      "page": 3,
+      "scale": 1,
+      "body_bottom": 236.7,
+      "min_font": 9
+    },
+    {
+      "section": "session",
+      "page": 4,
+      "scale": 1,
+      "body_bottom": 242.4,
+      "min_font": 9
+    },
+    {
+      "section": "tour",
+      "page": 5,
+      "scale": 1,
+      "body_bottom": 240.1,
+      "min_font": 9
+    },
+    {
+      "section": "create",
+      "page": 6,
+      "scale": 1,
+      "body_bottom": 280.8,
+      "min_font": 9
+    },
+    {
+      "section": "lyrics",
+      "page": 7,
+      "scale": 1,
+      "body_bottom": 202.7,
+      "min_font": 9
+    },
+    {
+      "section": "settings",
+      "page": 8,
+      "scale": 1,
+      "body_bottom": 150.4,
+      "min_font": 9
+    },
+    {
+      "section": "score",
+      "page": 9,
+      "scale": 1,
+      "body_bottom": 280.8,
+      "min_font": 9
+    },
+    {
+      "section": "midi-edit",
+      "page": 10,
+      "scale": 1,
+      "body_bottom": 280.8,
+      "min_font": 9
+    },
+    {
+      "section": "replay",
+      "page": 11,
+      "scale": 1,
+      "body_bottom": 310.2,
+      "min_font": 9
+    },
+    {
+      "section": "upload",
+      "page": 12,
+      "scale": 1,
+      "body_bottom": 280.8,
+      "min_font": 9
+    },
+    {
+      "section": "cover",
+      "page": 13,
+      "scale": 1,
+      "body_bottom": 280.8,
+      "min_font": 9
+    },
+    {
+      "section": "stems",
+      "page": 14,
+      "scale": 1,
+      "body_bottom": 280.8,
+      "min_font": 9
+    },
+    {
+      "section": "audio-midi",
+      "page": 15,
+      "scale": 1,
+      "body_bottom": 324.9,
+      "min_font": 9
+    },
+    {
+      "section": "karaoke",
+      "page": 16,
+      "scale": 1,
+      "body_bottom": 295.5,
+      "min_font": 9
+    },
+    {
+      "section": "process",
+      "page": 17,
+      "scale": 1,
+      "body_bottom": 324.9,
+      "min_font": 9
+    },
+    {
+      "section": "video",
+      "page": 18,
+      "scale": 1,
+      "body_bottom": 310.2,
+      "min_font": 9
+    },
+    {
+      "section": "writer",
+      "page": 19,
+      "scale": 1,
+      "body_bottom": 295.5,
+      "min_font": 9
+    },
+    {
+      "section": "lora",
+      "page": 20,
+      "scale": 1,
+      "body_bottom": 280.8,
+      "min_font": 9
+    },
+    {
+      "section": "describe",
+      "page": 21,
+      "scale": 1,
+      "body_bottom": 310.2,
+      "min_font": 9
+    },
+    {
+      "section": "art",
+      "page": 22,
+      "scale": 1,
+      "body_bottom": 229.8,
+      "min_font": 9
+    },
+    {
+      "section": "mcp",
+      "page": 23,
+      "scale": 1,
+      "body_bottom": 280.8,
+      "min_font": 9
+    },
+    {
+      "section": "archive",
+      "page": 24,
+      "scale": 1,
+      "body_bottom": 266.1,
+      "min_font": 9
+    },
+    {
+      "section": "triage",
+      "page": 25,
+      "scale": 1,
+      "body_bottom": 95.1,
+      "min_font": 9
+    },
+    {
+      "section": "terms",
+      "page": 26,
+      "scale": 1,
+      "body_bottom": 220.8,
+      "min_font": 9
+    }
+  ]
+}

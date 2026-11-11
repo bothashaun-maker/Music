@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "profile": "music-studio-v1",
+  "studio": {
+    "repository": "https://github.com/asb-42/yue2-studio.git",
+    "commit": "39efbdf7d260f9530de5a82247fb09e871fe54ad"
+  },
+  "engine": {
+    "repository": "https://github.com/timoncool/yue2.cpp.git",
+    "commit": "1141479c725b803a3649c900fd3e6fcb27f6f595"
+  },
+  "tools": {
+    "repository": "https://github.com/timoncool/HOT-Step-CPP.git",
+    "commit": "3e7a077875652fa93529bc2c97efad74a1943352"
+  },
+  "rust_toolchain": "1.99.1",
+  "cuda_architectures": [
+    75
+  ],
+  "runtime_assets": [
+    {
+      "id": "onnxruntime",
+      "name": "onnxruntime-linux-x64-1.30.0.tgz",
+      "source": "https://github.com/microsoft/onnxruntime/releases/download/v1.30.0/onnxruntime-linux-x64-1.30.0.tgz",
+      "sha256": "a5ed5a3cac51fbb2e90da632ae43d19212faaa20e76484e62bcb7c23ddb3b3fd",
+      "bytes": 11306877
+    },
+    {
+      "id": "llama.cpp",
+      "name": "llama-b11236-bin-ubuntu-x64.tar.gz",
+      "source": "https://github.com/ggml-org/llama.cpp/releases/download/b11236/llama-b11236-bin-ubuntu-x64.tar.gz",
+      "sha256": "e8228e59db26a01b0d4c05970f701040d04545cfa1e4ed63efa80c7a707a7ce1",
+      "bytes": 17406283
+    },
+    {
+      "id": "cuda_nvcc",
+      "name": "cuda_nvcc-13.tar.xz",
+      "source": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/linux-x86_64/cuda_nvcc-linux-x86_64-13.0.88-archive.tar.xz",
+      "sha256": "48e35be3cfbf4b4fbc16828eaec8a7048ee789403049dc409f7b643d6259cf7a",
+      "bytes": 26657716
+    },
+    {
+      "id": "cuda_cudart",
+      "name": "cuda_cudart-13.tar.xz",
+      "source": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/linux-x86_64/cuda_cudart-linux-x86_64-13.0.96-archive.tar.xz",
+      "sha256": "25b8071951baba827be1580b841d363464f6ee6c39f48d33a81646f90cc95ed1",
+      "bytes": 1487960
+    },
+    {
+      "id": "cuda_cccl",
+      "name": "cuda_cccl-13.tar.xz",
+      "source": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_cccl/linux-x86_64/cuda_cccl-linux-x86_64-13.0.85-archive.tar.xz",
+      "sha256": "ed845eae8c1767706b6ee91e40c608a03f6f633551a849b63f7346d32d73ee60",
+      "bytes": 991284
+    },
+    {
+      "id": "libcublas",
+      "name": "libcublas-13.tar.xz",
+      "source": "https://developer.download.nvidia.com/compute/cuda/redist/libcublas/linux-x86_64/libcublas-linux-x86_64-13.1.0.3-archive.tar.xz",
+      "sha256": "88bc951efd906032a371153ca61975e0d9c4761e4012169169a6b3a47931606e",
+      "bytes": 838952932
+    },
+    {
+      "id": "cuda_driver_stub",
+      "name": "cuda-driver-dev-13-0_13.0.96-1_amd64.deb",
+      "source": "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-driver-dev-13-0_13.0.96-1_amd64.deb",
+      "bytes": 30324,
+      "sha256": "a9726490d4797965b56a2e1dedb2c4cffd3f3463e11435fa4c500b3d147af08a"
+    },
+    {
+      "id": "cuda_crt",
+      "name": "cuda_crt-13.tar.xz",
+      "source": "https://developer.download.nvidia.com/compute/cuda/redist/cuda_crt/linux-x86_64/cuda_crt-linux-x86_64-13.0.88-archive.tar.xz",
+      "bytes": 79800,
+      "sha256": "5a3279a049ffc1cdb951c44cb95206acfdde9e9ae5e87825fc18d7e4a6878bb0"
+    },
+    {
+      "id": "libnvvm",
+      "name": "libnvvm-13.tar.xz",
+      "source": "https://developer.download.nvidia.com/compute/cuda/redist/libnvvm/linux-x86_64/libnvvm-linux-x86_64-13.0.88-archive.tar.xz",
+      "bytes": 43645408,
+      "sha256": "17ef1665b63670887eeba7d908da5669fa8c66bb73b5b4c1367f49929c086353"
+    }
+  ],
+  "node": {
+    "name": "node-v22.23.4-linux-x64.tar.xz",
+    "source": "https://nodejs.org/dist/v22.23.4/node-v22.23.4-linux-x64.tar.xz",
+    "sha256": "1805bcd35e6815559bd2eb97db438d3fdb0eb3a5e6a977b7c1badca76337e9ce",
+    "bytes": 31029996
+  },
+  "rustup": {
+    "name": "rustup-init",
+    "source": "https://static.rust-lang.org/rustup/archive/1.29.0/x86_64-unknown-linux-gnu/rustup-init",
+    "sha256": "4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10",
+    "bytes": 20838840
+  },
+  "whisper": {
+    "repository": "https://github.com/ggml-org/whisper.cpp.git",
+    "commit": "d1be6fde11ac6e0407606b4e42fe72d34add8037"
+  },
+  "cloudflared": {
+    "name": "cloudflared-linux-amd64",
+    "source": "https://github.com/cloudflare/cloudflared/releases/download/2026.10.3/cloudflared-linux-amd64",
+    "bytes": 40227721,
+    "sha256": "053b80b0a23031a038fdbf3c073f59f82b8f1f152aa67971d7383ffafc0dbab0"
+  },
+  "packager_revision": "v1",
+  "patches": {
+    "build_runtime.py": "68e11f8be4e1d7e34059ccba802c50470ebedc2f419c4e486d4cd3b713bd0638",
+    "patches.py": "241ead76ba0db95a605df98d43bcd13394ef2f6dee28987f99b76826b6b19c13",
+    "kaggle_upload.rs": "3b2778596d2a699b11f1316ea6745a355999d990b7f5f5e62d91851e1c3c5311",
+    "upload.html": "eb78d1be41909fd952ef25a46adbd94b1f515402d607b8eb50e792373af1a94d"
+  },
+  "cuda_version": "13.0.2",
+  "minimum_driver_major": 580
+}
