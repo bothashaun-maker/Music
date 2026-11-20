@@ -198,12 +198,20 @@ def build(work, *, jobs=2, cuda=True):
     extract(node, node_dir)
     node_root = next(p for p in node_dir.iterdir() if (p / 'bin/node').exists())
     env['PATH'] = str(node_root / 'bin') + os.pathsep + env['PATH']
-    # A private build environment leaves Kaggle's Torch/scientific installation intact.
+    # Install only the build tools into owned scratch. Kaggle's /usr/bin/python3
+    # omits ensurepip, so a stdlib venv cannot be created there. --target uses
+    # the already-working Kaggle pip, as the Movies builders do, without
+    # replacing Kaggle's Torch/scientific packages.
     tools = work / 'build-tools'
-    if not (tools / 'bin/cmake').exists():
-        command([sys.executable, '-m', 'venv', tools], cwd=work, log=log)
-        command([tools / 'bin/python', '-m', 'pip', 'install', 'cmake==3.31.6', 'ninja==1.11.1.3'], cwd=work, log=log)
-    env['PATH'] = str(tools / 'bin') + os.pathsep + env['PATH']
+    tool_bin = tools / 'bin'
+    if not (tool_bin / 'cmake').exists() or not (tool_bin / 'ninja').exists():
+        shutil.rmtree(tools, ignore_errors=True)
+        command([sys.executable, '-m', 'pip', 'install', '--disable-pip-version-check', '--no-input',
+                 '--target', tools, 'cmake==3.31.6', 'ninja==1.11.1.3'], cwd=work, log=log)
+    if not (tool_bin / 'cmake').is_file() or not (tool_bin / 'ninja').is_file():
+        raise RuntimeError('Pinned CMake/Ninja installation did not create the expected build tools.')
+    env['PYTHONPATH'] = str(tools) + os.pathsep + env.get('PYTHONPATH', '')
+    env['PATH'] = str(tool_bin) + os.pathsep + env['PATH']
     studio = checkout(sources['studio'], work / 'studio-source', log)
     from .patches import apply
     apply(studio)
