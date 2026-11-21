@@ -14,6 +14,20 @@ import tarfile
 from .common import HERE, PROFILE, bind_parent, elf_arch, extract, fingerprint, sha256, transfer, write_json
 
 
+def failure_summary(log, limit=40):
+    """Report the error lines, not the warnings that happen to be last.
+
+    A C++ build ends with thousands of -Wmaybe-uninitialized notes, so printing
+    only the log tail hid the actual failing unit or target.
+    """
+    lines = Path(log).read_text(errors='replace').splitlines()
+    markers = ('error:', 'Error ', 'FAILED:', 'fatal:', 'CMake Error', 'undefined reference',
+               'cannot find', 'No such file', 'ninja: error', 'ninja: build stopped')
+    hits = [line for line in lines if any(m in line for m in markers) and 'warning:' not in line]
+    if not hits:
+        hits = lines[-limit:]
+    return '\n'.join(hits[-limit:])
+
 def command(arguments, *, cwd, env=None, log=None):
     print('Build:', ' '.join(map(str, arguments[:5])), flush=True)
     log = Path(log or Path(cwd) / 'build.log')
@@ -29,8 +43,10 @@ def command(arguments, *, cwd, env=None, log=None):
                 from .launch import stop
                 stop(child)
     if result:
-        tail = log.read_text(errors='replace')[-5000:]
-        raise RuntimeError(f'Build command failed ({result}); {log}\n{tail}')
+        summary = failure_summary(log)
+        print('Build failed; errors from', log, flush=True)
+        print(summary, flush=True)
+        raise RuntimeError(f'Build command failed ({result}); {log}\n{summary}')
 
 
 def checkout(spec, destination, log):

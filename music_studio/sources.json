@@ -106,7 +106,7 @@
   },
   "packager_revision": "v1",
   "patches": {
-    "build_runtime.py": "96b06ff86a244129d0e18925b50d2554a74a04f19de64de98ae74b31d786e124",
+    "build_runtime.py": "29e7c70e24ac0b461afe05f67bc4802250c953960b5bc43f20f8731bfb29881f",
     "patches.py": "241ead76ba0db95a605df98d43bcd13394ef2f6dee28987f99b76826b6b19c13",
     "kaggle_upload.rs": "3b2778596d2a699b11f1316ea6745a355999d990b7f5f5e62d91851e1c3c5311",
     "upload.html": "eb78d1be41909fd952ef25a46adbd94b1f515402d607b8eb50e792373af1a94d"
