@@ -1,7 +1,11 @@
-"""Create ONE private Music Studio Dataset through Kaggle's normal uploader."""
+"""Create ONE private Music Studio Dataset through Kaggle's normal uploader.
+
+The notebook is only a driver: it verifies credentials, picks measured scratch
+space and calls :func:`create_dataset` once. Nothing here downloads a model or
+compiles code until authentication and free space have both been confirmed.
+"""
 from __future__ import annotations
 
-import fcntl
 import importlib.metadata
 import inspect
 import json
@@ -13,10 +17,32 @@ import subprocess
 import sys
 import tempfile
 
-from .common import HERE, PROFILE, catalog, fingerprint, scrub, transfer, validate_manifest, verify, write_json
+from .common import (GIB, HERE, PROFILE, catalog, choose_scratch, fingerprint,
+                     scrub, transfer, validate_manifest, verify, write_json)
+
+# Checked in order; Kaggle's scratch sizes vary by image and session, so the
+# builder measures instead of assuming /kaggle/temp is always the largest.
+SCRATCH_CANDIDATES = ('/kaggle/temp', '/tmp', '/kaggle/working')
+BUILD_REQUIRED = 8 * GIB          # compile gate (7 GiB) plus toolkit extraction
+DOWNLOAD_RESERVE = GIB            # largest cached model plus working headroom
+
+
+def username(api):
+    """The authenticated Kaggle username, from the SDK's own configuration."""
+    values = getattr(api, 'config_values', None)
+    if isinstance(values, dict) and values.get('username'):
+        return str(values['username'])
+    for source in (os.environ.get('KAGGLE_USERNAME'), ):
+        if source:
+            return str(source)
+    stored = Path.home() / '.kaggle' / 'username'
+    if stored.is_file():
+        return stored.read_text().strip()
+    return ''
 
 
 def authenticated_api():
+    """Fail before any download or compilation when credentials are missing."""
     if not os.environ.get('KAGGLE_API_TOKEN') and not os.environ.get('KAGGLE_KEY'):
         try:
             from kaggle_secrets import UserSecretsClient
@@ -57,21 +83,50 @@ def identity(owner, manifest):
     return owner + '/music-studio-dataset-v1-' + suffix, suffix
 
 
-def reuse_runtime(input_root, output_root):
+def validate_catalog(data):
+    """Reject a truncated or edited catalog before a 25 GB build starts."""
+    if data.get('schema') != 1 or data.get('profile') != PROFILE:
+        raise RuntimeError('The embedded Music Studio catalog is not the expected profile.')
+    assets = data.get('assets')
+    if not isinstance(assets, list) or not assets:
+        raise RuntimeError('The embedded Music Studio catalog lists no assets.')
+    names = set()
+    for record in assets:
+        name = record.get('name', '')
+        if not isinstance(name, str) or not name or Path(name).name != name:
+            raise RuntimeError('Invalid catalog asset name: ' + repr(name))
+        if name in names:
+            raise RuntimeError('Duplicate catalog asset name: ' + name)
+        names.add(name)
+        if not isinstance(record.get('bytes'), int) or record['bytes'] <= 0:
+            raise RuntimeError('Invalid catalog size for ' + name)
+        digest = str(record.get('sha256', ''))
+        if len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
+            raise RuntimeError('Invalid catalog checksum for ' + name)
+        if not str(record.get('source', '')).startswith(('https://', 'http://')):
+            raise RuntimeError('Invalid catalog source for ' + name)
+        if not record.get('path'):
+            raise RuntimeError('Missing saved path for ' + name)
+    return data
+
+
+def reuse_runtime(input_root):
+    """Reuse the runtime already saved in an attached Music Studio Dataset."""
     root = Path(input_root)
-    if root.exists():
-        for path in sorted(root.rglob('music-studio-manifest.json')):
-            try:
-                data = validate_manifest(json.loads(path.read_text()))
-                verify(path.parent / data['runtime']['name'], data['runtime'])
-                return path.parent / data['runtime']['name'], data['runtime']
-            except (OSError, ValueError, RuntimeError):
-                continue
+    if not root.exists():
+        return None
+    for path in sorted(root.rglob('music-studio-manifest.json')):
+        try:
+            data = validate_manifest(json.loads(path.read_text()))
+            verify(path.parent / data['runtime']['name'], data['runtime'])
+            return path.parent / data['runtime']['name'], data['runtime']
+        except (OSError, ValueError, RuntimeError):
+            continue
     return None
 
 
 def clean_build_intermediates(work):
-    """Only directories owned by this new notebook's isolated compiler build."""
+    """Only directories owned by this notebook's isolated compiler build."""
     work = Path(work).resolve()
     if not (work / 'runtime-build.json').is_file():
         raise RuntimeError('No completed build receipt; compiler files were retained for diagnosis.')
@@ -81,6 +136,27 @@ def clean_build_intermediates(work):
             shutil.rmtree(path)
 
 
+def build_runtime_record(scratch, jobs=2):
+    """Compile the x86-64/SM75 runtime once on CPU and return its saved record."""
+    from .build_runtime import build
+    scratch = Path(scratch)
+    scratch.mkdir(parents=True, exist_ok=True)
+    print('Building the pinned Linux x86-64/T4 runtime on CPU. This is the long step; the log is',
+          scratch / 'runtime-build.log', flush=True)
+    runtime = build(scratch, jobs=jobs)
+    runtime_path = scratch / runtime['name']
+    verify(runtime_path, runtime)
+    clean_build_intermediates(scratch)
+    print(f'Saved runtime verified: {runtime["name"]} {runtime["bytes"] / GIB:.2f} GiB', flush=True)
+    return runtime_path, runtime
+
+
+def dataset_manifest(data, runtime):
+    return dict(schema=1, profile=PROFILE, complete=True, catalog_fingerprint=fingerprint(data),
+                files=data['assets'], runtime=runtime,
+                model_bytes=sum(r['bytes'] for r in data['assets']))
+
+
 def publish(manifest, runtime_path, *, output_root, input_root='/kaggle/input', owner='', api=None, cache_root=None):
     """One native create request, streaming one verified model file at a time."""
     validate_manifest(manifest)
@@ -88,7 +164,7 @@ def publish(manifest, runtime_path, *, output_root, input_root='/kaggle/input', 
     root.mkdir(parents=True, exist_ok=True)
     if api is None:
         api = authenticated_api()
-    handle, suffix = identity(owner or api.config_values.get('username', ''), manifest)
+    handle, suffix = identity(owner or username(api), manifest)
     url = 'https://www.kaggle.com/datasets/' + handle
     receipt = root / 'dataset-upload.json'
     if receipt.exists():
@@ -196,34 +272,66 @@ def publish(manifest, runtime_path, *, output_root, input_root='/kaggle/input', 
         api.upload_files = original
 
 
-def create(output_root='/kaggle/working/music_studio_dataset', input_root='/kaggle/input', owner='', jobs=2, api=None):
-    root = Path(output_root)
+def _builder_lock(root):
+    """One builder per output directory. Kaggle is Linux; other hosts skip locking."""
+    import contextlib
+    try:
+        import fcntl
+    except ImportError:
+        return contextlib.nullcontext()
+
+    @contextlib.contextmanager
+    def locked():
+        with (Path(root) / '.builder.lock').open('w') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise RuntimeError('Music Studio Dataset builder is already running.') from None
+            try:
+                yield
+            finally:
+                fcntl.flock(lock, fcntl.LOCK_UN)
+
+    return locked()
+
+
+def create_dataset(catalog_data, receipt_dir='/kaggle/working/music_studio_dataset', input_root='/kaggle/input',
+                   cache_root=None, owner='', jobs=2, api=None, build_scratch=None):
+    """Build and submit ONE private Music Studio Dataset.
+
+    Mirrors the other automatic Dataset builders: validate the saved catalog,
+    authenticate first, reuse an attached verified runtime when possible,
+    measure scratch space, then stream one verified file at a time.
+    """
+    validate_catalog(catalog_data)
+    root = Path(receipt_dir)
     root.mkdir(parents=True, exist_ok=True)
-    with (root / '.builder.lock').open('w') as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise RuntimeError('Music Studio Dataset builder is already running.') from None
-        # Verify private authentication before expensive compilation/downloads.
+    with _builder_lock(root):
         api = api or authenticated_api()
-        owner = owner or api.config_values.get('username', '')
+        owner = owner or username(api)
         if not owner:
             raise RuntimeError('Set DATASET_OWNER to your Kaggle username; no build or download started.')
-        previous = reuse_runtime(input_root, root)
+        print('Authenticated as', owner, '- one private Dataset will be created.', flush=True)
+        previous = reuse_runtime(input_root)
         if previous:
             runtime_path, runtime = previous
+            print('Reusing the verified runtime from an attached Dataset:', runtime_path.name, flush=True)
         else:
-            from .build_runtime import build
-            work = Path('/kaggle/temp/music_studio_build')
-            work.mkdir(parents=True, exist_ok=True)
-            runtime = build(work, jobs=jobs)
-            runtime_path = work / runtime['name']
-            clean_build_intermediates(work)
-        data = catalog()
-        manifest = dict(schema=1, profile=PROFILE, complete=True, catalog_fingerprint=fingerprint(data),
-                        files=data['assets'], runtime=runtime, model_bytes=sum(r['bytes'] for r in data['assets']))
-        return publish(manifest, runtime_path, output_root=root, input_root=input_root, owner=owner, api=api,
-                       cache_root='/kaggle/temp/music_studio_dataset_downloads')
+            scratch = Path(build_scratch or choose_scratch(BUILD_REQUIRED, SCRATCH_CANDIDATES, 'music-studio-build'))
+            runtime_path, runtime = build_runtime_record(scratch, jobs)
+        manifest = dataset_manifest(catalog_data, runtime)
+        if cache_root is None:
+            cache_root = choose_scratch(max(r['bytes'] for r in catalog_data['assets']) + DOWNLOAD_RESERVE,
+                                        SCRATCH_CANDIDATES, 'music-studio-downloads')
+        url = publish(manifest, runtime_path, output_root=root, input_root=input_root, owner=owner,
+                      api=api, cache_root=cache_root)
+        return dict(handle='/'.join(url.rsplit('/', 2)[-2:]), url=url,
+                    receipt=str(root / 'dataset-upload.json'))
+
+
+def create(output_root='/kaggle/working/music_studio_dataset', input_root='/kaggle/input', owner='', jobs=2, api=None):
+    """Compatibility wrapper for `python -m music_studio.dataset`."""
+    return create_dataset(catalog(), output_root, input_root=input_root, owner=owner, jobs=jobs, api=api)
 
 
 if __name__ == '__main__':

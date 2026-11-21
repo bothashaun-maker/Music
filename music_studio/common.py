@@ -12,7 +12,31 @@ import urllib.error
 import urllib.request
 
 PROFILE = 'music-studio-v1'
+GIB = 1024 ** 3
 HERE = Path(__file__).resolve().parent
+
+
+def choose_scratch(required, candidates, name, reserve=512 * 1024**2):
+    """Pick measured scratch space instead of assuming one fixed path.
+
+    Kaggle's scratch sizes vary by image and session. A builder that assumes
+    /kaggle/temp is always large enough fails late, after downloads.
+    """
+    rejected = []
+    for candidate in candidates:
+        path = Path(candidate) / name
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            free = shutil.disk_usage(path).free
+        except OSError as error:
+            rejected.append(f'{path}: {error}')
+            continue
+        print(f'Scratch check: {path} has {free / GIB:.2f} GiB free; '
+              f'{required / GIB:.2f} GiB needed.', flush=True)
+        if free >= required + reserve:
+            return path
+        rejected.append(f'{path}: {free / GIB:.2f} GiB free')
+    raise RuntimeError('No candidate scratch location has enough measured free space: ' + '; '.join(rejected))
 
 
 def bind_parent(expected=None):
