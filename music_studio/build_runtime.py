@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import zipfile
 
 from .common import HERE, PROFILE, bind_parent, elf_arch, extract, fingerprint, sha256, transfer, write_json
 
@@ -323,17 +324,34 @@ def build(work, *, jobs=2, cuda=True):
         if record['id'] not in ('onnxruntime', 'llama.cpp', 'audiocpp', 'roformer'):
             continue
         downloaded = transfer(record, work / record['name'])
-        extracted = extract(downloaded, work / ('unpack-' + record['id']))
         if record['id'] == 'onnxruntime':
             folder = bundle / 'onnx'
             folder.mkdir(exist_ok=True)
-            for p in extracted.rglob('libonnxruntime.so*'):
-                if p.is_file():
-                    shutil.copy2(p, folder / p.name)
-            for p in extracted.rglob('LICENSE*'):
-                if p.is_file():
-                    shutil.copy2(p, notice / ('ONNX-' + p.name))
+            with zipfile.ZipFile(downloaded) as wheel:
+                members = [name for name in wheel.namelist()
+                           if name.endswith(('.so', '.so.1.30.0')) or name.endswith('/LICENSE')]
+                runtime_libs = [name for name in members if '/capi/libonnxruntime' in name and '.so' in name]
+                if not any(name.endswith('libonnxruntime.so.1.30.0') for name in runtime_libs):
+                    raise RuntimeError('Pinned ONNX Runtime wheel has no expected 1.30.0 shared library.')
+                for name in members:
+                    base = Path(name).name
+                    if base.startswith('libonnxruntime') and '.so' in base:
+                        destination = folder / base
+                        with wheel.open(name) as source, destination.open('wb') as output:
+                            shutil.copyfileobj(source, output)
+                    elif base == 'LICENSE':
+                        destination = notice / 'ONNX-' + Path(name).parent.name + '-LICENSE'
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        with wheel.open(name) as source, destination.open('wb') as output:
+                            shutil.copyfileobj(source, output)
+            versioned = folder / 'libonnxruntime.so.1.30.0'
+            if not versioned.is_file():
+                raise RuntimeError('ONNX Runtime wheel extraction omitted its shared library.')
+            alias = folder / 'libonnxruntime.so'
+            if not alias.exists():
+                alias.symlink_to(versioned.name)
         elif record['id'] in ('audiocpp', 'roformer'):
+            extracted = extract(downloaded, work / ('unpack-' + record['id']))
             binary = 'audiocpp_server' if record['id'] == 'audiocpp' else 'bs_roformer-cli'
             folder = bundle / ('audio' if record['id'] == 'audiocpp' else 'roformer')
             matches = [p for p in extracted.rglob(binary) if p.is_file()]
@@ -344,6 +362,7 @@ def build(work, *, jobs=2, cuda=True):
             # beside its own executable; no global cross-engine GGML loader path.
             shutil.copytree(matches[0].parent, folder, symlinks=True, dirs_exist_ok=True)
         else:
+            extracted = extract(downloaded, work / ('unpack-' + record['id']))
             copy_runtime(extracted, 'llama-server', bundle / 'writer')
             for p in extracted.rglob('*'):
                 if p.is_file() and p.name.startswith(('LICENSE', 'NOTICE', 'COPYING')):
