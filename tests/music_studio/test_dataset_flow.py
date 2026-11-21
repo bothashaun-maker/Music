@@ -17,6 +17,7 @@ import zipfile
 from unittest.mock import patch
 
 from music_studio import common, dataset
+from music_studio import build_runtime
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -162,6 +163,25 @@ class DatasetFlowTests(unittest.TestCase):
                 dataset.create_dataset(self.catalog(), self.receipt_dir, self.input_root,
                                        self.cache, owner='', api=api)
         build.assert_not_called()
+
+
+class CpuToolchainTests(unittest.TestCase):
+    def test_cpu_helpers_cannot_inherit_cuda_toolkit_detection(self):
+        common_options = [
+            '-G', 'Ninja', '-DGGML_NATIVE=OFF', '-DGGML_CUDA=ON',
+            '-DCMAKE_CUDA_ARCHITECTURES=75-real',
+            '-DCMAKE_CUDA_COMPILER=/tmp/cuda/bin/nvcc',
+            '-DCUDAToolkit_ROOT=/tmp/cuda',
+            '-DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,/tmp/cuda/lib',
+        ]
+        cpu = build_runtime.cpu_cmake_options(common_options)
+        self.assertIn('-DGGML_CUDA=OFF', cpu)
+        self.assertIn('-DCMAKE_DISABLE_FIND_PACKAGE_CUDAToolkit=TRUE', cpu)
+        self.assertFalse(any(option.startswith(('-DCMAKE_CUDA', '-DCUDAToolkit_ROOT=',
+                                               '-DCMAKE_EXE_LINKER_FLAGS=')) for option in cpu))
+        # The separate CUDA trainer keeps the normal options untouched.
+        self.assertIn('-DGGML_CUDA=ON', common_options)
+        self.assertIn('-DCMAKE_CUDA_COMPILER=/tmp/cuda/bin/nvcc', common_options)
 
 
 class NotebookPayloadTests(unittest.TestCase):

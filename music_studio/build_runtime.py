@@ -28,6 +28,22 @@ def failure_summary(log, limit=40):
         hits = lines[-limit:]
     return '\n'.join(hits[-limit:])
 
+def cpu_cmake_options(options):
+    """Configure HOT-Step helpers as genuinely CPU-only targets.
+
+    HOT-Step's CMake adds GGML_USE_CUDA whenever CUDAToolkit is found, even
+    when GGML_CUDA=OFF. This builder puts its pinned CUDA toolkit on PATH for
+    the separate trainer build; without disabling package discovery, that
+    toolkit leaks into the CPU helper configuration and gpu.h then requires
+    cuda_runtime.h while compiling with the host C++ compiler.
+    """
+    result = [flag for flag in options if not flag.startswith((
+        '-DGGML_CUDA=', '-DCMAKE_CUDA', '-DCUDAToolkit_ROOT=',
+        '-DCMAKE_EXE_LINKER_FLAGS='))]
+    result.extend(('-DGGML_CUDA=OFF', '-DCMAKE_DISABLE_FIND_PACKAGE_CUDAToolkit=TRUE'))
+    return result
+
+
 def command(arguments, *, cwd, env=None, log=None):
     print('Build:', ' '.join(map(str, arguments[:5])), flush=True)
     log = Path(log or Path(cwd) / 'build.log')
@@ -265,8 +281,7 @@ def build(work, *, jobs=2, cuda=True):
     command(['git', 'submodule', 'update', '--init', '--depth', '1', 'base', 'pluginterfaces', 'public.sdk'],
             cwd=tools_source / 'engine/vendor/vst3sdk', log=log)
     target = tools_source / 'engine/build-cpu'
-    cpu_common = [flag for flag in common if not flag.startswith(('-DGGML_CUDA=', '-DCMAKE_CUDA', '-DCUDAToolkit_ROOT=', '-DCMAKE_EXE_LINKER_FLAGS='))]
-    cpu_common += ['-DGGML_CUDA=OFF']
+    cpu_common = cpu_cmake_options(common)
     command(['cmake', '-S', tools_source / 'engine', '-B', target, *cpu_common], cwd=work, env=env, log=log)
     command(['cmake', '--build', target, '--target', 'ace-caption', 'vst-host', '--parallel', jobs], cwd=work, env=env, log=log)
     copy_runtime(target, 'ace-caption', bundle / 'caption')
