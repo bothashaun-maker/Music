@@ -31,19 +31,38 @@ No model data passes through a local PC. Everything happens inside the Kaggle no
 
 ---
 
+## Configuration
+
+Two flags at the top of **Cell 1** control the build:
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `INCLUDE_MOSS` | `True` | Include the ~16–18 GiB MOSS-Music 8B Instruct shards. Set `False` to skip. |
+| `SEED_FROM` | `/kaggle/input/music-studio-model-pack` | If the previous dataset is attached as an input, files are copied from here instead of re-downloaded. Empty path disables seeding. |
+
+`DATASET_HANDLE` (default `janpierrrewiet/music-studio-model-pack`) is the dataset the
+builder publishes to. Publishing to an existing handle **creates a new version** — same
+URL, existing attachments keep working. **Never delete the published dataset** to update it.
+
+---
+
 ## Workflow
 
-### 1. Build the pack (once, or when models change)
+### 1. Build or update the pack
 
 1. Open `Music_Studio_Model_Pack_Builder.ipynb` on Kaggle.
 2. Set **Accelerator: None**, **Internet: ON**.
-3. Run **Cell 1** (builder). It downloads ~2–3 GiB and prints per-file status.
-4. Run **Cell 2** (publisher). It uploads to the private dataset handle configured at the
-   top of Cell 1 (`DATASET_HANDLE`, default `janpierrrewiet/music-studio-model-pack`).
-5. Open the dataset link Kaggle prints and wait for processing to finish.
+3. *(Recommended when updating)* **Add Input → Datasets →** attach the existing
+   `janpierrrewiet/music-studio-model-pack`. This lets the builder seed from
+   `/kaggle/input/…` instead of re-downloading ~16 GiB.
+4. Run **Cell 1** (builder). It prints per-file status: `✓ Already present`,
+   `⤵ seeded from previous dataset`, `↓ Downloading`, or `✗ FAILED`.
+5. Run **Cell 2** (publisher). It uploads as a **new version** of the same dataset.
+6. Open the dataset link Kaggle prints and wait for processing to finish.
 
-**Idempotent:** re-running Cell 1 skips any file that already exists and only re-downloads
-what's missing or failed. Safe to re-run after a transient network error.
+**Idempotent:** re-running Cell 1 skips any file that already exists (or can be seeded)
+and only fetches what's missing or previously failed. Safe to re-run after a transient
+network error.
 
 ### 2. Attach the pack to ComfyUI
 
@@ -60,18 +79,24 @@ picks up every model without extra configuration.
 
 | Component | ComfyUI subfolder | Source |
 |---|---|---|
-| YuE2-3B | `diffusion_models/` | `m-a-p/YuE2-3B` |
-| YuE2-Vae | `vae/` | `m-a-p/YuE2-Vae` |
-| SheetSage2 | `checkpoints/` | `m-a-p/SheetSage2` |
-| Mothersuperior tokenizer | `checkpoints/` | `Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4` |
-| MuScriptor medium | `checkpoints/` | `cocktailpeanut/muscriptor-medium` |
+| YuE2-3B | `diffusion_models/YuE2-3B/` | `m-a-p/YuE2-3B` |
+| YuE2-Vae | `vae/YuE2-Vae/` | `m-a-p/YuE2-Vae` |
+| SheetSage2 | `checkpoints/SheetSage2/` | `m-a-p/SheetSage2` |
+| Mothersuperior tokenizer v4 | `checkpoints/YuE2-Mothersuperior/` | `drbaph/yue2-mothersuperior-realaudio-tokenizer-comfyui` (safetensors conversion of `Mothersuperior/yue2-mothersuperior-realaudio-tokenizer-v4`) |
+| MuScriptor medium | `checkpoints/MuScriptor/` | `cocktailpeanut/muscriptor-medium` |
 | Gemma 4 E4B (QAT q4_0 GGUF) | `text_encoders/` | `google/gemma-4-E4B-it-qat-q4_0-gguf` |
-| Parakeet TDT 0.6B v3 | `checkpoints/` | `nvidia/parakeet-tdt-0.6b-v3` |
+| Parakeet TDT 0.6B v3 | `checkpoints/parakeet-tdt-0.6b-v3/` | `nvidia/parakeet-tdt-0.6b-v3` |
 | Demucs 6-stem (ONNX) | `audio_separator/` | `StemSplitio/htdemucs-6s-onnx` |
-| MOSS-Music 8B Instruct | `checkpoints/` | `OpenMOSS-Team/MOSS-Music-8B-Instruct` |
+| MOSS-Music 8B Instruct | `checkpoints/MOSS-Music-8B-Instruct/` | `OpenMOSS-Team/MOSS-Music-8B-Instruct` (4 bf16 shards + index + config) |
 
 The canonical list is `MODEL_SPECS` at the top of Cell 1. To add or swap a model, edit
 that list — the rest of the notebook adapts automatically.
+
+**Note on Mothersuperior:** the upstream repo only publishes `.pt` pickle files, which
+ComfyUI cannot load safely. The pack uses a verbatim safetensors conversion (repo
+`drbaph/yue2-mothersuperior-realaudio-tokenizer-comfyui`) pinned to the same upstream
+revision. `NOTICES.md` cites the canonical Mothersuperior source; the conversion is
+noted as the delivery mechanism.
 
 ---
 
