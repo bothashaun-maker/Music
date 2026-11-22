@@ -17,7 +17,7 @@ import zipfile
 from unittest.mock import patch
 
 from music_studio import common, dataset
-from music_studio import build_runtime
+from music_studio import build_runtime, preflight as preflight_module
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -76,6 +76,11 @@ class DatasetFlowTests(unittest.TestCase):
         return api
 
     def run_builder(self, catalog, api, owner=''):
+        # These tests replace the SDK and the compiler; the remote probe
+        # is exercised separately in PreflightTests.
+        probe_patch = patch.object(dataset, 'preflight', return_value=True)
+        probe_patch.start()
+        self.addCleanup(probe_patch.stop)
         def build_runtime_record(scratch, jobs=2):
             scratch = Path(scratch)
             scratch.mkdir(parents=True, exist_ok=True)
@@ -184,6 +189,43 @@ class CpuToolchainTests(unittest.TestCase):
         self.assertIn('-DCMAKE_CUDA_COMPILER=/tmp/cuda/bin/nvcc', common_options)
 
 
+class PreflightTests(unittest.TestCase):
+    def record(self, name, size):
+        return dict(name=name, source='https://example.invalid/' + name, bytes=size, kind='model')
+
+    def test_dead_pin_stops_before_any_build(self):
+        records = [self.record('good.bin', 10), self.record('gone.bin', 10)]
+
+        def fake_probe(url, timeout=30):
+            return ('ok', 10) if url.endswith('good.bin') else ('unreachable', 404)
+
+        with patch.object(preflight_module, 'probe', side_effect=fake_probe),                 patch('builtins.print'):
+            with self.assertRaises(RuntimeError) as caught:
+                preflight_module.preflight(records)
+        message = str(caught.exception)
+        self.assertIn('gone.bin', message)
+        self.assertIn('404', message)
+        self.assertNotIn('good.bin', message)
+
+    def test_size_mismatch_is_reported(self):
+        with patch.object(preflight_module, 'probe', return_value=('ok', 99)), patch('builtins.print'):
+            with self.assertRaises(RuntimeError) as caught:
+                preflight_module.preflight([self.record('model.bin', 10)])
+        self.assertIn('99 bytes, pinned 10', str(caught.exception))
+
+    def test_all_good_pins_pass(self):
+        with patch.object(preflight_module, 'probe', return_value=('ok', 10)), patch('builtins.print'):
+            self.assertTrue(preflight_module.preflight([self.record('a.bin', 10)]))
+
+    def test_every_pinned_remote_is_enumerated(self):
+        real = json.loads((ROOT / 'music_studio/catalog.json').read_text())
+        sources = json.loads((ROOT / 'music_studio/sources.json').read_text())
+        records = preflight_module.remote_records(real, sources)
+        self.assertEqual(sum(1 for r in records if r['kind'] == 'model'), len(real['assets']))
+        self.assertGreater(sum(1 for r in records if r['kind'] == 'toolchain'), 8)
+        self.assertTrue(all(r['source'].startswith('https://') for r in records))
+
+
 class NotebookPayloadTests(unittest.TestCase):
     def test_driver_embeds_a_verified_builder_archive(self):
         notebook = json.loads((ROOT / 'Music-Studio-Dataset.ipynb').read_text())
@@ -201,7 +243,7 @@ class NotebookPayloadTests(unittest.TestCase):
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             names = set(archive.namelist())
         expected = {'music_studio/' + name for name in
-                    ('__init__.py', 'common.py', 'dataset.py', 'build_runtime.py', 'patches.py',
+                    ('__init__.py', 'common.py', 'dataset.py', 'build_runtime.py', 'preflight.py', 'patches.py',
                      'launch.py', 'kaggle_upload.rs', 'upload.html', 'catalog.json',
                      'sources.json', 'NOTICES.md')}
         self.assertEqual(names, expected)

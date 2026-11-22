@@ -1,11 +1,17 @@
-"""Build once on the CPU Dataset notebook; save the Linux/T4 runtime in that Dataset."""
+"""Build the pinned Linux x86-64/T4 runtime once, on CPU, in resumable stages.
+
+Nothing here loads a model or starts a GPU job. The build is split into named
+stages, each with a completed-marker keyed by the exact inputs it consumed, so a
+rerun after an interruption resumes at the failing stage instead of repeating
+cargo, npm and the CUDA compile. Models are never compiled: they are downloaded
+by the Dataset builder and verified against pinned sizes and checksums.
+"""
 from __future__ import annotations
 
 import json
 import os
 from pathlib import Path
 import platform
-import re
 import shutil
 import subprocess
 import sys
@@ -28,6 +34,7 @@ def failure_summary(log, limit=40):
     if not hits:
         hits = lines[-limit:]
     return '\n'.join(hits[-limit:])
+
 
 def cpu_cmake_options(options):
     """Configure HOT-Step helpers as genuinely CPU-only targets.
@@ -57,13 +64,28 @@ def command(arguments, *, cwd, env=None, log=None):
             result = child.wait()
         finally:
             if child.poll() is None:
-                from .launch import stop
-                stop(child)
+                stop_group(child)
     if result:
         summary = failure_summary(log)
         print('Build failed; errors from', log, flush=True)
         print(summary, flush=True)
         raise RuntimeError(f'Build command failed ({result}); {log}\n{summary}')
+
+
+def stop_group(child):
+    """Stop this build's own process group; never signal the notebook kernel."""
+    import signal
+    if child is None or child.poll() is not None:
+        return
+    try:
+        os.killpg(child.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        child.wait(timeout=15)
+    except subprocess.TimeoutExpired:
+        os.killpg(child.pid, signal.SIGKILL)
+        child.wait(timeout=5)
 
 
 def checkout(spec, destination, log):
@@ -151,51 +173,45 @@ def toolkit(work, sources, env):
                         raise RuntimeError('Invalid CUDA redistributable path.')
                     relative = Path(*pieces)
                     # Static cuBLAS is enormous and is not used by the dynamic backend.
-                    if relative.suffix == '.a' and record['id'] == 'libcublas':
+                    if 'libcublas_static' in relative.name or relative.suffix == '.a':
                         continue
-                    if not (pieces[0] in ('bin', 'include', 'lib', 'lib64', 'nvvm') or pieces[-1].startswith(('LICENSE', 'EULA'))):
-                        continue
-                    target = root / relative
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    with source.extractfile(member) as stream, target.open('wb') as output:
+                    destination = root / relative
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    with source.extractfile(member) as stream, destination.open('wb') as output:
                         shutil.copyfileobj(stream, output)
-                    target.chmod(member.mode & 0o777)
-                # Recreate only same-directory shared-library aliases.
-                for member in source.getmembers():
-                    if not member.issym():
-                        continue
-                    relative = Path(*Path(member.name).parts[1:])
-                    if Path(member.linkname).name != member.linkname:
-                        continue
-                    target = root / relative
-                    if target.parent.exists() and not target.exists():
-                        target.symlink_to(member.linkname)
-            archive.unlink()  # This is the builder's own verified download cache.
+            archive.unlink()
             marker.write_text(record['sha256'])
+        for p in (root / 'lib').glob('*.so*'):
+            if p.is_file() and not p.is_symlink() and '.so.' in p.name:
+                alias = p.with_name(p.name.split('.so.')[0] + '.so')
+                if not alias.exists() and not alias.is_symlink():
+                    alias.symlink_to(Path('../lib') / p.name)
         ready.write_text(identity)
-    # NVIDIA archives can encode SONAME aliases as hard links. Reconstruct
-    # them from the verified ELF files too, including the link-only driver stub.
-    for library in (root / 'lib').rglob('*.so*'):
-        if not library.is_file() or library.is_symlink():
-            continue
-        dynamic = subprocess.check_output(['readelf', '-d', str(library)], text=True)
-        soname = re.search(r'\(SONAME\).*\[([^\]]+)\]', dynamic)
-        if soname and Path(soname[1]).name == soname[1]:
-            alias = library.parent / soname[1]
-            if not alias.exists() and not alias.is_symlink():
-                alias.symlink_to(library.name)
-    (root / 'lib64').mkdir(exist_ok=True)
-    for p in (root / 'lib').glob('*'):
-        alias = root / 'lib64' / p.name
-        if not alias.exists() and not alias.is_symlink():
-            alias.symlink_to(Path('../lib') / p.name)
     env.update(CUDACXX=str(root / 'bin/nvcc'), CUDAToolkit_ROOT=str(root), CUDA_PATH=str(root))
     env['PATH'] = str(root / 'bin') + os.pathsep + env['PATH']
     return root
 
 
+def build_env(work, sources):
+    """One deterministic environment, so any stage can run after an interruption."""
+    env = dict(os.environ)
+    env.update(CARGO_HOME=str(work / 'cargo'), RUSTUP_HOME=str(work / 'rustup'),
+               RUSTUP_TOOLCHAIN=sources['rust_toolchain'])
+    node_dir = work / 'node'
+    if node_dir.is_dir():
+        roots = [p for p in node_dir.iterdir() if (p / 'bin/node').exists()]
+        if roots:
+            env['PATH'] = str(roots[0] / 'bin') + os.pathsep + env['PATH']
+    tools = work / 'build-tools'
+    if (tools / 'bin').is_dir():
+        env['PATH'] = str(tools / 'bin') + os.pathsep + env['PATH']
+        env['PYTHONPATH'] = str(tools) + os.pathsep + env.get('PYTHONPATH', '')
+    if (work / 'cargo/bin').is_dir():
+        env['PATH'] = str(work / 'cargo/bin') + os.pathsep + env['PATH']
+    return env
+
+
 def build(work, *, jobs=2, cuda=True):
-    """No model loading or GPU job is performed by this function."""
     work = Path(work).resolve()
     work.mkdir(parents=True, exist_ok=True)
     sources = json.loads((HERE / 'sources.json').read_text())
@@ -216,43 +232,79 @@ def build(work, *, jobs=2, cuda=True):
     if platform.machine() not in ('x86_64', 'AMD64'):
         raise RuntimeError('Build Music Studio on Kaggle x86-64; ARM binaries cannot serve this notebook.')
     if shutil.disk_usage(work).free < 7 * 1024**3:
-        raise RuntimeError('The first CPU runtime build needs at least 7 GiB measured free disk. Reuse an existing Music Studio Dataset to skip rebuilding.')
+        raise RuntimeError('The CPU runtime build needs at least 7 GiB measured free disk. Reuse an existing Music Studio Dataset to skip rebuilding.')
     jobs = max(1, min(int(jobs), os.cpu_count() or 2))
-    env = dict(os.environ)
     log = work / 'runtime-build.log'
-    env.update(CARGO_HOME=str(work / 'cargo'), RUSTUP_HOME=str(work / 'rustup'), RUSTUP_TOOLCHAIN=sources['rust_toolchain'], CARGO_BUILD_JOBS=str(jobs))
+
+    stage(work, 'toolchain', dict(sources=sources, profile=PROFILE), lambda: stage_toolchain(work, sources, log))
+    env = build_env(work, sources)
+    env['CARGO_BUILD_JOBS'] = str(jobs)
+    stage(work, 'studio', sources['studio'], lambda: stage_studio(work, sources, env, log))
+    if cuda:
+        stage(work, 'cuda-toolkit', fingerprint([r for r in sources['runtime_assets']
+                                                 if r['id'].startswith('cuda_') or r['id'] in ('libcublas', 'libnvvm')]),
+              lambda: toolkit(work, sources, env))
+        env = build_env(work, sources)
+        env['CARGO_BUILD_JOBS'] = str(jobs)
+    stage(work, 'engine', dict(sources=sources, jobs=jobs, cuda=cuda),
+          lambda: stage_engine(work, sources, env, log, jobs, cuda))
+    stage(work, 'helpers-cpu', sources['tools'], lambda: stage_helpers(work, sources, env, log, jobs))
+    if cuda:
+        stage(work, 'helpers-train', dict(sources=sources, jobs=jobs),
+              lambda: stage_trainer(work, sources, env, log, jobs))
+    stage(work, 'downloads', [r for r in sources['runtime_assets']
+                             if r['id'] in ('onnxruntime', 'llama.cpp', 'audiocpp', 'roformer')] + [sources['cloudflared']],
+          lambda: stage_downloads(work, sources, log))
+    return assemble(work, sources, identity, cuda)
+
+
+def stage(work, name, inputs, produce):
+    """Run one stage unless a marker says it already finished with these inputs."""
+    stamp = work / f'stage-{name}.json'
+    identity = fingerprint(inputs)
+    if stamp.is_file():
+        try:
+            if json.loads(stamp.read_text()).get('identity') == identity:
+                print(f'Stage {name}: already complete for these sources.', flush=True)
+                return
+        except ValueError:
+            pass
+    print(f'Stage {name}: starting.', flush=True)
+    produce()
+    write_json(stamp, dict(identity=identity, name=name))
+    print(f'Stage {name}: complete.', flush=True)
+
+
+def stage_toolchain(work, sources, log):
+    env = build_env(work, sources)
     installer = transfer(sources['rustup'], work / 'rustup-init')
     installer.chmod(0o700)
-    command([installer, '-y', '--no-modify-path', '--profile', 'minimal', '--default-toolchain', sources['rust_toolchain']], cwd=work, env=env, log=log)
-    env['PATH'] = str(work / 'cargo/bin') + os.pathsep + env['PATH']
+    command([installer, '-y', '--no-modify-path', '--profile', 'minimal', '--default-toolchain', sources['rust_toolchain']],
+            cwd=work, env=env, log=log)
+    env = build_env(work, sources)
     node = transfer(sources['node'], work / sources['node']['name'])
-    node_dir = work / 'node'
-    # Re-extraction repairs an interrupted, owned toolchain extraction.
-    extract(node, node_dir)
-    node_root = next(p for p in node_dir.iterdir() if (p / 'bin/node').exists())
-    env['PATH'] = str(node_root / 'bin') + os.pathsep + env['PATH']
-    # Install only the build tools into owned scratch. Kaggle's /usr/bin/python3
-    # omits ensurepip, so a stdlib venv cannot be created there. --target uses
-    # the already-working Kaggle pip, as the Movies builders do, without
-    # replacing Kaggle's Torch/scientific packages.
+    extract(node, work / 'node')
     tools = work / 'build-tools'
-    tool_bin = tools / 'bin'
-    if not (tool_bin / 'cmake').exists() or not (tool_bin / 'ninja').exists():
+    if not (tools / 'bin/cmake').exists() or not (tools / 'bin/ninja').exists():
         shutil.rmtree(tools, ignore_errors=True)
+        # Kaggle's /usr/bin/python3 omits ensurepip, so --target uses the working
+        # Kaggle pip instead of replacing Torch/scientific packages.
         command([sys.executable, '-m', 'pip', 'install', '--disable-pip-version-check', '--no-input',
                  '--target', tools, 'cmake==3.31.6', 'ninja==1.11.1.3'], cwd=work, log=log)
-    if not (tool_bin / 'cmake').is_file() or not (tool_bin / 'ninja').is_file():
+    if not (tools / 'bin/cmake').is_file() or not (tools / 'bin/ninja').is_file():
         raise RuntimeError('Pinned CMake/Ninja installation did not create the expected build tools.')
-    env['PYTHONPATH'] = str(tools) + os.pathsep + env.get('PYTHONPATH', '')
-    env['PATH'] = str(tool_bin) + os.pathsep + env['PATH']
+
+
+def stage_studio(work, sources, env, log):
     studio = checkout(sources['studio'], work / 'studio-source', log)
     from .patches import apply
     apply(studio)
-    command(['cargo', 'build', '--locked', '--release', '-p', 'music-server', '--config', 'profile.release.strip=true'], cwd=studio, env=env, log=log)
-    command(['npm', '--prefix', 'app', 'ci', '--no-audit', '--no-fund'], cwd=studio, env=env, log=log)
-    command(['npm', '--prefix', 'app', 'run', 'build'], cwd=studio, env=env, log=log)
     bundle = work / 'bundle'
     bundle.mkdir(exist_ok=True)
+    command(['cargo', 'build', '--locked', '--release', '-p', 'music-server',
+             '--config', 'profile.release.strip=true'], cwd=studio, env=env, log=log)
+    command(['npm', '--prefix', 'app', 'ci', '--no-audit', '--no-fund'], cwd=studio, env=env, log=log)
+    command(['npm', '--prefix', 'app', 'run', 'build'], cwd=studio, env=env, log=log)
     shutil.copy2(studio / 'target/release/music-server', bundle / 'music-server')
     elf_arch(bundle / 'music-server')
     shutil.copytree(studio / 'app/dist', bundle / 'ui', dirs_exist_ok=True)
@@ -261,65 +313,67 @@ def build(work, *, jobs=2, cuda=True):
     shutil.copy2(studio / 'LICENSE', notice / 'YuE2-Studio-MIT.txt')
     if (studio / 'licenses').exists():
         shutil.copytree(studio / 'licenses', notice / 'studio', dirs_exist_ok=True)
-    # Free only this build's compiler intermediates before the C++/CUDA build.
-    shutil.rmtree(studio / 'target')
-    shutil.rmtree(studio / 'app/node_modules')
-    cuda_root = toolkit(work, sources, env) if cuda else None
+    # Free only this build's compiler intermediates.
+    shutil.rmtree(studio / 'target', ignore_errors=True)
+    shutil.rmtree(studio / 'app/node_modules', ignore_errors=True)
+
+
+def cmake_flags(work, sources, cuda):
     common = ['-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', '-DGGML_NATIVE=OFF',
               '-DCMAKE_BUILD_RPATH=$ORIGIN', '-DCMAKE_INSTALL_RPATH=$ORIGIN', '-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON',
               '-DGGML_CCACHE=OFF', '-DGGML_CUDA=' + ('ON' if cuda else 'OFF')]
     if cuda:
-        common += ['-DCMAKE_CUDA_ARCHITECTURES=75-real', '-DCMAKE_CUDA_COMPILER=' + str(cuda_root / 'bin/nvcc'), '-DCUDAToolkit_ROOT=' + str(cuda_root)]
-        common += ['-DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,' + str(cuda_root / 'lib') + ':' + str(cuda_root / 'lib/stubs')]
+        root = work / 'cuda'
+        common += ['-DCMAKE_CUDA_ARCHITECTURES=75-real', '-DCMAKE_CUDA_COMPILER=' + str(root / 'bin/nvcc'),
+                   '-DCUDAToolkit_ROOT=' + str(root)]
+        common += ['-DCMAKE_EXE_LINKER_FLAGS=-Wl,-rpath-link,' + str(root / 'lib') + ':' + str(root / 'lib/stubs')]
+    return common
+
+
+def stage_engine(work, sources, env, log, jobs, cuda):
+    bundle = work / 'bundle'
     engine = checkout(sources['engine'], work / 'engine-source', log)
     command(['git', 'submodule', 'update', '--init', '--recursive', '--depth', '1'], cwd=engine, log=log)
-    command(['cmake', '-S', engine, '-B', engine / 'build-kaggle', *common], cwd=work, env=env, log=log)
-    command(['cmake', '--build', engine / 'build-kaggle', '--target', 'yue-server', '--parallel', jobs], cwd=work, env=env, log=log)
-    copy_runtime(engine / 'build-kaggle', 'yue-server', bundle / 'engine')
+    built = engine / 'build-kaggle'
+    command(['cmake', '-S', engine, '-B', built, *cmake_flags(work, sources, cuda)], cwd=work, env=env, log=log)
+    command(['cmake', '--build', built, '--target', 'yue-server', '--parallel', jobs], cwd=work, env=env, log=log)
+    copy_runtime(built, 'yue-server', bundle / 'engine')
+
+
+def stage_helpers(work, sources, env, log, jobs):
+    """CPU helpers the studio launches: caption, MIDI and the VST host."""
+    bundle = work / 'bundle'
     tools_source = checkout(sources['tools'], work / 'tools-source', log)
     command(['git', 'submodule', 'update', '--init', '--recursive', '--depth', '1', 'engine/ggml'], cwd=tools_source, log=log)
     command(['git', 'submodule', 'update', '--init', '--depth', '1', 'engine/vendor/vst3sdk'], cwd=tools_source, log=log)
     command(['git', 'submodule', 'update', '--init', '--depth', '1', 'base', 'pluginterfaces', 'public.sdk'],
             cwd=tools_source / 'engine/vendor/vst3sdk', log=log)
     target = tools_source / 'engine/build-cpu'
-    cpu_common = cpu_cmake_options(common)
-    command(['cmake', '-S', tools_source / 'engine', '-B', target, *cpu_common], cwd=work, env=env, log=log)
-    command(['cmake', '--build', target, '--target', 'ace-caption', 'vst-host', '--parallel', jobs], cwd=work, env=env, log=log)
+    options = cpu_cmake_options(cmake_flags(work, sources, True))
+    command(['cmake', '-S', tools_source / 'engine', '-B', target, *options], cwd=work, env=env, log=log)
+    # ace-midi is launched by the studio (YUE_MIDI_BIN) and was missing from the
+    # earlier bundle while the manifest still advertised a CPU MIDI helper.
+    command(['cmake', '--build', target, '--target', 'ace-caption', 'ace-midi', 'vst-host', '--parallel', jobs],
+            cwd=work, env=env, log=log)
     copy_runtime(target, 'ace-caption', bundle / 'caption')
+    copy_runtime(target, 'ace-midi', bundle / 'midi')
     copy_runtime(target, 'vst-host', bundle / 'vst')
-    # The INT8 ConvRot trainer includes the upstream Turing F32 fallback.
+
+
+def stage_trainer(work, sources, env, log, jobs):
+    bundle = work / 'bundle'
+    tools_source = work / 'tools-source'
     trainer = tools_source / 'engine/build-training'
-    command(['cmake', '-S', tools_source / 'engine', '-B', trainer, *common], cwd=work, env=env, log=log)
+    command(['cmake', '-S', tools_source / 'engine', '-B', trainer, *cmake_flags(work, sources, True)],
+            cwd=work, env=env, log=log)
     command(['cmake', '--build', trainer, '--target', 'ace-train', '--parallel', jobs], cwd=work, env=env, log=log)
     copy_runtime(trainer, 'ace-train', bundle / 'training')
     (bundle / 'training/ace-train').rename(bundle / 'training/music-train')
-    for label, source, names in [
-        ('yue2.cpp', engine, ('LICENSE', 'ggml/LICENSE', 'vendor/cpp-httplib/LICENSE')),
-        ('HOT-Step', tools_source, ('LICENSE', 'engine/LICENSE', 'engine/ggml/LICENSE', 'engine/vendor/cpp-httplib/LICENSE', 'engine/vendor/vst3sdk/LICENSE.txt', 'engine/vendor/vst3sdk/base/LICENSE.txt', 'engine/vendor/vst3sdk/pluginterfaces/LICENSE.txt', 'engine/vendor/vst3sdk/public.sdk/LICENSE.txt')),
-    ]:
-        for name in names:
-            original = source / name
-            if original.is_file():
-                target = notice / label / name
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(original, target)
-    shutil.copy2(HERE / 'NOTICES.md', notice / 'MUSIC-STUDIO-NOTICES.md')
-    if cuda:
-        libs = bundle / 'cuda'
-        libs.mkdir(exist_ok=True)
-        for p in (cuda_root / 'lib').glob('*.so*'):
-            if p.is_file() and p.name.startswith(('libcublas', 'libcudart')):
-                if p.is_symlink():
-                    if not (libs / p.resolve().name).exists():
-                        shutil.copy2(p.resolve(), libs / p.resolve().name)
-                    alias = libs / p.name
-                    if not alias.exists() and not alias.is_symlink():
-                        alias.symlink_to(p.resolve().name)
-                elif not (libs / p.name).exists():
-                    shutil.copy2(p, libs / p.name)
-        for p in cuda_root.rglob('*'):
-            if p.is_file() and p.name.startswith(('LICENSE', 'EULA')):
-                shutil.copy2(p, notice / ('NVIDIA-' + p.name))
+
+
+def stage_downloads(work, sources, log):
+    bundle = work / 'bundle'
+    notice = bundle / 'licenses'
     for record in sources['runtime_assets']:
         if record['id'] not in ('onnxruntime', 'llama.cpp', 'audiocpp', 'roformer'):
             continue
@@ -328,25 +382,19 @@ def build(work, *, jobs=2, cuda=True):
             folder = bundle / 'onnx'
             folder.mkdir(exist_ok=True)
             with zipfile.ZipFile(downloaded) as wheel:
-                members = [name for name in wheel.namelist()
-                           if name.endswith(('.so', '.so.1.30.0')) or name.endswith('/LICENSE')]
-                runtime_libs = [name for name in members if '/capi/libonnxruntime' in name and '.so' in name]
-                if not any(name.endswith('libonnxruntime.so.1.30.0') for name in runtime_libs):
-                    raise RuntimeError('Pinned ONNX Runtime wheel has no expected 1.30.0 shared library.')
-                for name in members:
+                for name in wheel.namelist():
                     base = Path(name).name
                     if base.startswith('libonnxruntime') and '.so' in base:
-                        destination = folder / base
-                        with wheel.open(name) as source, destination.open('wb') as output:
+                        with wheel.open(name) as source, (folder / base).open('wb') as output:
                             shutil.copyfileobj(source, output)
                     elif base == 'LICENSE':
-                        destination = notice / 'ONNX-' + Path(name).parent.name + '-LICENSE'
+                        destination = notice / 'ONNX-Runtime-LICENSE'
                         destination.parent.mkdir(parents=True, exist_ok=True)
                         with wheel.open(name) as source, destination.open('wb') as output:
                             shutil.copyfileobj(source, output)
             versioned = folder / 'libonnxruntime.so.1.30.0'
             if not versioned.is_file():
-                raise RuntimeError('ONNX Runtime wheel extraction omitted its shared library.')
+                raise RuntimeError('Pinned ONNX Runtime wheel has no expected 1.30.0 shared library.')
             alias = folder / 'libonnxruntime.so'
             if not alias.exists():
                 alias.symlink_to(versioned.name)
@@ -358,8 +406,7 @@ def build(work, *, jobs=2, cuda=True):
             if len(matches) != 1:
                 raise RuntimeError('Pinned helper archive has an unexpected layout: ' + binary)
             elf_arch(matches[0])
-            # Preserve libgomp, CPU backend plugins and all SONAME aliases, each
-            # beside its own executable; no global cross-engine GGML loader path.
+            # Keep each helper's own GGML libraries beside it; no shared loader path.
             shutil.copytree(matches[0].parent, folder, symlinks=True, dirs_exist_ok=True)
         else:
             extracted = extract(downloaded, work / ('unpack-' + record['id']))
@@ -373,15 +420,63 @@ def build(work, *, jobs=2, cuda=True):
     cloudflared = transfer(sources['cloudflared'], bundle / 'cloudflared')
     cloudflared.chmod(0o700)
     elf_arch(cloudflared)
-    write_json(bundle / 'build-manifest.json', dict(profile=PROFILE, source_fingerprint=identity,
-               sources=sources, architecture='x86_64', cuda_architectures=[75], build_mode='cuda' if cuda else 'cpu',
-               system=platform.platform(), glibc=platform.libc_ver(), tools={'midi': 'cpu', 'caption': 'cpu', 'writer': 'cpu',
-               'recognition': 'excluded', 'stems': 'cpu', 'training': 'cuda-sm75; INT8 ConvRot base; no lyric aligner', 'vst': 'native Linux VST3 offline host'}))
+
+
+def assemble(work, sources, identity, cuda):
+    bundle = work / 'bundle'
+    notice = bundle / 'licenses'
+    notice.mkdir(parents=True, exist_ok=True)
+    for label, source, names in [
+        ('yue2.cpp', work / 'engine-source', ('LICENSE', 'ggml/LICENSE', 'vendor/cpp-httplib/LICENSE')),
+        ('HOT-Step', work / 'tools-source', ('LICENSE', 'engine/LICENSE', 'engine/ggml/LICENSE',
+                                             'engine/vendor/cpp-httplib/LICENSE', 'engine/vendor/vst3sdk/LICENSE.txt')),
+    ]:
+        for name in names:
+            original = source / name
+            if original.is_file():
+                target = notice / label / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(original, target)
+    shutil.copy2(HERE / 'NOTICES.md', notice / 'MUSIC-STUDIO-NOTICES.md')
+    if cuda:
+        libs = bundle / 'cuda'
+        libs.mkdir(exist_ok=True)
+        cuda_root = work / 'cuda'
+        for p in (cuda_root / 'lib').glob('*.so*'):
+            if p.is_file() and p.name.startswith(('libcublas', 'libcudart')):
+                if p.is_symlink():
+                    real = p.resolve()
+                    if not (libs / real.name).exists():
+                        shutil.copy2(real, libs / real.name)
+                    alias = libs / p.name
+                    if not alias.exists() and not alias.is_symlink():
+                        alias.symlink_to(real.name)
+                elif not (libs / p.name).exists():
+                    shutil.copy2(p, libs / p.name)
+        for p in cuda_root.rglob('*'):
+            if p.is_file() and p.name.startswith(('LICENSE', 'EULA')):
+                shutil.copy2(p, notice / ('NVIDIA-' + p.name))
+    for required, label in (('music-server', 'service'), ('ui', 'UI'), ('engine/yue-server', 'engine'),
+                            ('caption/ace-caption', 'caption'), ('midi/ace-midi', 'MIDI'),
+                            ('writer/llama-server', 'writer'), ('onnx/libonnxruntime.so', 'ONNX Runtime'),
+                            ('cloudflared', 'tunnel')):
+        if not (bundle / required).exists():
+            raise RuntimeError('Completed runtime is missing ' + label + ': ' + required)
+    write_json(bundle / 'build-manifest.json', dict(
+        profile=PROFILE, source_fingerprint=identity, sources=sources,
+        architecture='x86_64', cuda_architectures=[75], build_mode='cuda' if cuda else 'cpu',
+        system=platform.platform(), glibc=platform.libc_ver(),
+        tools={'midi': 'cpu', 'caption': 'cpu', 'writer': 'cpu',
+               'recognition': 'excluded', 'stems': 'cpu',
+               'training': 'cuda-sm75; INT8 ConvRot base; no lyric aligner',
+               'vst': 'native Linux VST3 offline host'}))
+    archive = work / 'music-studio-runtime.bundle'
     with tarfile.open(archive.with_suffix('.partial'), 'w:gz', dereference=False) as output:
         output.add(bundle, arcname='runtime')
     archive.with_suffix('.partial').replace(archive)
     result = dict(name=archive.name, bytes=archive.stat().st_size, sha256=sha256(archive),
-                  architecture='x86_64', cuda_architectures=[75], source_fingerprint=identity, build_mode='cuda' if cuda else 'cpu',
+                  architecture='x86_64', cuda_architectures=[75], source_fingerprint=identity,
+                  build_mode='cuda' if cuda else 'cpu',
                   compatibility={'libc': list(platform.libc_ver()), 'cuda': sources['cuda_version']})
-    write_json(receipt, result)
+    write_json(work / 'runtime-build.json', result)
     return result

@@ -19,6 +19,7 @@ import tempfile
 
 from .common import (GIB, HERE, PROFILE, catalog, choose_scratch, fingerprint,
                      scrub, transfer, validate_manifest, verify, write_json)
+from .preflight import preflight, remote_records
 
 # Checked in order; Kaggle's scratch sizes vary by image and session, so the
 # builder measures instead of assuming /kaggle/temp is always the largest.
@@ -312,6 +313,8 @@ def create_dataset(catalog_data, receipt_dir='/kaggle/working/music_studio_datas
         if not owner:
             raise RuntimeError('Set DATASET_OWNER to your Kaggle username; no build or download started.')
         print('Authenticated as', owner, '- one private Dataset will be created.', flush=True)
+        sources_data = json.loads((HERE / 'sources.json').read_text())
+        preflight(remote_records(catalog_data, sources_data))
         previous = reuse_runtime(input_root)
         if previous:
             runtime_path, runtime = previous

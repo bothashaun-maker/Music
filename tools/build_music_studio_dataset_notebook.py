@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # Only what the Dataset builder needs. The studio notebook's launcher, patches
 # for the browser UI and the upload route are not part of this payload.
-PAYLOAD = ('__init__.py', 'common.py', 'dataset.py', 'build_runtime.py',
+PAYLOAD = ('__init__.py', 'common.py', 'dataset.py', 'build_runtime.py', 'preflight.py',
            'patches.py', 'launch.py', 'kaggle_upload.rs', 'upload.html',
            'catalog.json', 'sources.json', 'NOTICES.md')
 
