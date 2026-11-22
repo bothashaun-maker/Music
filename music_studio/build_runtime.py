@@ -211,6 +211,13 @@ def build_env(work, sources):
     return env
 
 
+def engine_stage(work, sources, env, log, jobs, cuda):
+    """Configure and compile the generation engine."""
+    print('Engine configure env:', 'CUDACXX=' + env.get('CUDACXX', 'unset'),
+          'CUDAToolkit_ROOT=' + env.get('CUDAToolkit_ROOT', 'unset'), flush=True)
+    stage_engine(work, sources, env, log, jobs, cuda)
+
+
 def build(work, *, jobs=2, cuda=True):
     work = Path(work).resolve()
     work.mkdir(parents=True, exist_ok=True)
@@ -241,13 +248,14 @@ def build(work, *, jobs=2, cuda=True):
     env['CARGO_BUILD_JOBS'] = str(jobs)
     stage(work, 'studio', sources['studio'], lambda: stage_studio(work, sources, env, log))
     if cuda:
-        stage(work, 'cuda-toolkit', fingerprint([r for r in sources['runtime_assets']
-                                                 if r['id'].startswith('cuda_') or r['id'] in ('libcublas', 'libnvvm')]),
-              lambda: toolkit(work, sources, env))
-        env = build_env(work, sources)
-        env['CARGO_BUILD_JOBS'] = str(jobs)
+        # toolkit() is idempotent (marker-guarded) but it must run on every
+        # attempt: it exports CUDACXX/CUDAToolkit_ROOT/CUDA_PATH and puts the
+        # pinned nvcc on PATH for the engine and trainer configures. Wrapping it
+        # in a stage made a completed run skip the export and broke CMake ABI
+        # detection at engine configure.
+        toolkit(work, sources, env)
     stage(work, 'engine', dict(sources=sources, jobs=jobs, cuda=cuda),
-          lambda: stage_engine(work, sources, env, log, jobs, cuda))
+          lambda: engine_stage(work, sources, env, log, jobs, cuda))
     stage(work, 'helpers-cpu', sources['tools'], lambda: stage_helpers(work, sources, env, log, jobs))
     if cuda:
         stage(work, 'helpers-train', dict(sources=sources, jobs=jobs),

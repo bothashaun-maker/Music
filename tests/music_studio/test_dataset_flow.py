@@ -9,6 +9,7 @@ import base64
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import types
@@ -187,6 +188,34 @@ class CpuToolchainTests(unittest.TestCase):
         # The separate CUDA trainer keeps the normal options untouched.
         self.assertIn('-DGGML_CUDA=ON', common_options)
         self.assertIn('-DCMAKE_CUDA_COMPILER=/tmp/cuda/bin/nvcc', common_options)
+
+
+class ToolkitEnvTests(unittest.TestCase):
+    def test_toolkit_still_exports_cuda_env_when_already_complete(self):
+        """A completed toolkit download must not skip the compiler environment."""
+        import tempfile
+        from music_studio.common import fingerprint
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            cuda = work / 'cuda'
+            cuda.mkdir()
+            sources = dict(runtime_assets=[
+                dict(id='cuda_nvcc', name='nvcc.tar.xz', source='https://example.invalid/nvcc',
+                     sha256='0' * 64, bytes=1),
+                dict(id='libcublas', name='cublas.tar.xz', source='https://example.invalid/cublas',
+                     sha256='1' * 64, bytes=1),
+            ])
+            selected = [r for r in sources['runtime_assets']
+                        if r['id'].startswith('cuda_') or r['id'] in ('libcublas', 'libnvvm')]
+            (cuda / '.complete').write_text(fingerprint(selected))
+            env = dict(os.environ)
+            with patch.object(build_runtime, 'transfer') as transfer:
+                build_runtime.toolkit(work, sources, env)
+            transfer.assert_not_called()
+            self.assertEqual(env['CUDACXX'], str(cuda / 'bin/nvcc'))
+            self.assertEqual(env['CUDAToolkit_ROOT'], str(cuda))
+            self.assertEqual(env['CUDA_PATH'], str(cuda))
+            self.assertTrue(str(cuda / 'bin') in env['PATH'].split(os.pathsep))
 
 
 class PreflightTests(unittest.TestCase):
