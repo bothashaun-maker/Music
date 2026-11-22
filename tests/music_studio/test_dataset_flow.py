@@ -190,6 +190,57 @@ class CpuToolchainTests(unittest.TestCase):
         self.assertIn('-DCMAKE_CUDA_COMPILER=/tmp/cuda/bin/nvcc', common_options)
 
 
+class CudaExtractionTests(unittest.TestCase):
+    def test_tar_extraction_preserves_executable_bit(self):
+        import io
+        import tarfile
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            archive_path = Path(tmp) / 'fixture.tar'
+            data = b'cuda compiler fixture'
+            with tarfile.open(archive_path, 'w') as tar:
+                info = tarfile.TarInfo('cuda/bin/nvcc')
+                info.mode, info.size = 0o755, len(data)
+                tar.addfile(info, io.BytesIO(data))
+            with tarfile.open(archive_path) as source:
+                target = build_runtime.write_tar_file(source, source.getmember('cuda/bin/nvcc'), Path(tmp) / 'out/bin/nvcc')
+            self.assertEqual(target.read_bytes(), data)
+            if os.name != 'nt':
+                self.assertTrue(target.stat().st_mode & 0o111)
+
+    def test_cuda_probe_rejects_missing_compiler(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(RuntimeError, 'missing nvcc'):
+                build_runtime.validate_cuda_compiler(Path(tmp) / 'cuda', {}, tmp)
+
+    def test_cuda_probe_writes_a_real_newline_in_cuda_source(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            cuda = work / 'cuda'
+            compiler = cuda / 'bin/nvcc'
+            compiler.parent.mkdir(parents=True)
+            compiler.write_text('fixture')
+            host = work / 'c++'
+            host.write_text('fixture')
+            output = work / 'cuda-compiler-probe/probe.o'
+
+            def run(command, **kwargs):
+                if command[1] == '--version':
+                    return types.SimpleNamespace(returncode=0, stdout='nvcc fixture')
+                source = Path(command[command.index('-c') + 1])
+                self.assertEqual(source.read_bytes().replace(b'\r\n', b'\n'), b'extern "C" __global__ void music_studio_cuda_probe() {}\n')
+                Path(command[command.index('-o') + 1]).write_bytes(b'object')
+                return types.SimpleNamespace(returncode=0, stdout='')
+
+            with patch.object(build_runtime.os, 'access', return_value=True), \
+                    patch.object(build_runtime.shutil, 'which', return_value=str(host)), \
+                    patch.object(build_runtime.subprocess, 'run', side_effect=run):
+                build_runtime.validate_cuda_compiler(cuda, {}, work)
+            self.assertEqual(output.read_bytes(), b'object')
+
+
 class ToolkitEnvTests(unittest.TestCase):
     def test_toolkit_still_exports_cuda_env_when_already_complete(self):
         """A completed toolkit download must not skip the compiler environment."""
@@ -207,9 +258,14 @@ class ToolkitEnvTests(unittest.TestCase):
             ])
             selected = [r for r in sources['runtime_assets']
                         if r['id'].startswith('cuda_') or r['id'] in ('libcublas', 'libnvvm')]
+            (cuda / 'bin').mkdir()
+            for name in ('nvcc', 'ptxas', 'cudafe++'):
+                (cuda / 'bin' / name).write_text('fixture')
+            for record in selected:
+                (cuda / ('.asset-' + record['id'])).write_text(record['sha256'])
             (cuda / '.complete').write_text(fingerprint(selected))
             env = dict(os.environ)
-            with patch.object(build_runtime, 'transfer') as transfer:
+            with patch.object(build_runtime, 'transfer') as transfer, patch.object(build_runtime, 'validate_cuda_compiler'):
                 build_runtime.toolkit(work, sources, env)
             transfer.assert_not_called()
             self.assertEqual(env['CUDACXX'], str(cuda / 'bin/nvcc'))
@@ -269,6 +325,14 @@ class NotebookPayloadTests(unittest.TestCase):
         encoded = code.split("base64.b64decode(", 2)[1].split(')')[0].strip().strip("'")
         payload = base64.b64decode(encoded)
         self.assertIn(hashlib.sha256(payload).hexdigest(), code)
+        markdown = ''.join(notebook['cells'][0]['source'])
+        catalog = json.loads((ROOT / 'music_studio/catalog.json').read_text())
+        self.assertEqual(len(catalog['assets']), 18)
+        for record in catalog['assets']:
+            self.assertIn('`' + record['name'] + '`', markdown)
+        self.assertIn('Accelerator None', markdown)
+        self.assertIn('still compiles', markdown)
+        self.assertIn('does not make', markdown)
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             names = set(archive.namelist())
         expected = {'music_studio/' + name for name in
@@ -278,6 +342,11 @@ class NotebookPayloadTests(unittest.TestCase):
         self.assertEqual(names, expected)
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             embedded = {name.rsplit('/', 1)[-1]: archive.read(name) for name in archive.namelist()}
+        dataset_source = embedded['dataset.py'].decode()
+        runtime_source = embedded['build_runtime.py'].decode()
+        self.assertIn('build_runtime_record(scratch, jobs)', dataset_source)
+        self.assertIn('music-studio-runtime.bundle', runtime_source)
+        self.assertIn('CMAKE_CUDA_ARCHITECTURES', runtime_source)
         sources = json.loads(embedded['sources.json'])
         for name, expected_digest in sources['patches'].items():
             self.assertEqual(hashlib.sha256(embedded[name]).hexdigest(), expected_digest,

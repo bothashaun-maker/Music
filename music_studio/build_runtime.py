@@ -88,6 +88,16 @@ def stop_group(child):
         child.wait(timeout=5)
 
 
+def write_tar_file(source, member, destination):
+    """Extract one prevalidated regular file while preserving executable bits."""
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with source.extractfile(member) as stream, destination.open('wb') as output:
+        shutil.copyfileobj(stream, output)
+    os.chmod(destination, member.mode & 0o777)
+    return destination
+
+
 def checkout(spec, destination, log):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
@@ -139,12 +149,28 @@ def toolkit(work, sources, env):
     ready = root / '.complete'
     selected = [r for r in sources['runtime_assets'] if r['id'].startswith('cuda_') or r['id'] in ('libcublas', 'libnvvm')]
     identity = fingerprint(selected)
-    if not ready.exists() or ready.read_text() != identity:
+    required = (root / 'bin/nvcc', root / 'bin/ptxas', root / 'bin/cudafe++')
+    complete = ready.exists() and ready.read_text() == identity and all(p.is_file() for p in required)
+    # Older notebook builds wrote CUDA archive bytes without restoring their
+    # executable modes. Re-extract the pinned nvcc archive on such caches.
+    executable_ok = complete and all(os.access(p, os.X_OK) for p in required)
+    if not complete or not executable_ok:
         root.mkdir(exist_ok=True)
+        # If this root was marked complete by an older extraction, re-open the
+        # asset marker repair path even though the top-level .complete stamp
+        # matches. The archive marker alone doesn't prove executable modes.
         for record in selected:
             marker = root / ('.asset-' + record['id'])
             if marker.exists() and marker.read_text() == record['sha256']:
-                continue
+                if record['id'] == 'cuda_nvcc' and not all(
+                        os.access(root / 'bin' / name, os.X_OK)
+                        for name in ('nvcc', 'ptxas', 'cudafe++')):
+                    # Earlier notebook builds extracted CUDA files without mode
+                    # bits. The archive marker is valid but nvcc is unusable; fetch
+                    # this small pinned archive again and repair the owned files.
+                    print('Repairing cached CUDA toolkit: nvcc executable mode is missing.', flush=True)
+                else:
+                    continue
             archive = transfer(record, work / record['name'])
             if record['id'] == 'cuda_driver_stub':
                 # NVIDIA's tiny driver-dev package supplies a link-time stub;
@@ -164,6 +190,10 @@ def toolkit(work, sources, env):
                 archive.unlink()
                 marker.write_text(record['sha256'])
                 continue
+            if record['id'] == 'cuda_nvcc':
+                # Remove only this builder-owned toolkit executable directory
+                # before repairing bad cached mode bits from older notebook runs.
+                shutil.rmtree(root / 'bin', ignore_errors=True)
             with tarfile.open(archive) as source:
                 for member in source.getmembers():
                     if not member.isfile():
@@ -175,10 +205,8 @@ def toolkit(work, sources, env):
                     # Static cuBLAS is enormous and is not used by the dynamic backend.
                     if 'libcublas_static' in relative.name or relative.suffix == '.a':
                         continue
-                    destination = root / relative
-                    destination.parent.mkdir(parents=True, exist_ok=True)
-                    with source.extractfile(member) as stream, destination.open('wb') as output:
-                        shutil.copyfileobj(stream, output)
+                    # CUDA archives mark nvcc/ptxas/cudafe/fatbinary executable.
+                    write_tar_file(source, member, root / relative)
             archive.unlink()
             marker.write_text(record['sha256'])
         for p in (root / 'lib').glob('*.so*'):
@@ -186,10 +214,41 @@ def toolkit(work, sources, env):
                 alias = p.with_name(p.name.split('.so.')[0] + '.so')
                 if not alias.exists() and not alias.is_symlink():
                     alias.symlink_to(Path('../lib') / p.name)
-        ready.write_text(identity)
+        if not complete or not executable_ok:
+            ready.write_text(identity)
     env.update(CUDACXX=str(root / 'bin/nvcc'), CUDAToolkit_ROOT=str(root), CUDA_PATH=str(root))
     env['PATH'] = str(root / 'bin') + os.pathsep + env['PATH']
+    validate_cuda_compiler(root, env, work)
     return root
+
+
+def validate_cuda_compiler(root, env, work):
+    """Fail with the real nvcc error before CMake's opaque ABI try_compile."""
+    compiler = Path(root) / 'bin/nvcc'
+    if not compiler.is_file():
+        raise RuntimeError('Pinned CUDA toolkit is missing nvcc: ' + str(compiler))
+    if not os.access(compiler, os.X_OK):
+        raise RuntimeError('Pinned CUDA toolkit nvcc is not executable: ' + str(compiler))
+    version = subprocess.run([str(compiler), '--version'], env=env, text=True,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if version.returncode:
+        raise RuntimeError('Pinned nvcc --version failed (' + str(version.returncode) + '):\n' + version.stdout[-8000:])
+    probe = Path(work) / 'cuda-compiler-probe'
+    probe.mkdir(parents=True, exist_ok=True)
+    source = probe / 'probe.cu'
+    output = probe / 'probe.o'
+    host = shutil.which('c++', path=env.get('PATH')) or shutil.which('g++', path=env.get('PATH'))
+    if not host:
+        raise RuntimeError('A host C++ compiler (c++/g++) is required to compile CUDA code.')
+    source.write_text('extern "C" __global__ void music_studio_cuda_probe() {}\n', newline='\n')
+    result = subprocess.run([str(compiler), '-ccbin', host, '-arch=sm_75', '-c', str(source), '-o', str(output)],
+                            cwd=probe, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if result.returncode:
+        raise RuntimeError('Pinned nvcc CUDA compile probe failed (' + str(result.returncode) + '):\n' +
+                           version.stdout[-3000:] + '\n' + result.stdout[-12000:])
+    if not output.is_file() or output.stat().st_size == 0:
+        raise RuntimeError('Pinned nvcc probe exited successfully but did not produce an object file.')
+    print('CUDA preflight: nvcc is executable and compiled an SM75 probe.', flush=True)
 
 
 def build_env(work, sources):

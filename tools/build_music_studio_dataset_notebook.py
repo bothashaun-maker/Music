@@ -1,10 +1,10 @@
 """Generate Music-Studio-Dataset.ipynb — one cell, one private Kaggle Dataset.
 
-Follows the same shape as the other automatic Dataset builders in the JJP
-repositories: an embedded, checksummed runtime archive, a single driver cell
-that validates the saved catalog, authenticates first, measures scratch space
-and then calls `create_dataset()` once. Nothing about the 25 GB model set is
-downloaded before those checks pass.
+Uses the compact automatic-builder pattern from Stem_Splitter_Model_Packs:
+a clear setup note and one self-contained, checksummed driver cell. This Studio
+Dataset includes the pinned runtime as well as all 18 assets the full Studio
+launcher verifies. The CPU builder still compiles the CUDA 13/SM75 runtime; it
+does not require a Kaggle GPU or provide CPU song generation.
 """
 from pathlib import Path
 import base64
@@ -47,7 +47,10 @@ def payload_archive():
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for name in PAYLOAD:
-            archive.writestr('music_studio/' + name, source_bytes(name))
+            member = zipfile.ZipInfo('music_studio/' + name, date_time=(1980, 1, 1, 0, 0, 0))
+            member.compress_type = zipfile.ZIP_DEFLATED
+            member.external_attr = 0o100644 << 16
+            archive.writestr(member, source_bytes(name), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
     packed = buffer.getvalue()
     return base64.b64encode(packed).decode(), hashlib.sha256(packed).hexdigest()
 
@@ -56,48 +59,85 @@ def summary():
     catalog = json.loads((ROOT / 'music_studio/catalog.json').read_text())
     assets = catalog['assets']
     largest = max(assets, key=lambda a: a['bytes'])
-    roles = sorted({a['role'] for a in assets})
+    groups = {
+        'Generation': ['generation', 'companion'],
+        'Covers': ['cover'],
+        'Stem separation': ['stems'],
+        'Karaoke and transcription': ['karaoke', 'whisper'],
+        'Local lyric writer': ['writer'],
+        'Audio-to-MIDI': ['midi'],
+        'MOSS audio description': ['caption'],
+        'Tempo analysis': ['tempo'],
+    }
+    included = {asset['role'] for asset in assets}
+    groups = {label: [asset['name'] for asset in assets if asset['role'] in roles]
+              for label, roles in groups.items() if included.intersection(roles)}
     return dict(count=len(assets), total=sum(a['bytes'] for a in assets),
-                largest=largest, roles=roles)
+                largest=largest, groups=groups)
 
 
 def intro(info, digest):
-    return f'''# Music Studio Dataset — automatic private save
+    groups = '\n'.join(
+        f"- **{label}:** " + ', '.join(f'`{name}`' for name in names)
+        for label, names in info['groups'].items())
+    return f'''# Music Studio — saved runtime and model Dataset
 
-**Accelerator None / CPU build / Internet ON.** One cell checks your Kaggle
-credentials, compiles the pinned x86-64/T4 runtime, verifies every model and
-submits **one complete private Dataset** through the same native Kaggle
-streaming uploader the other JJP notebooks use. No model passes through your PC.
+**Kaggle settings: Accelerator None · Internet ON.** This is an automatic,
+one-cell Dataset builder. It follows the compact model-pack pattern used by
+Stem Splitter, with the extra pinned Linux runtime the Music Studio launcher
+actually requires. Authentication and disk checks run before large downloads;
+the verified files are submitted directly to one **private Kaggle Dataset**.
+Nothing passes through your PC.
 
-1. Enable your private Kaggle Secret `KAGGLE_API_TOKEN` (or `KAGGLE_USERNAME`
-   and `KAGGLE_KEY`). Never paste a token into code or chat.
-2. Leave `DATASET_OWNER` blank when authentication reveals your username;
-   otherwise set only your Kaggle username.
-3. Run the single code cell. It prints **PRIVATE MUSIC STUDIO DATASET SUBMITTED**
-   with a link. The first compilation is the long step; the cell stays busy.
-4. Wait for Kaggle to process the Dataset, then attach that ONE Dataset to
-   **Music-Studio.ipynb** through **Add Input → Your Datasets**.
+1. Enable Kaggle Internet. Add private notebook Secret `KAGGLE_API_TOKEN`, or
+   `KAGGLE_USERNAME` and `KAGGLE_KEY`. Never paste credentials into the cell.
+2. Leave `DATASET_OWNER = ''` to use the authenticated username, or enter only
+   your Kaggle username if automatic detection is unavailable.
+3. Run the single code cell and wait. The runtime compilation is CPU-based and
+   may take a long time. Success prints **PRIVATE MUSIC STUDIO DATASET SUBMITTED**.
+4. Wait for Kaggle to process it. In **Music-Studio.ipynb**, choose **GPU T4 ×2**,
+   turn on Internet, then **Add Input → Your Datasets** and attach this Dataset.
 
-The saved set is **{info["count"]} pinned files / {info["total"] / 1e9:.2f} GB** plus the compiled
-runtime: {", ".join(info["roles"])}. Each file has an immutable source revision,
-exact byte count and SHA-256. The compiled runtime is built once here on CPU and
-reused by every later GPU session, which never compiles it.
+## What the Studio actually needs
 
-Space is measured, not assumed. The build picks the first scratch location with
-enough free room, and upload needs only the largest missing file
-(**{info["largest"]["name"]}**, {info["largest"]["bytes"] / 1e9:.2f} GB) plus a reserve, so the
-Dataset is never held twice on local disk. An attached, checksum-verified Music
-Studio runtime is reused instead of recompiling. Only this builder's own
-temporary downloads are released; attached inputs are never touched.
+The catalog has **{info['count']} exact, checksum-pinned model files** totalling
+**{info['total'] / 1e9:.2f} GB**. These are model assets (not training-base weights):
 
-One private create request per run, never an update or overwrite of an existing
-Dataset. An interrupted final request has an uncertain outcome: check the
-Dataset page before retrying. Receipts and the build log stay under
-`/kaggle/working/music_studio_dataset` and the chosen scratch location.
+{groups}
 
-Embedded builder sources: `{digest}`
+These cover YuE2 generation and its companion/VAE, SheetSage cover generation,
+HT-Demucs stems, Parakeet plus Whisper transcription, the Gemma lyric writer,
+MuScriptor audio-to-MIDI, MOSS audio description, and tempo analysis. The
+launcher verifies and links these catalog paths. The selected components cannot
+be omitted from this single-Dataset Studio build. Artwork/video models are not
+included; they are separate workflows.
+
+## Important: CPU builder does not mean CPU runtime build
+
+`Accelerator None` means Kaggle does not allocate a GPU to this builder. It
+**still compiles** the pinned YuE2/CUDA runtime on CPU, including CUDA 13 device
+code for T4/SM75. It is not a models-only download cell, and it does not make
+song generation run on CPU. The normal Studio session uses the saved runtime on
+GPU 0 and does not compile it again. The second T4's VRAM is not pooled.
+
+The builder measures available disk, validates remote asset sizes before build,
+checks exact bytes and SHA-256, and streams one file at a time through Kaggle's
+native private Dataset-creation uploader. The largest model is
+`{info['largest']['name']}` (**{info['largest']['bytes'] / 1e9:.2f} GB**); upload
+space is needed for one missing model plus reserve, not another full model set.
+Only this run's own successful temporary downloads are deleted; attached
+inputs and existing user files are preserved. A verified runtime from an
+attached Music Studio Dataset is reused when available.
+
+This makes one private create request; it never updates or versions an existing
+Dataset. If the cell is interrupted during final submission, check Kaggle
+before retrying because the outcome may be uncertain. A success message/receipt
+confirms submission, not completed Kaggle processing. Build and upload logs are
+under `/kaggle/working/music_studio_dataset` and the selected scratch folder.
+
+Embedded sources SHA-256: `{digest}`
 · [Setup and validation](https://github.com/bothashaun-maker/Music/blob/main/docs/music-studio/README.md)
-· [Complete tool guide](https://github.com/bothashaun-maker/Music/blob/main/Music-Studio-Guide.pdf)
+· [Complete Studio guide](https://github.com/bothashaun-maker/Music/blob/main/Music-Studio-Guide.pdf)
 '''
 
 
@@ -125,17 +165,16 @@ for name in [n for n in sys.modules if n == 'music_studio' or n.startswith('musi
     sys.modules.pop(name, None)  # Rerunning this cell must not reuse stale sources.
 
 from music_studio.common import GIB, choose_scratch
-from music_studio.dataset import SCRATCH_CANDIDATES, authenticated_api, create_dataset, username
+from music_studio.dataset import authenticated_api, create_dataset, username
 
 catalog = json.loads((SUPPORT / 'music_studio/catalog.json').read_text())
 api = authenticated_api()  # Check credentials before any compile, download or request.
 owner = DATASET_OWNER or username(api)
 if not owner:
     raise RuntimeError('Set DATASET_OWNER to your Kaggle username, then rerun. Nothing was built or downloaded.')
-scratch = choose_scratch(8 * GIB, SCRATCH_CANDIDATES, 'music-studio-build')
-cache = choose_scratch(max(a['bytes'] for a in catalog['assets']) + GIB, SCRATCH_CANDIDATES, 'music-studio-downloads')
+cache = choose_scratch(max(a['bytes'] for a in catalog['assets']) + GIB, ('/kaggle/temp', '/tmp', '/kaggle/working'), 'music-studio-downloads')
 result = create_dataset(catalog, '/kaggle/working/music_studio_dataset', Path('/kaggle/input'),
-                        cache, owner, jobs=BUILD_JOBS, api=api, build_scratch=scratch)
+                        cache, owner, jobs=BUILD_JOBS, api=api)
 print('Dataset handle:', result['handle'])
 print('Local receipt:', result['receipt'])
 '''
