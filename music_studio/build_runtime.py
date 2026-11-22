@@ -143,34 +143,69 @@ def copy_runtime(build, binary, destination):
                     shutil.copy2(library, target)
 
 
+# Files the toolkit must contain after extraction. CMake's CUDA compiler ABI
+# check links a test binary, and device linking needs both of the static
+# runtime libraries, so they cannot be discarded as "static".
+TOOLKIT_REQUIRED = {
+    'cuda_nvcc': ('bin/nvcc', 'bin/ptxas', 'bin/cudafe++'),
+    'cuda_cudart': ('lib/libcudart_static.a', 'lib/libcudadevrt.a'),
+}
+# Multi-hundred-megabyte static BLAS/FFT libraries are genuinely unused by the
+# dynamic engine backend. The small static CUDA runtime libraries are not.
+HEAVY_STATIC = ('libcublas', 'libcufft', 'libcusolver', 'libcusparse', 'libcurand')
+HEAVY_STATIC_BYTES = 256 * 1024 * 1024
+
+
+def toolkit_member_needed(relative, size):
+    """Keep every CUDA file except the giant static accelerator libraries."""
+    if Path(relative).suffix != '.a':
+        return True
+    return not (Path(relative).name.lower().startswith(HEAVY_STATIC) or size > HEAVY_STATIC_BYTES)
+
+
+def toolkit_missing(root, record_id):
+    """Files this archive should have produced but that are absent on disk."""
+    missing = [name for name in TOOLKIT_REQUIRED.get(record_id, ()) if not (root / name).is_file()]
+    if record_id == 'cuda_cudart' and not any(root.glob('lib/libcudart.so*')):
+        missing.append('lib/libcudart.so')
+    return tuple(missing)
+
+
 def toolkit(work, sources, env):
     """NVIDIA's pinned redistributables provide nvcc without a GPU or root access."""
     root = work / 'cuda'
     ready = root / '.complete'
     selected = [r for r in sources['runtime_assets'] if r['id'].startswith('cuda_') or r['id'] in ('libcublas', 'libnvvm')]
     identity = fingerprint(selected)
-    required = (root / 'bin/nvcc', root / 'bin/ptxas', root / 'bin/cudafe++')
-    complete = ready.exists() and ready.read_text() == identity and all(p.is_file() for p in required)
+    compilers = tuple(root / name for name in ('bin/nvcc', 'bin/ptxas', 'bin/cudafe++'))
+    # CMake's CUDA ABI check links against the static runtime, so a toolkit that
+    # lost those libraries is not complete even when nvcc exists.
+    static_runtime = (root / 'lib/libcudart_static.a', root / 'lib/libcudadevrt.a')
+    complete = (ready.exists() and ready.read_text() == identity
+                and all(p.is_file() for p in compilers + static_runtime))
     # Older notebook builds wrote CUDA archive bytes without restoring their
     # executable modes. Re-extract the pinned nvcc archive on such caches.
-    executable_ok = complete and all(os.access(p, os.X_OK) for p in required)
+    executable_ok = complete and all(os.access(p, os.X_OK) for p in compilers)
     if not complete or not executable_ok:
         root.mkdir(exist_ok=True)
         # If this root was marked complete by an older extraction, re-open the
         # asset marker repair path even though the top-level .complete stamp
-        # matches. The archive marker alone doesn't prove executable modes.
+        # matches. The archive marker alone doesn't prove executable modes or
+        # that every required library survived the extraction filter.
         for record in selected:
             marker = root / ('.asset-' + record['id'])
-            if marker.exists() and marker.read_text() == record['sha256']:
-                if record['id'] == 'cuda_nvcc' and not all(
-                        os.access(root / 'bin' / name, os.X_OK)
-                        for name in ('nvcc', 'ptxas', 'cudafe++')):
+            missing = toolkit_missing(root, record['id'])
+            if marker.exists() and marker.read_text() == record['sha256'] and not missing:
+                if record['id'] == 'cuda_nvcc' and not all(os.access(p, os.X_OK) for p in compilers):
                     # Earlier notebook builds extracted CUDA files without mode
                     # bits. The archive marker is valid but nvcc is unusable; fetch
                     # this small pinned archive again and repair the owned files.
                     print('Repairing cached CUDA toolkit: nvcc executable mode is missing.', flush=True)
                 else:
                     continue
+            elif missing and marker.exists():
+                print('Repairing cached CUDA toolkit: ' + record['id'] + ' is missing ' +
+                      ', '.join(missing) + '.', flush=True)
             archive = transfer(record, work / record['name'])
             if record['id'] == 'cuda_driver_stub':
                 # NVIDIA's tiny driver-dev package supplies a link-time stub;
@@ -202,8 +237,10 @@ def toolkit(work, sources, env):
                     if not pieces or '..' in pieces or Path(member.name).is_absolute():
                         raise RuntimeError('Invalid CUDA redistributable path.')
                     relative = Path(*pieces)
-                    # Static cuBLAS is enormous and is not used by the dynamic backend.
-                    if 'libcublas_static' in relative.name or relative.suffix == '.a':
+                    # Static cuBLAS is enormous and is not used by the dynamic
+                    # backend. libcudart_static.a and libcudadevrt.a are small
+                    # and required, so only the heavy static libraries are skipped.
+                    if not toolkit_member_needed(relative, member.size):
                         continue
                     # CUDA archives mark nvcc/ptxas/cudafe/fatbinary executable.
                     write_tar_file(source, member, root / relative)
@@ -248,7 +285,21 @@ def validate_cuda_compiler(root, env, work):
                            version.stdout[-3000:] + '\n' + result.stdout[-12000:])
     if not output.is_file() or output.stat().st_size == 0:
         raise RuntimeError('Pinned nvcc probe exited successfully but did not produce an object file.')
-    print('CUDA preflight: nvcc is executable and compiled an SM75 probe.', flush=True)
+    # Compiling alone does not link the CUDA runtime. CMake's compiler ABI check
+    # does, so link a real device-code binary here to catch missing
+    # libcudart_static.a/libcudadevrt.a before the opaque engine configure fails.
+    link_source = probe / 'link.cu'
+    link_output = probe / 'probe'
+    link_source.write_text('extern "C" __global__ void music_studio_cuda_probe() {}\n'
+                           'int main() { music_studio_cuda_probe<<<1, 1>>>(); return 0; }\n', newline='\n')
+    linked = subprocess.run([str(compiler), '-ccbin', host, '-arch=sm_75', str(link_source), '-o', str(link_output)],
+                            cwd=probe, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if linked.returncode:
+        raise RuntimeError('Pinned nvcc CUDA link probe failed (' + str(linked.returncode) + '):\n' +
+                           version.stdout[-3000:] + '\n' + linked.stdout[-12000:])
+    if not link_output.is_file():
+        raise RuntimeError('Pinned nvcc link probe exited successfully but produced no binary.')
+    print('CUDA preflight: nvcc compiled and linked an SM75 probe with the pinned static runtime.', flush=True)
 
 
 def build_env(work, sources):

@@ -208,6 +208,14 @@ class CudaExtractionTests(unittest.TestCase):
             if os.name != 'nt':
                 self.assertTrue(target.stat().st_mode & 0o111)
 
+    def test_static_cuda_runtime_is_kept_but_heavy_static_blas_is_not(self):
+        for name in ('lib/libcudart_static.a', 'lib/libcudadevrt.a', 'lib/libculibos.a', 'bin/nvcc'):
+            self.assertTrue(build_runtime.toolkit_member_needed(Path(name), 2 * 1024 * 1024), name)
+        for name in ('lib/libcublas_static.a', 'lib/libcublasLt_static.a', 'lib/libcufft_static.a'):
+            self.assertFalse(build_runtime.toolkit_member_needed(Path(name), 900 * 1024 * 1024), name)
+        self.assertFalse(build_runtime.toolkit_member_needed(Path('lib/libsomething.a'), 900 * 1024 * 1024))
+        self.assertTrue(build_runtime.toolkit_member_needed(Path('lib/libsomething.a'), 1024))
+
     def test_cuda_probe_rejects_missing_compiler(self):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
@@ -226,12 +234,19 @@ class CudaExtractionTests(unittest.TestCase):
             host.write_text('fixture')
             output = work / 'cuda-compiler-probe/probe.o'
 
+            compiled = []
+            linked = []
+
             def run(command, **kwargs):
                 if command[1] == '--version':
                     return types.SimpleNamespace(returncode=0, stdout='nvcc fixture')
-                source = Path(command[command.index('-c') + 1])
-                self.assertEqual(source.read_bytes().replace(b'\r\n', b'\n'), b'extern "C" __global__ void music_studio_cuda_probe() {}\n')
-                Path(command[command.index('-o') + 1]).write_bytes(b'object')
+                if '-c' in command:
+                    source = Path(command[command.index('-c') + 1])
+                    compiled.append(source.read_bytes().replace(b'\r\n', b'\n'))
+                    Path(command[command.index('-o') + 1]).write_bytes(b'object')
+                    return types.SimpleNamespace(returncode=0, stdout='')
+                linked.append(1)
+                Path(command[command.index('-o') + 1]).write_bytes(b'binary')
                 return types.SimpleNamespace(returncode=0, stdout='')
 
             with patch.object(build_runtime.os, 'access', return_value=True), \
@@ -239,6 +254,10 @@ class CudaExtractionTests(unittest.TestCase):
                     patch.object(build_runtime.subprocess, 'run', side_effect=run):
                 build_runtime.validate_cuda_compiler(cuda, {}, work)
             self.assertEqual(output.read_bytes(), b'object')
+            self.assertEqual(compiled, [b'extern "C" __global__ void music_studio_cuda_probe() {}\n'])
+            # The probe must link too: compiling alone hides missing static runtime libraries.
+            self.assertEqual(linked, [1])
+            self.assertEqual((work / 'cuda-compiler-probe/probe').read_bytes(), b'binary')
 
 
 class ToolkitEnvTests(unittest.TestCase):
@@ -253,6 +272,8 @@ class ToolkitEnvTests(unittest.TestCase):
             sources = dict(runtime_assets=[
                 dict(id='cuda_nvcc', name='nvcc.tar.xz', source='https://example.invalid/nvcc',
                      sha256='0' * 64, bytes=1),
+                dict(id='cuda_cudart', name='cudart.tar.xz', source='https://example.invalid/cudart',
+                     sha256='2' * 64, bytes=1),
                 dict(id='libcublas', name='cublas.tar.xz', source='https://example.invalid/cublas',
                      sha256='1' * 64, bytes=1),
             ])
@@ -261,6 +282,9 @@ class ToolkitEnvTests(unittest.TestCase):
             (cuda / 'bin').mkdir()
             for name in ('nvcc', 'ptxas', 'cudafe++'):
                 (cuda / 'bin' / name).write_text('fixture')
+            (cuda / 'lib').mkdir()
+            for name in ('libcudart_static.a', 'libcudadevrt.a', 'libcudart.so.13'):
+                (cuda / 'lib' / name).write_text('fixture')
             for record in selected:
                 (cuda / ('.asset-' + record['id'])).write_text(record['sha256'])
             (cuda / '.complete').write_text(fingerprint(selected))
@@ -272,6 +296,44 @@ class ToolkitEnvTests(unittest.TestCase):
             self.assertEqual(env['CUDAToolkit_ROOT'], str(cuda))
             self.assertEqual(env['CUDA_PATH'], str(cuda))
             self.assertTrue(str(cuda / 'bin') in env['PATH'].split(os.pathsep))
+
+
+    def test_toolkit_refetches_cudart_when_static_runtime_files_are_missing(self):
+        import io
+        import tarfile
+        import tempfile
+        from music_studio.common import fingerprint
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            cuda = work / 'cuda'
+            (cuda / 'bin').mkdir(parents=True)
+            for name in ('nvcc', 'ptxas', 'cudafe++'):
+                (cuda / 'bin' / name).write_text('fixture')
+            sources = dict(runtime_assets=[
+                dict(id='cuda_nvcc', name='nvcc.tar.xz', source='https://example.invalid/nvcc',
+                     sha256='0' * 64, bytes=1),
+                dict(id='cuda_cudart', name='cudart.tar.xz', source='https://example.invalid/cudart',
+                     sha256='2' * 64, bytes=1),
+            ])
+            selected = sources['runtime_assets']
+            for record in selected:
+                (cuda / ('.asset-' + record['id'])).write_text(record['sha256'])
+            (cuda / '.complete').write_text(fingerprint(selected))
+            archive = work / 'cudart.tar.xz'
+            with tarfile.open(archive, 'w:xz') as tar:
+                for name in ('lib/libcudart_static.a', 'lib/libcudadevrt.a'):
+                    data = b'cudart fixture'
+                    member = tarfile.TarInfo('cuda/' + name)
+                    member.mode, member.size = 0o644, len(data)
+                    tar.addfile(member, io.BytesIO(data))
+            env = dict(os.environ)
+            with patch.object(build_runtime, 'transfer', return_value=archive) as transfer, \
+                    patch.object(build_runtime, 'validate_cuda_compiler'):
+                build_runtime.toolkit(work, sources, env)
+            self.assertEqual([call.args[0]['id'] for call in transfer.call_args_list], ['cuda_cudart'],
+                             'only the archive owning the missing runtime libraries is fetched again')
+            for name in ('libcudart_static.a', 'libcudadevrt.a'):
+                self.assertEqual((cuda / 'lib' / name).read_bytes(), b'cudart fixture')
 
 
 class PreflightTests(unittest.TestCase):
