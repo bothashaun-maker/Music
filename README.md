@@ -2,7 +2,7 @@
 
 [**Music-Studio.ipynb**](Music-Studio.ipynb) · [**Automatic private Dataset builder**](Music-Studio-Dataset.ipynb) · [**26-page tool guide PDF**](Music-Studio-Guide.pdf) · [Setup](docs/music-studio/README.md) · [Validation](docs/music-studio/VALIDATION.md)
 
-Build the **Music Studio Dataset** once on CPU; attach that one saved input to the
+Build the **Music Studio Dataset** once on CPU. Attach that one saved input to the
 T4 ×2 studio and run its single startup cell. This separate Linux browser studio
 adds score/MIDI editing, library tools, replay, covers, stems, karaoke, processing,
 video controls and MCP. Use **Upload large WAV** for resumable original imports.
@@ -14,9 +14,9 @@ music creation and Song Timestamp Studio notebooks remain available below.
 **[Open the 16-page production guide](JJP_Music_Production_System.pdf)** · **[Music Launch Desk](MUSIC_LAUNCH_DESK.md)** · [Editable guide](MUSIC_PRODUCTION_SYSTEM.md)
 
 A practical companion to the JJP Launch System: song creation and covers, reusable
-model storage, stem splitting, REAPER, final masters, lyric timestamps, subtitles,
-visuals and versioned delivery packs. Includes project templates and direct links
-to the existing notebooks. This is a documentation addition; working runtimes and
+model storage, stem splitting, REAPER, final masters, lyric timestamps, subtitles
+and visuals, plus versioned delivery packs. Includes project templates and direct links
+to the existing notebooks. This is a documentation addition. Working runtimes and
 model datasets are unchanged.
 
 ---
@@ -25,8 +25,8 @@ model datasets are unchanged.
 
 **Current Studio: vocal timing refinement, revision 18.**
 [Open the Studio notebook](Song-Timestamp-Studio-Canvas.ipynb).
-Supplied English lyrics now align directly to acoustic frames, including repeats;
-the former fuzzy-transcription timing path is bypassed. The model and acoustic
+Supplied English lyrics now align directly to acoustic frames, including repeats.
+The former fuzzy-transcription timing path is bypassed. The model and acoustic
 frames are reusable from saved Kaggle outputs. The Export node has **Download ZIP**.
 Music creation is unchanged. [Current timing changes and test limits](revision15/STUDIO_CUE_REPAIR.md).
 
@@ -38,7 +38,7 @@ failures are addressed in the [Studio notebook](Song-Timestamp-Studio-Canvas.ipy
 Music transcription keeps speech VAD off, reports CPU fallback when Whisper's
 CUDA runtime cannot load, and stops zero-match exports. Logs and heard-word
 diagnostics are retained. The working music-creation notebook is unchanged.
-All 118 local checks passed; recognition on the user's actual song remains
+All 118 local checks passed. Recognition on the user's actual song remains
 unverified. [Fix details and limits](revision15/STUDIO_ALIGNMENT_FIX.md).
 
 - [Music notebook — revision 15](YuE2_Music_Revision15.ipynb)
@@ -87,7 +87,7 @@ There is now ONE startup code cell. It extracts the bundled source and supervise
 an independent setup/launch process, rather than passing setup globals between
 notebook cells. That process installs the same saved wheels, starts the unchanged
 engine and offers the same Gradio/optional Cloudflare routes. Stopping the cell
-signals its owned process group; launcher cleanup closes its tunnel and engine.
+signals its owned process group, and launcher cleanup closes its tunnel and engine.
 Linux parent-death signalling binds the launcher to the notebook kernel.
 The file-list cell has its own imports and output location and starts no GPU job.
 Optional recovery selects a saved latent folder, then uses the same startup cell.
@@ -97,31 +97,31 @@ Full output persists in `runtime/startup.log`, with phase/error information in
 Seven CPU startup/auxiliary/worker checks passed, including generated startup
 from empty globals, empty-kernel file listing, setup failure before model startup,
 engine failure and preservation of Gradio when Cloudflare fails. Eight tunnel
-checks and eleven asset checks passed; optional real-Hub integration was skipped
+checks and eleven asset checks passed. Optional real-Hub integration was skipped
 because its dependency is absent. No actual Kaggle setup/GPU inference or live
-Cloudflare transfer was performed here. Existing asset datasets need no rebuild;
-model loading/sampling, formats and dependency versions have not been changed.
+Cloudflare transfer was performed here. Existing asset datasets need no rebuild.
+Model loading/sampling, formats and dependency versions have not been changed.
 
 ## Startup state recovery — revision 11
 
 The uploaded `music-creation.ipynb` recorded `ModuleNotFoundError: native_yue2`
 in the generator cell, with no successful setup completion marker in its saved
-outputs. The generator had execution count 1, while the setup count was absent;
-that is consistent with missing state after a kernel restart, but the notebook
+outputs. The generator had execution count 1, while the setup count was absent.
+That is consistent with missing state after a kernel restart, but the notebook
 does not establish why setup stopped. The pip conflict warnings are not this
 Python import exception and are not evidence that a song generation failed.
 
 Setup now marks its state incomplete before starting and complete only after its
 existing installation/probe finishes. Before importing notebook support modules,
 the generator cell checks that state and the required files/variables. If state
-is unavailable, it runs an embedded exact copy of the existing setup; completed
+is unavailable, it runs an embedded exact copy of the existing setup. Completed
 setup is reused and its import path restored. Setup failures still stop startup.
 No package pins, model formats, sampling behavior, audio formats, access routes
 or dataset schema changed. Existing `yue2-music-assets` needs no rebuild.
 
 Six CPU regression checks passed for fresh/interrupted/completed kernel state,
 removed environments, setup failures and completion ordering. Eleven asset
-checks passed; the optional real-Hub integration check was skipped because that
+checks passed. The optional real-Hub integration check was skipped because that
 package is absent from this test environment. Both notebooks parse and embed the
 current sources. No GPU generation or live Kaggle execution was performed.
 
@@ -131,20 +131,20 @@ The generator cell now prints an additional Cloudflare Quick Tunnel link to the
 same existing Gradio interface. The original Gradio share link remains enabled.
 No Cloudflare account/domain is required. This restores the original notebook's
 two-route access pattern without changing model loading, audio formats, generation
-settings or dataset selection. Existing revision 9 asset datasets remain usable;
-no rebuild/upload is needed. The official, pinned, SHA256-checked `cloudflared`
+settings or dataset selection. Existing revision 9 asset datasets remain usable.
+No rebuild/upload is needed. The official, pinned, SHA256-checked `cloudflared`
 2026.10.3 executable is fetched on Kaggle if not already cached. Tunnel failure
 prints its log and leaves the original Gradio route available. The sidecar exits
 when the cell is stopped or its notebook parent exits. Set `ENABLE_CLOUDFLARE =
 False` in the generator cell to use only the preexisting share link.
 
 Quick Tunnels do not guarantee availability or SSE live-progress support. A link
-is not proof the reported upload interruption is resolved. Keep the original WAV;
-no conversion is required by this update. Eight CPU lifecycle/checksum tests and
+is not proof the reported upload interruption is resolved. Keep the original WAV.
+No conversion is required by this update. Eight CPU lifecycle/checksum tests and
 the twelve asset checks passed. A real Gradio 5.49.1 local upload of an unchanged
 75 MiB synthetic WAV plus a queued result passed checksum/size verification with
-no GPU. The development environment refused the external Cloudflare connection;
-the separate unrestricted-network check was cancelled. Public-tunnel upload and
+no GPU. The development environment refused the external Cloudflare connection.
+The separate unrestricted-network check was cancelled. Public-tunnel upload and
 full ABC inference therefore remain unverified. No Kaggle GPU quota was used.
 
 ## Save model downloads once — revision 9
@@ -164,15 +164,15 @@ run directly on Kaggle. Keep the source notebook and dataset private.
 
 The generator automatically discovers one attached bundle. It installs its small
 Python overlay from saved wheels and reads large weights directly from
-`/kaggle/input`; it does not copy weights into temporary storage. Hub/Transformers
+`/kaggle/input`. It does not copy weights into temporary storage. Hub/Transformers
 are forced into offline mode, pip uses `--no-index`, and the share executable is
 copied locally for execution. Missing, corrupted or incompatible assets stop
-setup; **there is no silent download fallback**. Generation defaults, quality,
+setup. **There is no silent download fallback**. Generation defaults, quality,
 precision and token ceilings are unchanged.
 
 Read [KAGGLE_DATASET.md](KAGGLE_DATASET.md) for exact first-run/reuse steps,
 image compatibility and validation limits. The Gradio share link still needs
-Internet; source-song uploads and final audio downloads still use normal browser
+Internet. Source-song uploads and final audio downloads still use normal browser
 bandwidth. Kaggle image/dependency changes or future model revisions may require
 one rebuild, so “never download again” is not an unlimited compatibility promise.
 
@@ -206,9 +206,9 @@ It is not a voice-cloning or waveform-editing feature.
 the attached saved dataset.** Setup installs only their small
 support dependencies while preserving Kaggle's Torch/TorchAudio/scientific stack.
 FFmpeg and the image-matched TorchAudio are checked. The pinned SheetSage2 API
-normally defaults to BF16; this version explicitly loads/transcribes in FP32 for
+normally defaults to BF16. This version explicitly loads/transcribes in FP32 for
 T4. Whisper uses FP16 on T4. The upstream long-song transcription uses overlapping
-windows; no manual five-minute crop is applied by this notebook.
+windows. No manual five-minute crop is applied by this notebook.
 
 Cover analysis and song generation share one GPU queue. Melody and ASR models
 are released sequentially and after analysis, and a cached VAE is moved to CPU
@@ -237,13 +237,13 @@ SheetSage2 revision: `eab522a8168e8b8b8c4856bf8609cd86198f01fe`.
 Its config pins MERT parent `d8ba1c745e733b3908ce6ad16ebeb17ac7600a42` and the
 remote loader checks parent code/weight hashes. Whisper revision:
 `41f01f3fe87f28c78e2fbf8b568835947dd65ed9`. SheetSage2's upstream model license is
-CC-BY-NC-4.0; consult its and MERT's model cards for applicable terms.
+CC-BY-NC-4.0. Consult its and MERT's model cards for applicable terms.
 
 ## Duplicate-engine and GPU-memory protection (revision 7)
 
 The reported CUDA OOM showed approximately 7.03 GiB held by another process and
 7.52 GiB held by the failing process, leaving only about 11 MiB free on GPU 0.
-That is GPU-memory competition; the screenshot does not identify the other
+That is GPU-memory competition. The screenshot does not identify the other
 process's application. It is not evidence that the audio model ran on a local PC.
 The second T4's memory is separate and cannot cover GPU 0's allocations.
 
@@ -256,8 +256,8 @@ along with its original UI. Other models and unverified processes are not killed
 A lifetime process lock prevents two managed engines loading concurrently.
 
 A GPU-memory/process preflight runs before setup/launch and each generation.
-It requires a conservative 12 GiB available/reusable on GPU 0 and 4 GiB on GPU 1;
-this is a startup guard, not proof every long-song memory peak fits. The current
+It requires a conservative 12 GiB available/reusable on GPU 0 and 4 GiB on GPU 1.
+This is a startup guard, not proof every long-song memory peak fits. The current
 engine's resident allocation is counted as reusable for subsequent songs.
 Unrecognized GPU users are reported and startup/generation stops early.
 A CUDA OOM records `gpu-memory-at-error.json` and closes this failed engine's
@@ -265,10 +265,10 @@ models. These changes do not reduce quality, token ceilings or precision.
 
 **For the currently failed attempt:** interrupt its generator/UI cell to stop
 that failed process. Keep the saved run folder. Use the updated setup in the
-same retained session before another generation; inspect any reported unknown
+same retained session before another generation. Inspect any reported unknown
 GPU process rather than retrying Generate. This update cannot clear memory in
 your remote session until you execute it. No outputs or saved stages are deleted.
-Decode recovery still requires completed `latent.npy` and its manifest; a failure
+Decode recovery still requires completed `latent.npy` and its manifest. A failure
 before those files exist cannot be recovered by the decode cell.
 
 Eight real CPU child-process checks passed for surviving/legacy engines, lock
@@ -278,7 +278,7 @@ failure and OOM diagnostics/model release. No Kaggle GPU generation was used.
 
 ## Natural endings and safety ceilings (revision 6)
 
-The model should end the song from its prompt and lyrics; it does not need to
+The model should end the song from its prompt and lyrics. It does not need to
 fill a selected length. A natural four-minute ending under a six-minute ceiling
 is normal behavior. Hitting the ceiling without an end token is a different
 condition: a cutoff that may interrupt the song.
@@ -287,9 +287,9 @@ The UI now calls this setting **Maximum song length (safety ceiling)**, with
 **Up to 8 min** selected by default. Clear/reset and unspecified API duration
 also use that ceiling. Unknown labels are rejected instead of silently selecting
 a shorter budget. Earlier 1/2/3-minute ceilings remain available only when selected.
-Natural end tokens remain enabled; minimum duration, padding and looping were
+Natural end tokens remain enabled. Minimum duration, padding and looping were
 not added. Export status and `status.json` explicitly distinguish `model_end_token`
-from `token_limit`; a cutoff is not labeled successful song completion.
+from `token_limit`. A cutoff is not labeled successful song completion.
 
 ## T4 attention candidate fix (revision 5)
 
@@ -301,7 +301,7 @@ representing 239.04 seconds, before a natural ending despite the six-minute maxi
 Source inspection identified a slow-kernel restriction: the release's CUDA
 `enable_gqa=True` path cannot use memory-efficient attention. PyTorch 2.11 requires
 SM80+ for FlashAttention/cuDNN SDPA, while T4 is SM75, leaving the math path.
-This identifies a backend restriction; there is no per-kernel GPU profile here.
+This identifies a backend restriction. There is no per-kernel GPU profile here.
 
 Revision 5 offers mathematically equivalent grouped-head views to ordinary SDPA,
 which can use the memory-efficient kernel. It checks eligibility and a real first
@@ -327,7 +327,7 @@ stage labels instead of invented overall percentages.
 
 The inference package also labeled a surviving GraphAR object `cuda_graph` after
 capture failed. Execution reporting now records actual capture success or eager
-fallback and its reason. Live reports are saved to `semantic-progress.json`;
+fallback and its reason. Live reports are saved to `semantic-progress.json`.
 `semantic.partial.npy` checkpoints partial codec tokens every five seconds.
 Partial files are diagnostic artifacts and cannot be used by decode recovery.
 
@@ -353,7 +353,7 @@ The default is an eight-minute safety ceiling, not a target duration. The model
 chooses its ending from the prompt and lyrics and may naturally finish earlier.
 A lower selected ceiling can cut the song off if reached.
 Keep the UI cell running while generating. Its transformer can stay loaded for
-additional songs. Interrupting the UI cell stops that process; the UI Stop button
+additional songs. Interrupting the UI cell stops that process. The UI Stop button
 requests cancellation at a generation boundary.
 
 A browser/computer restart does not itself establish whether the remote Kaggle
@@ -367,7 +367,7 @@ A downloaded notebook containing logs is not a backup of its generated audio.
   Actual execution and throughput appear in the status panel.
 - Decoder: tiled FP32 `m-a-p/YuE2-Vae` on GPU 1.
 - Default planning: **Direct to audio**, with no ABC score generation.
-- Default acoustic solver: **16 Euler steps**; CFG **1.0**.
+- Default acoustic solver: **16 Euler steps**, CFG **1.0**.
 - Optional score planning/editing and upload-based cover transcription are available.
   Original lyrics are preserved unless optional lyric transcription is selected.
 - The native context stays at 24,576 tokens. It is not enlarged to fit a song.
@@ -376,15 +376,15 @@ At 25 music tokens per second, seven minutes requests 10,500 tokens and eight
 minutes requests 12,000. These are **maximum lengths**. The model can finish early,
 or reach the limit with an abrupt ending. The status panel and `status.json`
 report the actual duration and cutoff. Audio is never padded or looped to meet
-an advertised length. Long songs may require multiple acoustic chunks; their
+an advertised length. Long songs may require multiple acoustic chunks. Their
 boundary times are reported for listening. Full-song continuity requires listening.
 
 ## Storage and saved stages
 
 Runtime, dependencies, caches and model files use session-only
-`/kaggle/temp/yue2_native`; support code is under `/kaggle/temp/yue2_native_support`.
+`/kaggle/temp/yue2_native`. Support code is under `/kaggle/temp/yue2_native_support`.
 Setup prints actual free space and requires at least 16 GiB for runtime and 2 GiB
-for output storage. Paths can share a filesystem; these checks do not establish
+for output storage. Paths can share a filesystem. These checks do not establish
 a separate 50 GB quota. Existing files from older revisions are preserved.
 
 Every attempt gets a unique directory under `/kaggle/working/yue2_native/runs`:
@@ -404,7 +404,7 @@ Files appear as stages complete. Failed/cancelled attempts retain earlier files.
 Non-finite acoustic/audio values cause an explicit failure instead of being
 silently replaced. Exports are checked against the generated token duration and
 read back through their actual file headers. Successful runs also get a ZIP
-beside the directory; if space prevents ZIP creation, original files remain.
+beside the directory. If space prevents ZIP creation, original files remain.
 The UI provides direct master-file and ZIP downloads. Package/hardware records
 and the engine log are retained under `/kaggle/working/yue2_native/runtime`.
 
@@ -415,10 +415,10 @@ the UI cell and use the notebook's optional decode-recovery cell. It verifies
 latent checksums and matching model weights, then writes into a new run folder.
 It does not rerun planning, music-token generation or acoustic synthesis.
 
-For a new Kaggle session, attach the saved ZIP as an input and extract it first;
-setup/model assets are still needed. Revision 2 ComfyUI artifacts are a different
+For a new Kaggle session, attach the saved ZIP as an input and extract it first.
+Setup/model assets are still needed. Revision 2 ComfyUI artifacts are a different
 format and cannot be fed to this native recovery cell. Token-stage recovery after
-an acoustic failure remains a future addition; those tokens are saved for review.
+an acoustic failure remains a future addition. Those tokens are saved for review.
 
 ## Revisions and checks
 
@@ -427,7 +427,7 @@ an acoustic failure remains a future addition; those tokens are saved for review
 - Transformer revision: `8f24312f187763b9854adeec87e437e2b03bbff1`.
 - VAE revision: `152733a19ad43aa67e367f9b5503ef8075bb5126`.
 - Key compatibility pins: Transformers 4.57.6, Hub 0.36.2, Gradio 5.49.1,
-  Pillow 11.3.0, mir_eval 0.8.2, pretty_midi 0.2.10 and mido 1.3.3. Full installed versions are recorded; this is not an entire
+  Pillow 11.3.0, mir_eval 0.8.2, pretty_midi 0.2.10 and mido 1.3.3. Full installed versions are recorded. This is not an entire
   Kaggle image lock. The inference wheel is installed without replacing the
   release's development CUDA stack over Kaggle's matched binary packages.
 - Original source: AIQUEST Academy notebook in Movies commit
@@ -446,9 +446,9 @@ and embedded source consistency. They did not run the full
 model or validate CUDA graphs, eight-minute GPU memory, speed, or musical quality.
 No Kaggle GPU time was used for these local checks.
 
-Source is in `native_yue2/`; `tools/build_fast_notebook.py` rebuilds the standalone
-notebook. `kaggle_yue2/` supplies the existing checked environment-bootstrap helpers;
-its ComfyUI installer and generation runtime are not invoked by this notebook.
+Source is in `native_yue2/`. `tools/build_fast_notebook.py` rebuilds the standalone
+notebook. `kaggle_yue2/` supplies the existing checked environment-bootstrap helpers.
+Its ComfyUI installer and generation runtime are not invoked by this notebook.
 For contributors with the native dependencies installed:
 `python -m unittest discover -s tests -p test_native.py -v` and
 `python -m unittest discover -s tests -p test_attention.py -v` and

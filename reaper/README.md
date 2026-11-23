@@ -10,17 +10,17 @@ One-time installation:
 3. Choose **New action → Load ReaScript…** and select that file.
 4. Select **Script: Shift_markers_and_regions.lua** and click **Run**.
 
-Enter the offset in seconds: `-0.25` moves earlier by a quarter second; `0.25`
+Enter the offset in seconds: `-0.25` moves earlier by a quarter second. `0.25`
 moves later. Choose `all` or `selected`, then `yes` to include chapter regions
-or `no` for markers only. Selected scope uses the selected rows in Region/Marker
-Manager; REAPER 7.83 supports the necessary native selection API.
+or `no` for markers only. The `selected` option uses the selected rows in the
+Region/Marker Manager. REAPER 7.83 supports the necessary native selection API.
 
 For a uniform offset, choose `all` and include regions to keep chapter boundaries
-with the lyrics. For one passage, select its marker rows before running with
-`selected`. A fixed offset preserves spacing; it cannot repair varying alignment
-errors or missing repeated lines. Media items, tempo and audio remain untouched.
-Ctrl+Z undoes the action. An offset crossing project time zero is rejected before
-anything moves. Marker names, numbers, colors and region lengths are preserved.
+with the lyrics. To shift a single passage, select its marker rows before running with
+`selected`. A fixed offset preserves spacing, but it cannot repair varying alignment
+errors or missing repeated lines. It never touches media items, tempo or audio.
+Ctrl+Z undoes the action. Offsets that would cross project time zero are rejected
+before anything moves. Marker names, numbers, colors and region lengths are preserved.
 
-The Lua action has automated mocked-REAPER checks; it has not been run in the
+The Lua action has automated mocked-REAPER checks. It has not been run in the
 user's live REAPER project. It does not require SWS, ReaPack or Timestamp Studio.
