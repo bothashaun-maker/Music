@@ -1,0 +1,127 @@
+name: YuE2 Studio builder cloud test
+
+on:
+  push:
+    branches:
+      - music-studio-cloudflare-cover-notebooks
+    paths:
+      - "YuE2_Studio_Builder.ipynb"
+      - ".github/workflows/yue2-studio-builder-cloud-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: yue2-studio-builder-cloud-test
+  cancel-in-progress: false
+
+jobs:
+  notebook-validation:
+    name: Validate builder and runtime notebooks
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out test branch
+        uses: actions/checkout@v4
+        with:
+          ref: music-studio-cloudflare-cover-notebooks
+
+      - name: Validate notebook JSON and Python syntax
+        run: |
+          python3 - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+
+          for filename in ("YuE2_Studio_Builder.ipynb", "YuE2_Studio_Cloudflare.ipynb"):
+              path = Path(filename)
+              notebook = json.loads(path.read_text(encoding="utf-8"))
+              code_cells = 0
+              for index, cell in enumerate(notebook.get("cells", [])):
+                  if cell.get("cell_type") != "code":
+                      continue
+                  source = "".join(cell.get("source", []))
+                  ast.parse(source, filename=f"{filename}:cell-{index}")
+                  code_cells += 1
+              print(f"PASS: {filename}: valid notebook JSON; {code_cells} Python code cell(s) parse cleanly.")
+          PY
+
+  linux-build:
+    name: Execute notebook build and packaging preparation
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - name: Check out test branch
+        uses: actions/checkout@v4
+        with:
+          ref: music-studio-cloudflare-cover-notebooks
+
+      - name: Show cloud runner resources
+        run: |
+          uname -a
+          lscpu
+          free -h
+          df -h /
+
+      - name: Execute the builder notebook up to the authenticated Kaggle publish boundary
+        run: |
+          sudo -E python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          notebook_path = Path("YuE2_Studio_Builder.ipynb")
+          notebook = json.loads(notebook_path.read_text(encoding="utf-8"))
+          code = [c for c in notebook["cells"] if c.get("cell_type") == "code"]
+          if len(code) != 1:
+              raise RuntimeError(f"Expected one builder code cell, found {len(code)}")
+          source = "".join(code[0].get("source", []))
+
+          # Execute the actual notebook code, including apt, CUDA, Rust, both native builds,
+          # Cloudflare checksum verification, and Kaggle Dataset asset-catalog generation.
+          # Stop immediately before authenticated Kaggle API access so no dataset is published.
+          boundary = "api = authenticated_api()"
+          if source.count(boundary) != 1:
+              raise RuntimeError("Could not uniquely identify the Kaggle publish boundary.")
+          executable = source.split(boundary, 1)[0]
+          namespace = {"__name__": "__main__"}
+          exec(compile(executable, str(notebook_path) + ":builder-cell", "exec"), namespace)
+
+          catalog = namespace["catalog"]
+          assets = catalog["assets"]
+          missing = [a["source"] for a in assets if not Path(a["source"]).is_file()]
+          if missing:
+              raise RuntimeError("Dataset catalog references missing build outputs: " + ", ".join(missing))
+
+          bundle = Path("/kaggle/working/yue2-studio-bundle")
+          required = [
+              bundle / "music-server",
+              bundle / "cloudflared",
+              bundle / "yue2-cpp" / "yue-server",
+              bundle / "manifest.json",
+              bundle / "yue2-cpp-source.json",
+          ]
+          for path in required:
+              if not path.is_file():
+                  raise RuntimeError(f"Required output missing: {path}")
+          report = {
+              "result": "PASS",
+              "scope": "executed builder through build, checksum validation and dataset asset-catalog generation",
+              "kaggle_dataset_upload": "not run; requires the user's Kaggle API credentials",
+              "assets": len(assets),
+              "asset_bytes": sum(Path(a["source"]).stat().st_size for a in assets),
+              "manifest": json.loads((bundle / "manifest.json").read_text(encoding="utf-8")),
+          }
+          Path("/kaggle/working/yue2-studio-cloud-test-report.json").write_text(
+              json.dumps(report, indent=2), encoding="utf-8"
+          )
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Upload build test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yue2-studio-cloud-build-report
+          path: /kaggle/working/yue2-studio-cloud-test-report.json
+          if-no-files-found: ignore
