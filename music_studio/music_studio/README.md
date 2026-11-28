@@ -16,7 +16,7 @@ No model data passes through a local PC. Everything happens inside the Kaggle no
 
 | File | Purpose |
 |---|---|
-| `Music_Studio_Model_Pack_Builder.ipynb` | Downloads, verifies, and publishes the model pack |
+| `Music_Studio_Model_Pack_Builder.ipynb` | Downloads and verifies the model pack before publishing it |
 | `NOTICES.md` | Source list, original licenses, and attribution for every component |
 
 ---

@@ -22,7 +22,7 @@ The uploaded Kaggle notebook provides these measurements:
 The session duration also includes setup, downloads, UI and other overhead. The
 trace ends after decoding and does not contain a saved audio file header or the
 UI's final export response. Token duration is not a claim that this attachment
-contains recoverable audio. There is no recorded capture-failure message; the
+contains recoverable audio. There is no recorded capture-failure message. The
 old `execution=cuda_graph` label alone cannot rule out fallback because that
 label was faulty. Revision 4 separately corrected execution/progress reporting.
 
@@ -32,7 +32,7 @@ The model has 16 query heads and 8 KV heads. The native graph and acoustic
 attention call SDPA with `enable_gqa=True`. PyTorch's documentation limits CUDA
 GQA to FlashAttention/math, and its 2.11 CUDA source restricts FlashAttention
 and cuDNN attention to SM80 or newer. T4 is SM75. The native GQA call therefore
-cannot use those fused alternatives on this hardware; memory-efficient SDPA
+cannot use those fused alternatives on this hardware. Memory-efficient SDPA
 requires equal head counts. This is source evidence, not a GPU profiler trace
 or proof of the complete difference from an earlier reported fast song.
 
@@ -44,16 +44,16 @@ or proof of the complete difference from an earlier reported fast song.
 
 `native_yue2/attention.py` represents KV heads as additional batches and expands
 within-head groups using views. Equal query/KV head counts let the efficient
-backend be considered without `enable_gqa`. Masks preserve their logical values;
-row-stride padding is outside the logical key length. The result is restored to
+backend be considered without `enable_gqa`. Masks preserve their logical values.
+Row-stride padding is outside the logical key length. The result is restored to
 the original head layout. For the default single guidance branch, tests verify
 that K/V views reuse existing storage rather than repeat the cached data.
 
 Each tensor shape/stride combination is checked for CUDA eligibility. The first
 actual efficient-kernel dispatch is checked before caching the decision. An
-unsupported/refused shape logs its reason and retains native SDPA; OOM is raised.
+unsupported/refused shape logs its reason and retains native SDPA. OOM is raised.
 Confirmed selections and native fallbacks are reported. Only the native modules'
-functional namespaces are wrapped; global `torch.nn.functional` is unchanged.
+functional namespaces are wrapped. Global `torch.nn.functional` is unchanged.
 
 Eight attention tests passed on CPU, including seven numerical shape/mask
 subcases and emulated dispatch-control tests. Fourteen native/UI/export/recovery
@@ -68,7 +68,7 @@ No repeat Kaggle diagnostic generation was performed or requested for these chec
 The later error reported another process using 7.03 GiB and the failing process
 using 7.52 GiB on the same 14.56 GiB GPU, with approximately 11 MiB free. Only
 about 14 MiB was reserved but unallocated. The evidence supports competing GPU
-allocations; it does not identify the other process as a particular application.
+allocations. It does not identify the other process as a particular application.
 It does not demonstrate an OOM caused solely by the new attention layout.
 
 Revision 7 verifies/locks its engine processes, cleans known prior copies,

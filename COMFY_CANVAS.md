@@ -12,7 +12,7 @@ starting another generator in the same Kaggle GPU session.
    renders automatically. Keep the notebook cell running while using the canvas.
 
 The URL loads the connected graph directly. Both graphs are also saved under
-ComfyUI's workflow menu as **YuE2 Song** and **YuE2 Cover**; JSON copies live in
+ComfyUI's workflow menu as **YuE2 Song** and **YuE2 Cover**. JSON copies live in
 [workflows](workflows). There is no branded form or Gradio interface in this mode.
 
 ![The standard song canvas](docs/YuE2_ComfyUI_Canvas.png)
@@ -23,7 +23,7 @@ The visible chain is: native engine + style/lyrics/ABC + settings → plan → m
 semantic tokens → acoustic synthesis → stereo decoder → save masters / standard
 ComfyUI audio preview. These are separate executing stage nodes, not one wrapper
 node hiding the old interface. `View ABC / Text` shows a generated score when
-planning is enabled. Direct generation remains the default; no score is invented
+planning is enabled. Direct generation remains the default. No score is invented
 when planning is off. A full score can also be pasted into the prompt's ABC field.
 
 Settings retain the native FP16/CUDA-graph path and grouped T4 attention patches,
@@ -31,7 +31,7 @@ Settings retain the native FP16/CUDA-graph path and grouped T4 attention patches
 restored from each node's settings before acoustic execution, including cached
 branches. Standard Comfy seed controls randomize subsequent queued attempts.
 Cancellation is polled by the native stages. Existing model weights and precision
-are used; this does not switch back to the older INT8/FP32 Comfy generation path.
+are used. This does not switch back to the older INT8/FP32 Comfy generation path.
 
 Masters are 48 kHz stereo PCM-24 WAV and FLAC. Tokens, planning, latents/checksum,
 settings, actual duration, cutoff/end-token status and acoustic boundaries are
@@ -51,16 +51,16 @@ not the song-duration ceiling, an OOM, or CPU inference.
 For optional generated scores, retain your chosen planning mode and adjust this
 separate budget if needed. Higher limits allow a longer score but do not force it
 to finish naturally. A cutoff preserves its partial score/settings and status,
-then stops before music synthesis; partial notation is never treated as complete.
+then stops before music synthesis. Partial notation is never treated as complete.
 The model's total context guard remains active. For direct generation with no
-score, select `off` and leave ABC empty; that path does not generate ABC.
+score, select `off` and leave ABC empty. That path does not generate ABC.
 
 The field is optional at the node API level so existing workflow JSON without it
 still works and receives the 4096 default. Load your own saved workflow after
 updating to retain lyrics, Full planning, solver steps and CFG selections. Three
 additional CPU checks cover explicit budget forwarding, old settings without the
-field, and saved partial scores with early failure. Thirteen canvas tests pass;
-actual completion of this user's score with the higher ceiling is unverified.
+field, and saved partial scores with early failure. Thirteen canvas tests pass.
+Actual completion of this user's score with the higher ceiling is unverified.
 
 ## Existing WAV to ABC
 
@@ -80,7 +80,7 @@ connect the extractor's ABC output when editing your own combined graph.
 
 ComfyUI's source is pinned to `bc5f880dbdd43e426077f42ccec53bb577ffee9f`, with its
 specified frontend 1.57.1. Its separate environment inherits the native packages
-without replacing the existing generator environment; constraints protect the
+without replacing the existing generator environment. Constraints protect the
 Kaggle Torch/scientific stack and native dependency pins. New Comfy frontend/server
 packages and source require Internet installation on a fresh session. These
 packages are not present in the previously saved model dataset. Model loading
@@ -89,13 +89,13 @@ zero network traffic for the new UI software.
 
 Comfy's controller uses CPU mode so its model manager does not reserve T4 memory.
 The existing native pipeline explicitly uses CUDA 0 for the MoT and CUDA 1 for the
-VAE, as before. Its Gradio construction is skipped in headless mode; no custom
+VAE, as before. Its Gradio construction is skipped in headless mode. No custom
 branding or form is exposed. The old UI's syntax tree is otherwise preserved,
 and its original 23 CPU tests passed. Existing source attribution remains.
 
 Cloudflare uses the same checksum-verified executable as the earlier notebook,
 with a Comfy-specific health endpoint. It serves normal Comfy HTTP/WebSocket
-traffic; no Gradio SSE queue is required. External tunnel failures remain possible.
+traffic. No Gradio SSE queue is required. External tunnel failures remain possible.
 Startup, server and tunnel logs are under `yue2_native/runtime` in Kaggle output.
 Stopping the cell terminates its owned process group and releases its models.
 

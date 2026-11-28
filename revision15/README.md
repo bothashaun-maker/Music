@@ -1,7 +1,8 @@
 # Repaired uploaded bundle — revision 15
 
 This directory is the repaired successor to your uploaded revision 14 ZIP.
-Read [REPAIR_REPORT.md](REPAIR_REPORT.md) for concrete defects, fixes and test limits.
+Read [REPAIR_REPORT.md](REPAIR_REPORT.md) for the concrete defects and fixes it
+lists. It also records where the test limits sit.
 The older release notes below are retained as history, not new validation claims.
 
 Use **YuE2_Music_Revision15.ipynb** from the repository root for music generation,
@@ -27,7 +28,7 @@ Revision 12 delivers the notebook the way the Movies / H3 notebooks work:
 ComfyUI server and prints the ☁️ Cloudflare link that opens the full node graph
 directly. Both YuE2 canvases are pre-installed under ComfyUI's **Workflows**
 menu. The original Gradio generator stays available as an opt-in: set
-`GRADIO_UI = True` at the top of the single cell and run it again; each route
+`GRADIO_UI = True` at the top of the single cell and run it again. Each route
 takes the engine lock from the other automatically.
 
 ## Song Timestamp Studio — ComfyUI canvas
@@ -42,34 +43,34 @@ Audition → PreviewAudio). It is CPU-friendly — Accelerator None is fine.
 
 **Canvas v2.0 — big-file-safe song delivery.** ComfyUI's single-shot upload
 button died on big songs over the Cloudflare tunnel ("Upload failed: Fetch
-timeout"; songs are 10–100× a video frame, and the server capped uploads at
+timeout"). Songs are 10–100× a video frame, and the server capped uploads at
 100 MB). Node 1 is now `STSLoadSong` and songs arrive three ways: a chunked
 resumable uploader page (8 MB pieces, auto-retry, progress bar, up to 2 GB),
 a paste-a-link box the server downloads at Kaggle speed, or one-click import
 of songs already on Kaggle (YuE2 renders, + Add Input). The canvas list
-refreshes live; the server limit is raised to 2 GB (`--max-upload-size`).
+refreshes live. The server limit is raised to 2 GB (`--max-upload-size`).
 Tests: `test_sts_upload.py` reproduces the old slow-link failure and proves
-the chunked path survives the same link; the browser test drives the real
+the chunked path survives the same link. The browser test drives the real
 uploader page and canvas.
 Sources: `timestamp_studio/` (engine, node pack, web extension, canvas),
 notebook builder `tools/build_studio_notebook.py`, checks `tests/test_studio.py`.
 
 ## ComfyUI canvas wrapper — since revision 11
 
-After setup you can run **either** interface; both drive the same
+After setup you can run **either** interface. Both drive the same
 native FP16 engine and both write the same saved-run format. The ComfyUI route
 installs a pinned, session-only **ComfyUI v0.43.2** checkout
 (`423cbd20511becb1f16122ab518e92e58bfa03d9`) with the **KaggleYuE2** node pack
 and starts a persistent server. The printed Cloudflare link carries
 `?yue2_workflow=song` or `?yue2_workflow=cover` and opens the full node graph
-directly, as the Movies H3 canvases do; both canvases are also installed under
+directly, as the Movies H3 canvases do. Both canvases are also installed under
 ComfyUI's **Workflows** menu.
 
 The canvases are real multi-node graphs, not one wrapper node:
 
 - **YuE2 Full Song** — Run Context (one folder + one seed) → Load Engine →
   Style and Lyrics → Plan Score (optional, same 800/1200 budgets) → Song
-  Tokens (same ceilings; natural endings distinguished from cutoffs) →
+  Tokens (same ceilings. Natural endings distinguished from cutoffs) →
   Acoustic Synthesis (16 Euler default, midpoint optional) → VAE Decode →
   Save Song (PCM-24 masters, `status.json`, run ZIP).
 - **YuE2 Cover / Restyle** — standard LoadAudio → Analyze Melody (SheetSage2,
@@ -77,21 +78,21 @@ The canvases are real multi-node graphs, not one wrapper node:
   the same token/latent/decode/save chain with the extracted score.
 
 Node-pack sources are `native_yue2/comfy_pack.py`, `native_yue2/comfy_canvas.py`
-and `native_yue2/comfy_web.py`; setup writes them into
+and `native_yue2/comfy_web.py`. Setup writes them into
 `custom_nodes/KaggleYuE2/`. The pack imports the refactored engine module
 (`initialize_pipeline()` + `build_and_launch_ui()` are now explicit functions),
 so importing inside the ComfyUI server loads no weights and never builds the
-Gradio UI; the managed engine script behaves exactly as before. One engine
+Gradio UI. The managed engine script behaves exactly as before. One engine
 owns the lock at a time: the ComfyUI **Load Engine** node stops verified
 Gradio engines, the Gradio cell POSTs `/yue2/release` to a running canvas
 server, and `/yue2/status` reports what is loaded. ComfyUI's **Stop** button
-interrupts at a step boundary through the same cancelled hooks; earlier stage
+interrupts at a step boundary through the same cancelled hooks. Earlier stage
 files remain saved. ComfyUI's extra dependencies install from the network
-under the same Kaggle constraints (torch/transformers stay pinned); the asset
+under the same Kaggle constraints (torch/transformers stay pinned). The asset
 dataset is not rebuilt and no model is downloaded. Canvas registration and
 both graphs were validated against a real ComfyUI v0.43.2 server (its own
-`/prompt` validator accepted both) and rendered in a real browser; actual
-T4 generation, memory and speed remain unmeasured.
+`/prompt` validator accepted both) and rendered in a real browser. Actual
+T4 generation remains unmeasured. Memory and speed also remain unmeasured.
 
 ## Cloudflare access restored — revision 10
 
@@ -99,7 +100,7 @@ The generator cell now prints an additional Cloudflare Quick Tunnel link to the
 same existing Gradio interface. The original Gradio share link remains enabled.
 No Cloudflare account/domain is required. This restores the original notebook's
 two-route access pattern without changing model loading, audio formats, generation
-settings or dataset selection. Existing revision 9 asset datasets remain usable;
+settings or dataset selection. Existing revision 9 asset datasets remain usable.
 no rebuild/upload is needed. The official, pinned, SHA256-checked `cloudflared`
 2026.10.3 executable is fetched on Kaggle if not already cached. Tunnel failure
 prints its log and leaves the original Gradio route available. The sidecar exits
@@ -107,11 +108,11 @@ when the cell is stopped or its notebook parent exits. Set `ENABLE_CLOUDFLARE =
 False` in the generator cell to use only the preexisting share link.
 
 Quick Tunnels do not guarantee availability or SSE live-progress support. A link
-is not proof the reported upload interruption is resolved. Keep the original WAV;
+is not proof the reported upload interruption is resolved. Keep the original WAV.
 no conversion is required by this update. Eight CPU lifecycle/checksum tests and
 the twelve asset checks passed. A real Gradio 5.49.1 local upload of an unchanged
 75 MiB synthetic WAV plus a queued result passed checksum/size verification with
-no GPU. The development environment refused the external Cloudflare connection;
+no GPU. The development environment refused the external Cloudflare connection.
 the separate unrestricted-network check was cancelled. Public-tunnel upload and
 full ABC inference therefore remain unverified. No Kaggle GPU quota was used.
 
@@ -132,15 +133,15 @@ run directly on Kaggle. Keep the source notebook and dataset private.
 
 The generator automatically discovers one attached bundle. It installs its small
 Python overlay from saved wheels and reads large weights directly from
-`/kaggle/input`; it does not copy weights into temporary storage. Hub/Transformers
+`/kaggle/input`. It does not copy weights into temporary storage. Hub/Transformers
 are forced into offline mode, pip uses `--no-index`, and the share executable is
 copied locally for execution. Missing, corrupted or incompatible assets stop
-setup; **there is no silent download fallback**. Generation defaults, quality,
+setup. **There is no silent download fallback**. Generation defaults, quality,
 precision and token ceilings are unchanged.
 
 Read [KAGGLE_DATASET.md](KAGGLE_DATASET.md) for exact first-run/reuse steps,
 image compatibility and validation limits. The Gradio share link still needs
-Internet; source-song uploads and final audio downloads still use normal browser
+Internet. Source-song uploads and final audio downloads still use normal browser
 bandwidth. Kaggle image/dependency changes or future model revisions may require
 one rebuild, so “never download again” is not an unlimited compatibility promise.
 
@@ -174,9 +175,9 @@ It is not a voice-cloning or waveform-editing feature.
 the attached saved dataset.** Setup installs only their small
 support dependencies while preserving Kaggle's Torch/TorchAudio/scientific stack.
 FFmpeg and the image-matched TorchAudio are checked. The pinned SheetSage2 API
-normally defaults to BF16; this version explicitly loads/transcribes in FP32 for
+normally defaults to BF16. This version explicitly loads/transcribes in FP32 for
 T4. Whisper uses FP16 on T4. The upstream long-song transcription uses overlapping
-windows; no manual five-minute crop is applied by this notebook.
+windows. No manual five-minute crop is applied by this notebook.
 
 Cover analysis and song generation share one GPU queue. Melody and ASR models
 are released sequentially and after analysis, and a cached VAE is moved to CPU
@@ -205,13 +206,13 @@ SheetSage2 revision: `eab522a8168e8b8b8c4856bf8609cd86198f01fe`.
 Its config pins MERT parent `d8ba1c745e733b3908ce6ad16ebeb17ac7600a42` and the
 remote loader checks parent code/weight hashes. Whisper revision:
 `41f01f3fe87f28c78e2fbf8b568835947dd65ed9`. SheetSage2's upstream model license is
-CC-BY-NC-4.0; consult its and MERT's model cards for applicable terms.
+CC-BY-NC-4.0. Consult its and MERT's model cards for applicable terms.
 
 ## Duplicate-engine and GPU-memory protection (revision 7)
 
 The reported CUDA OOM showed approximately 7.03 GiB held by another process and
 7.52 GiB held by the failing process, leaving only about 11 MiB free on GPU 0.
-That is GPU-memory competition; the screenshot does not identify the other
+That is GPU-memory competition. The screenshot does not identify the other
 process's application. It is not evidence that the audio model ran on a local PC.
 The second T4's memory is separate and cannot cover GPU 0's allocations.
 
@@ -224,7 +225,7 @@ along with its original UI. Other models and unverified processes are not killed
 A lifetime process lock prevents two managed engines loading concurrently.
 
 A GPU-memory/process preflight runs before setup/launch and each generation.
-It requires a conservative 12 GiB available/reusable on GPU 0 and 4 GiB on GPU 1;
+It requires a conservative 12 GiB available/reusable on GPU 0 and 4 GiB on GPU 1.
 this is a startup guard, not proof every long-song memory peak fits. The current
 engine's resident allocation is counted as reusable for subsequent songs.
 Unrecognized GPU users are reported and startup/generation stops early.
@@ -233,10 +234,10 @@ models. These changes do not reduce quality, token ceilings or precision.
 
 **For the currently failed attempt:** interrupt its generator/UI cell to stop
 that failed process. Keep the saved run folder. Use the updated setup in the
-same retained session before another generation; inspect any reported unknown
+same retained session before another generation. Inspect any reported unknown
 GPU process rather than retrying Generate. This update cannot clear memory in
 your remote session until you execute it. No outputs or saved stages are deleted.
-Decode recovery still requires completed `latent.npy` and its manifest; a failure
+Decode recovery still requires completed `latent.npy` and its manifest. A failure
 before those files exist cannot be recovered by the decode cell.
 
 Eight real CPU child-process checks passed for surviving/legacy engines, lock
@@ -246,7 +247,7 @@ failure and OOM diagnostics/model release. No Kaggle GPU generation was used.
 
 ## Natural endings and safety ceilings (revision 6)
 
-The model should end the song from its prompt and lyrics; it does not need to
+The model should end the song from its prompt and lyrics. It does not need to
 fill a selected length. A natural four-minute ending under a six-minute ceiling
 is normal behavior. Hitting the ceiling without an end token is a different
 condition: a cutoff that may interrupt the song.
@@ -255,9 +256,9 @@ The UI now calls this setting **Maximum song length (safety ceiling)**, with
 **Up to 8 min** selected by default. Clear/reset and unspecified API duration
 also use that ceiling. Unknown labels are rejected instead of silently selecting
 a shorter budget. Earlier 1/2/3-minute ceilings remain available only when selected.
-Natural end tokens remain enabled; minimum duration, padding and looping were
+Natural end tokens remain enabled. Minimum duration, padding and looping were
 not added. Export status and `status.json` explicitly distinguish `model_end_token`
-from `token_limit`; a cutoff is not labeled successful song completion.
+from `token_limit`. A cutoff is not labeled successful song completion.
 
 ## T4 attention candidate fix (revision 5)
 
@@ -269,7 +270,7 @@ representing 239.04 seconds, before a natural ending despite the six-minute maxi
 Source inspection identified a slow-kernel restriction: the release's CUDA
 `enable_gqa=True` path cannot use memory-efficient attention. PyTorch 2.11 requires
 SM80+ for FlashAttention/cuDNN SDPA, while T4 is SM75, leaving the math path.
-This identifies a backend restriction; there is no per-kernel GPU profile here.
+This identifies a backend restriction. There is no per-kernel GPU profile here.
 
 Revision 5 offers mathematically equivalent grouped-head views to ordinary SDPA,
 which can use the memory-efficient kernel. It checks eligibility and a real first
@@ -295,7 +296,7 @@ stage labels instead of invented overall percentages.
 
 The inference package also labeled a surviving GraphAR object `cuda_graph` after
 capture failed. Execution reporting now records actual capture success or eager
-fallback and its reason. Live reports are saved to `semantic-progress.json`;
+fallback and its reason. Live reports are saved to `semantic-progress.json`.
 `semantic.partial.npy` checkpoints partial codec tokens every five seconds.
 Partial files are diagnostic artifacts and cannot be used by decode recovery.
 
@@ -321,7 +322,7 @@ The default is an eight-minute safety ceiling, not a target duration. The model
 chooses its ending from the prompt and lyrics and may naturally finish earlier.
 A lower selected ceiling can cut the song off if reached.
 Keep the UI cell running while generating. Its transformer can stay loaded for
-additional songs. Interrupting the UI cell stops that process; the UI Stop button
+additional songs. Interrupting the UI cell stops that process. The UI Stop button
 requests cancellation at a generation boundary.
 
 A browser/computer restart does not itself establish whether the remote Kaggle
@@ -335,7 +336,7 @@ A downloaded notebook containing logs is not a backup of its generated audio.
   Actual execution and throughput appear in the status panel.
 - Decoder: tiled FP32 `m-a-p/YuE2-Vae` on GPU 1.
 - Default planning: **Direct to audio**, with no ABC score generation.
-- Default acoustic solver: **16 Euler steps**; CFG **1.0**.
+- Default acoustic solver: **16 Euler steps**. CFG **1.0**.
 - Optional score planning/editing and upload-based cover transcription are available.
   Original lyrics are preserved unless optional lyric transcription is selected.
 - The native context stays at 24,576 tokens. It is not enlarged to fit a song.
@@ -344,15 +345,15 @@ At 25 music tokens per second, seven minutes requests 10,500 tokens and eight
 minutes requests 12,000. These are **maximum lengths**. The model can finish early,
 or reach the limit with an abrupt ending. The status panel and `status.json`
 report the actual duration and cutoff. Audio is never padded or looped to meet
-an advertised length. Long songs may require multiple acoustic chunks; their
+an advertised length. Long songs may require multiple acoustic chunks. Their
 boundary times are reported for listening. Full-song continuity requires listening.
 
 ## Storage and saved stages
 
 Runtime, dependencies, caches and model files use session-only
-`/kaggle/temp/yue2_native`; support code is under `/kaggle/temp/yue2_native_support`.
+`/kaggle/temp/yue2_native`. support code is under `/kaggle/temp/yue2_native_support`.
 Setup prints actual free space and requires at least 16 GiB for runtime and 2 GiB
-for output storage. Paths can share a filesystem; these checks do not establish
+for output storage. Paths can share a filesystem. These checks do not establish
 a separate 50 GB quota. Existing files from older revisions are preserved.
 
 Every attempt gets a unique directory under `/kaggle/working/yue2_native/runs`:
@@ -372,7 +373,7 @@ Files appear as stages complete. Failed/cancelled attempts retain earlier files.
 Non-finite acoustic/audio values cause an explicit failure instead of being
 silently replaced. Exports are checked against the generated token duration and
 read back through their actual file headers. Successful runs also get a ZIP
-beside the directory; if space prevents ZIP creation, original files remain.
+beside the directory. If space prevents ZIP creation, original files remain.
 The UI provides direct master-file and ZIP downloads. Package/hardware records
 and the engine log are retained under `/kaggle/working/yue2_native/runtime`.
 
@@ -386,7 +387,7 @@ It does not rerun planning, music-token generation or acoustic synthesis.
 For a new Kaggle session, attach the saved ZIP as an input and extract it first;
 setup/model assets are still needed. Revision 2 ComfyUI artifacts are a different
 format and cannot be fed to this native recovery cell. Token-stage recovery after
-an acoustic failure remains a future addition; those tokens are saved for review.
+an acoustic failure remains a future addition. those tokens are saved for review.
 
 ## Revisions and checks
 
@@ -395,7 +396,7 @@ an acoustic failure remains a future addition; those tokens are saved for review
 - Transformer revision: `8f24312f187763b9854adeec87e437e2b03bbff1`.
 - VAE revision: `152733a19ad43aa67e367f9b5503ef8075bb5126`.
 - Key compatibility pins: Transformers 4.57.6, Hub 0.36.2, Gradio 5.49.1,
-  Pillow 11.3.0, mir_eval 0.8.2, pretty_midi 0.2.10 and mido 1.3.3. Full installed versions are recorded; this is not an entire
+  Pillow 11.3.0, mir_eval 0.8.2, pretty_midi 0.2.10 and mido 1.3.3. Full installed versions are recorded. This is not an entire
   Kaggle image lock. The inference wheel is installed without replacing the
   release's development CUDA stack over Kaggle's matched binary packages.
 - Original source: AIQUEST Academy notebook in Movies commit
@@ -417,8 +418,8 @@ quality. Separately, both canvases were validated against a real ComfyUI v0.43.2
 server (object registration plus its own prompt validator) and rendered in a real
 browser. No Kaggle GPU time was used for these local checks.
 
-Source is in `native_yue2/`; `tools/build_fast_notebook.py` rebuilds the standalone
-notebook. `kaggle_yue2/` supplies the existing checked environment-bootstrap helpers;
+Source is in `native_yue2/`. `tools/build_fast_notebook.py` rebuilds the standalone
+notebook. `kaggle_yue2/` supplies the existing checked environment-bootstrap helpers.
 its ComfyUI installer and generation runtime are not invoked by this notebook.
 For contributors with the native dependencies installed:
 `python -m unittest discover -s tests -p "test_*.py" -v` runs the full set

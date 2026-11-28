@@ -2,7 +2,7 @@
 
 The supplied Kaggle console log showed `VAD filter removed 06:27.520 of audio`
 for a 06:27.520 recording, and earlier attempts raised
-`Library libcublas.so.12 is not found or cannot be loaded`. PyTorch used CUDA 13;
+`Library libcublas.so.12 is not found or cannot be loaded`. PyTorch used CUDA 13.
 that does not establish availability of CTranslate2's CUDA 12 libraries. The
 eventual export reported zero matched words. The old matcher spread unmatched
 words across the recording, producing estimated times despite having no anchors.
@@ -12,7 +12,7 @@ Changes are confined to Timestamp Studio and its notebook builder:
 - Music recognition uses `vad_filter=False` to retain the entire recording.
 - GPU selection checks the CUDA libraries Whisper needs. Missing libraries use
   CPU INT8 with a visible explanation. A library error during model creation or
-  lazy recognition iteration retries once on CPU; unrelated failures propagate.
+  lazy recognition iteration retries once on CPU. Unrelated failures propagate.
   No CUDA packages are downloaded/installed over Kaggle's working PyTorch stack.
 - Empty/silent/nonfinite audio, no recognition, and zero matched words produce
   explicit errors before export. The export node and ZIP builder also reject
@@ -20,7 +20,7 @@ Changes are confined to Timestamp Studio and its notebook builder:
 - Each alignment attempt retains options, audio levels, backend details and
   recognized segments/words in `timestamp_studio/diagnostics/<attempt>/alignment.json`,
   including failed attempts. Successful JSON exports carry transcription data
-  and alignment status; README exports carry the status too.
+  and alignment status. README exports carry the status too.
 - Warnings are shown on the canvas. Word matching percentage is not presented
   as an independently measured timestamp accuracy guarantee.
 - Runtime messages appear below the running cell and are also retained in
@@ -36,7 +36,7 @@ The complete local regression suite passed all **118 tests**.
 The music-creation notebook, its native engine and full-song graph remain
 byte-identical to the working previous release. Existing asset datasets and
 the resumable upload routes remain compatible. Accelerator **None** is supported
-for Studio; CPU inference may take longer than a working GPU backend.
+for Studio. CPU inference may take longer than a working GPU backend.
 
 ## Opening Intro region export
 

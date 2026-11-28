@@ -1,7 +1,7 @@
 # Save YuE2 assets once on Kaggle
 
 The generator uses a saved input bundle for every session. Model downloads already
-happen on Kaggle's connection; they should not be repeated each time a session
+happen on Kaggle's connection. They should not be repeated each time a session
 restarts. You do not need to download the model files to your computer.
 
 ## First time: save the assets
@@ -13,10 +13,9 @@ restarts. You do not need to download the model files to your computer.
    fetches assets without creating a song or loading models onto a GPU. You do
    not need to run the build interactively first and download it twice.
 3. Wait for **COMPLETE** in the saved run's logs. The finished version must retain
-   the `yue2-assets` directory, including `assets.json`; a partial folder or a
+   the `yue2-assets` directory, including `assets.json`. A partial folder or a
    draft containing only logs is not a valid bundle. If you prefer an interactive
-   build, publish its dataset with the optional cell before ending that session;
-   starting a fresh Save & Run All session would fetch assets again.
+   build, publish its dataset with the optional cell before ending that session. Starting a fresh Save & Run All session would fetch assets again.
 4. You can use that version immediately as persistent Kaggle storage: in your
    music notebook use **Add Input → Notebook Output Files** and select it.
    No browser download of weights is needed.
@@ -24,9 +23,9 @@ restarts. You do not need to download the model files to your computer.
 To create a specifically named **private Dataset**, run the builder's optional
 publish cell in Kaggle with `DATASET_HANDLE = "your-username/yue2-music-assets"`.
 It uses KaggleHub's dataset upload API directly from the Kaggle machine. Your
-Kaggle authentication is required; keep tokens in private Kaggle authentication
+Kaggle authentication is required. Keep tokens in private Kaggle authentication
 or Secrets, never in notebook source. Select a new unused slug. The API creates
-new datasets privately; updating an existing dataset retains that dataset's
+new datasets privately. Updating an existing dataset retains that dataset's
 existing visibility. Attach the result with **Add Input → Your Datasets**.
 If your image has an older KaggleHub without `dataset_upload`, use saved notebook
 outputs or update KaggleHub in the builder session. No credentials or remote
@@ -62,7 +61,7 @@ The builder preserves HF `models--*/snapshots/<revision>` paths. Snapshot files
 are ordinary files, not symlinks that could break during Kaggle output packaging.
 It removes duplicate Hub blob storage without allocating a second weight copy.
 The generator reads weights from the input mount. A small writable environment,
-remote-code import cache and share executable live in `/kaggle/temp`; generated
+remote-code import cache and share executable live in `/kaggle/temp`. Generated
 songs remain in `/kaggle/working/yue2_native`.
 
 The model cache and pip index are offline during reuse even though Internet is
@@ -70,7 +69,7 @@ on for the UI. Missing cached files produce errors. Small manifests, wheels,
 code and the executable are hashed at setup. Before downloading models, the
 builder checks that its saved wheelhouse resolves dependencies in a fresh
 overlay with the pip index disabled. Native music/VAE loaders separately
-check model-weight hashes; MERT's upstream loader checks parent hashes. Call
+check model-weight hashes. MERT's upstream loader checks parent hashes. Call
 `validate_assets(path, full=True)` for a complete dataset hash check without
 using a GPU, including optional model files not loaded by the current request.
 
@@ -83,7 +82,7 @@ Python minor/platform and public versions of Torch, TorchAudio, TorchVision,
 NumPy, SciPy, Numba and llvmlite. CPU/CUDA local Torch build suffixes are ignored
 so a matching CPU builder can serve a GPU session. The generator still checks
 real CUDA/T4 availability. Other inherited dependency changes can also cause an
-offline pip/import failure; these do not trigger downloads.
+offline pip/import failure. These do not trigger downloads.
 
 If CPU and GPU Kaggle images differ, choose matching image versions where
 available, or run the builder in the same GPU image once. That uses accelerator
@@ -98,5 +97,5 @@ image mismatch, offline setup arguments/environment, read-only input reuse,
 shared-blob materialization, complete/partial builds and exact source embedding
 in both notebooks. A fresh-process check of the real Hub 0.36.2 resolves
 synthetic cached snapshots and files with socket connections blocked and no
-cache mutations. Synthetic model files are used; no full dataset download,
+cache mutations. Synthetic model files are used. No full dataset download,
 Kaggle upload or GPU generation was run in this development environment.

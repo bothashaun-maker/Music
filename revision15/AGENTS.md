@@ -4,13 +4,13 @@ This directory is based on the supplied revision 14 bundle, rather than the
 older root-level implementation. Concrete fixes and verification limits live
 in REPAIR_REPORT.md. Run tools/build_release.py to rebuild both delivered
 notebooks and the ZIP. Keep native FP16 generation and existing datasets.
-The prior branch notes below are retained for continuity; their historical
+The prior branch notes below are retained for continuity. Their historical
 validation claims do not establish a new live GPU or Cloudflare run.
 
-Publish the music creation notebook separately; exclude it from the release ZIP.
+Publish the music creation notebook separately. Exclude it from the release ZIP.
 The user confirmed full-song creation works. Preserve its graph and engine.
 Cover uploads now add a resumable button to the existing LoadAudio node via
-native_yue2/cover_upload{,_web}.py; preserve the original upload control too.
+native_yue2/cover_upload{,_web}.py. Preserve the original upload control too.
 
 Studio follow-up: real Kaggle logs showed speech VAD removed all music and
 CTranslate2 could not load libcublas.so.12 despite PyTorch CUDA 13 seeing T4s.
@@ -21,7 +21,7 @@ Never describe matched-word percentage as a measured timing accuracy bound.
 REAPER export follow-up: derive section regions from build_sections, as chapters
 do, so an opening Intro begins at project zero even if vocals begin later.
 Never shift lyric marker onsets just to repair the Intro boundary. REAPER's
-Start column can display bars/beats; verify units before claiming a seconds offset.
+Start column can display bars/beats. Verify units before claiming a seconds offset.
 
 Studio revision 16 bypasses fuzzy transcription matching for supplied English
 lyrics. timestamp_studio/acoustic.py runs a pinned Wav2Vec2 CTC acoustic model,
@@ -35,47 +35,44 @@ must remain unchanged. See STUDIO_ACOUSTIC_REPAIR.md for current limits.
 Revision 16.1 fixes an installed-bundle failure: the hardcoded installer omitted
 acoustic.py despite embedding it. Copy the complete payload, validate required
 files, and load the adjacent acoustic helper by file path. Preserve the exact
-ComfyUI path-named package regression in tests/test_studio_installed_bundle.py;
-tests of source imports alone do not cover the deployed node layout.
+ComfyUI path-named package regression in tests/test_studio_installed_bundle.py. Tests of source imports alone do not cover the deployed node layout.
 
 Revision 16.2 ignores punctuation-only lyric lines (a lone '[' caused a real
 post-inference crash), and validates all supplied text before isolation/audio
-loading/inference. Keep acoustic cache keys stable for lyric-only repairs;
-this parsing fix does not establish improved timing accuracy on the real song.
+loading/inference. Keep acoustic cache keys stable for lyric-only repairs. This parsing fix does not establish improved timing accuracy on the real song.
 
 The user reports that most marker times still require manual repair. Do not
 equate a successful CTC path with timing accuracy. tools/collect_studio_evidence.py
 can collect the exact analysis audio and matching existing frames without model
 inference, preserving the original WAV and keeping archives below the chat's
 transfer limit. STUDIO_TIMING_INVESTIGATION.md explains same-session collection.
-Obtain the corrected REAPER project as reference; no acoustic repair has been
+Obtain the corrected REAPER project as reference. No acoustic repair has been
 validated on that recording yet. Keep the working generation pipeline unchanged.
 
 Revision 17 follow-up: exact 387.52-second audio and frame evidence was received.
 Only the first 15 manually changed markers are confirmed references. The tested
 mix+vocal geometric acoustic ensemble reduced their mean error 1.061→0.206 s,
-14/15 within 0.5 s; the growled opening line remains 1.526 s late. The remaining
-72 markers and within-line words are not independently verified. Do not claim
+14/15 within 0.5 s. The growled opening line remains 1.526 s late. The 72 remaining markers and within-line words are not independently verified. Do not claim
 complete-song accuracy or that the last outlier is fixed. Preserve all user's
-manual corrections when preparing their private project copy; do not publish
+manual corrections when preparing their private project copy. Do not publish
 the project, lyrics or audio. See STUDIO_MIX_VOCAL_REPAIR.md. Default canvas
 isolation is now ON, with installed, pinned/safe Demucs weights and persistent
-vocal/frame caches; selected failures must not silently degrade to full mix.
+vocal/frame caches. Selected failures must not silently degrade to full mix.
 
 Revision 18: the next privately uploaded project supplied 71 additional changed
 references (all after marker 15 except unchanged marker 69). Across the resulting
 86 confirmed starts, vocal-context decoding, local attack refinement and bounded
 repeated-phrase audio matching measured MAE 0.130 s, median 0.074 s, 85/86 within
-0.5 s. The known opening growl remains 1.69 s late; do not claim all corrections
+0.5 s. The known opening growl remains 1.69 s late. Do not claim all corrections
 are eliminated. New 71 all measured within 0.5 s. These are development results
 on one recording, not a held-out/general benchmark. Models/caches/weights and
 generation remain unchanged. Do not publish the new project or replace the
-previously approved Studio17 project archive without separate user authorization.
+previously approved project archive for Studio17 without separate user authorization.
 Details: STUDIO_CUE_REPAIR.md.
 
 # User preferences and continuity
 
-- Preserve working behavior. Prefer scoped, additive improvements; do not remove
+- Preserve working behavior. Prefer scoped, additive improvements. Do not remove
   working access routes or change model/generation defaults incidentally.
 - User explicitly wants original WAV uploads preserved, without requiring file
   conversion. Cloudflare is additional to the existing Gradio share route.
@@ -83,7 +80,7 @@ Details: STUDIO_CUE_REPAIR.md.
 - Publish authorized notebook changes to bothashaun-maker/Music, including sources
   and regenerated notebooks, after relevant local checks. Report GPU/network
   validation limits honestly. Do not push music changes to Movies.
-- Source: native_yue2/; builder: tools/build_fast_notebook.py.
+- Source: native_yue2/. Builder: tools/build_fast_notebook.py.
 - Give concise instructions, one step at a time when guiding the user's screen.
 
 ## Movies-style delivery for ALL music workflows (2026-11-03)
@@ -97,30 +94,30 @@ Details: STUDIO_CUE_REPAIR.md.
   front door, no separate launcher/repair cells, no auto-render, no download
   prompts (outputs via Kaggle Output panel).
 - Revision 12 = the YuE2 notebook rebuilt this way (GRADIO_UI=True keeps the
-  original generator reachable inside the single cell; tests assert the shape).
+  original generator reachable inside the single cell. Tests assert the shape).
 - Song Timestamp Studio is delivered the same way: the Gradio web app is
   superseded by `Song-Timestamp-Studio-Canvas.ipynb` (TimestampStudio node pack:
   STSLyricsOptions / STSAlign / STSNudge / STSAudition / STSExportAll over the
-  same tested engine). Sources in `timestamp_studio/`; builder
-  `tools/build_studio_notebook.py`; checks `tests/test_studio.py`.
-- Validated: 77/77 repo checks (incl. 5 STS structure/format tests); the STS
+  same tested engine). Sources in `timestamp_studio/`. Builder
+  `tools/build_studio_notebook.py`. Checks `tests/test_studio.py`.
+- Validated: 77/77 repo checks (incl. 5 STS structure/format tests). The STS
   canvas was queued end-to-end through real pinned ComfyUI on the known-truth
-  song (per-line error max 0.46 s, identical to the standalone engine; nudge
-  exact); browser audit auto-loaded the 7-node graph from ?sts_workflow=studio
+  song (per-line error max 0.46 s, identical to the standalone engine). Nudge
+  exact. Browser audit auto-loaded the 7-node graph from ?sts_workflow=studio
   with no page errors. Not yet run on Kaggle GPUs by the user.
 
 ## ComfyUI canvas wrapper (2026-10-30)
 
-- The user's YuE2 asset dataset is built, working, and must not be rebuilt for
+- The user's YuE2 asset dataset is built and working. It must not be rebuilt for
   wrapper work. Model weights always come from the dataset ("as-is").
 - The user asked for the Cloudflare link to open a normal ComfyUI canvas with
-  the YuE2 workflow — nodes, models, everything — exactly like the Movies H3
+  the YuE2 workflow (nodes, models, everything) exactly like the Movies H3
   canvases: persistent ComfyUI, full visible node graph, workflows pre-installed
   in the menu, nothing collapsed into one wrapper node, no auto-render.
 - Decision (user-selected): wrap the proven native FP16 engine as real
-  ComfyUI nodes (KaggleYuE2 pack), NOT the official ComfyUI YuE2 nodes; keep
-  the Gradio wrapper as a second route; canvases = Full Song + Cover/Restyle.
-- Both wrappers share one engine lock; each hands over to the other
+  ComfyUI nodes (KaggleYuE2 pack), NOT the official ComfyUI YuE2 nodes. Keep
+  the Gradio wrapper as a second route. Canvases = Full Song + Cover/Restyle.
+- Both wrappers share one engine lock. Each hands over to the other
   (verified stop / /yue2/release). Same saved-run artifact schema.
 - ComfyUI pinned to v0.43.2 (423cbd20511becb1f16122ab518e92e58bfa03d9),
   session-only, requirements under the Kaggle constraints file.
@@ -130,16 +127,17 @@ Details: STUDIO_CUE_REPAIR.md.
 ## Wheelhouse self-heal (2026-11-04, revision 13)
 
 - Real Kaggle failure: with assets attached, `PIP_NO_INDEX=1` made the ComfyUI
-  v0.43.2 requirements install crash on `comfyui-frontend-package==1.57.4`
-  (plus workflow-templates/embedded-docs/comfy-aimdo/comfy-kitchen) — wheels
-  the YuE2 wheelhouse predates. CalledProcessError in install_comfyui.
+  v0.43.2 requirements install crash on `comfyui-frontend-package==1.57.4`.
+  The ComfyUI requirements also included workflow-templates and embedded-docs.
+  The YuE2 wheelhouse predates these wheels. The failure also involved comfy-aimdo
+  and comfy-kitchen. CalledProcessError in install_comfyui.
 - Fix: `kaggle_yue2.runtime.pip_install` — offline wheelhouse attempt first,
   one automatic PyPI retry (PIP_INDEX_URL set, PIP_NO_INDEX dropped, wheelhouse
   kept on find-links, Kaggle constraints kept in args), actionable RuntimeError
   if both fail. Used by the overlay install, install_comfyui (wheelhouse from
   env YUE2_ASSET_DATASET), and the legacy route install. The asset dataset is
-  NOT rebuilt and stays fully usable; models remain offline (HF_HUB_OFFLINE).
+  NOT rebuilt and stays fully usable. Models remain offline (HF_HUB_OFFLINE).
 - Real-CLI proof: sandbox test reproduced the exact "No matching distribution
   found for comfyui-frontend-package==1.57.4" offline wall, then pip_install
-  installed that wheel from PyPI; a complete wheelhouse still installs fully
+  installed that wheel from PyPI. A complete wheelhouse still installs fully
   offline. Unit tests: tests/test_assets.py::PipFallbackTests.

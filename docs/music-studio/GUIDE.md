@@ -14,9 +14,9 @@ Create a song, work on its score, or bring in a recording you already have. This
 | --- | --- |
 | Prepare the saved tools/models | Music-Studio-Dataset.ipynb · CPU · first time only |
 | Open your studio | Music-Studio.ipynb · T4 ×2 · every session |
-| Create or re-perform a song | Create; Library → track menu → Re-render |
-| Work on a recording | Upload large WAV; then Library / Studio tools |
-| Save your work | Library downloads; Kaggle output files |
+| Create or re-perform a song | Create or use Library → track menu → Re-render |
+| Work on a recording | Upload large WAV, then use Library / Studio tools |
+| Save your work | Library downloads or Kaggle output files |
 
 **Separate from your working notebooks**
 
@@ -38,7 +38,7 @@ ACCELERATOR NONE · INTERNET ON
 
 **Disk and time**
 
-The model set is about 24.77 GB plus the runtime. Uploads stream one verified file at a time; the largest is about 8.71 GB. Runtime compilation needs at least 7 GiB free initially. Actual space is checked. First-time compilation/downloads take time; no timing guarantee is made.
+The model set is about 24.77 GB plus the runtime. Uploads stream one verified file at a time. The largest is about 8.71 GB. Runtime compilation needs at least 7 GiB free initially, and actual space is checked. First-time compilation/downloads take time. No timing guarantee is made.
 
 The builder never overwrites an existing Dataset. An interrupted final request may have reached Kaggle: inspect its page before retrying. A submission receipt is not proof that Kaggle has finished processing.
 
@@ -58,7 +58,7 @@ Each startup creates a fresh Cloudflare URL/key. Keep it private and use the lat
 
 GPU 0 runs generation. The second T4’s memory is separate and is not automatically combined. Stems, recognition and the writing assistant use the documented CPU paths. No diagnostic song starts during setup.
 
-Use the current Kaggle GPU image. This CUDA 13 runtime needs NVIDIA driver 580 or newer; startup checks it before loading the model.
+Use the current Kaggle GPU image. This CUDA 13 runtime needs NVIDIA driver 580 or newer. Startup checks it before loading the model.
 
 ## 04 · Find the right panel
 
@@ -69,9 +69,9 @@ CREATE · LIBRARY · STUDIO TOOLS · LORA · SETTINGS
 | Create | Title, style, lyrics, score, quality, seeds and generation |
 | Library | Listen, rename, like, organize, inspect settings and reuse a track |
 | Upload large WAV | Verified resumable WAV/MP3 imports without conversion |
-| Studio tools | Stems, karaoke, MIDI and audio processing |
-| LoRA | Browse/import compatible style adapters; apply them to a song |
-| Settings | Music model, engine device, assistant, recognition and network access |
+| Studio tools | Stems/karaoke/MIDI and audio processing |
+| LoRA | Browse/import compatible style adapters and apply them to a song |
+| Settings | Music model and engine device, plus assistant/recognition/network access |
 
 The player follows you between panels. Select a track before opening a track-specific tool. Track menus contain actions that do not fit on the main card. A generated result, a stem and a processed version can be separate library items.
 
@@ -83,17 +83,17 @@ This v1 uses the pinned Linux browser fork, whose feature set differs from newer
 
 A CLEAR STYLE · LYRICS WITH ROOM TO SING
 
-1. Open Create. Give the song a useful title; it becomes a library label.
+1. Open Create. Give the song a useful title. It becomes a library label.
 2. Write the style in English: language, genre/era, vocal character, instruments, mood, production and tempo. Describe the sound rather than depending on an artist’s name.
 3. Write the sung words with section tags on separate lines: [Verse 1], [Pre-Chorus], [Chorus], [Bridge], [Outro]. Leave a blank line between sections.
-4. Choose a score mode. Full plans melody and chords; Melody uses a melodic plan; Off generates without a symbolic score. Leave ABC empty to let the selected mode compose it.
+4. Choose a score mode. Full plans melody and chords. Melody uses a melodic plan, while Off generates without a symbolic score. Leave ABC empty to let the selected mode compose it.
 5. For the first manual trial choose a modest duration ceiling and one variation. Press Create once. Watch its progress in Library and listen through the ending.
 
 **An example style**
 
 English, melodic synth-pop, expressive female lead, analog bass, clean drums, warm pads, hopeful mood, clear balanced mix, 112 BPM.
 
-Duration is a ceiling, not a promise. Enough lyric material and clear sections help; a longer limit alone does not produce a longer complete song. Keep the original request and the version you prefer.
+Duration is a ceiling, not a promise. Enough lyric material and clear sections help. A longer limit alone does not produce a longer complete song. Keep the original request and the version you prefer.
 
 ## 06 · Shape words and vocals
 
@@ -103,15 +103,15 @@ Keep nearby lyric lines similar in syllable count. Sparse, singable wording give
 
 | Goal | Practical starting point |
 | --- | --- |
-| Clear delivery | Short lines; avoid packing many words into a fast section |
+| Clear delivery | Short lines. Avoid packing many words into a fast section. |
 | A recurring hook | Write the chorus in full at each intended return |
-| A duet | Describe both singers in the style; structure the exchange by sections |
-| An instrumental | Choose the instrumental option where offered; use empty section tags if necessary |
-| Another language | Name the sung language first in the style; keep section tags in English |
+| A duet | Describe both singers in the style and structure the exchange by sections |
+| An instrumental | Choose the instrumental option where offered. Use empty section tags if necessary. |
+| Another language | Name the sung language first in the style. Keep section tags in English. |
 
 **Listen before committing**
 
-An instrumental request can still produce vocal sounds; duets and voice/register prompts are not exact singer assignments. Check the whole result. Do not treat the preset name as a quality guarantee.
+An instrumental request can still produce vocal sounds. Duets and voice/register prompts are not exact singer assignments. Check the whole result. Do not treat the preset name as a quality guarantee.
 
 Use the assistant to draft or revise words, then review them yourself. For a cover, the original syllable pattern is particularly important. Changes in syllables can shift the melody’s phrasing.
 
@@ -121,15 +121,15 @@ ONE CHANGE AT A TIME · SAVE THE REQUEST
 
 | Control | What it changes |
 | --- | --- |
-| Duration ceiling | Maximum generation length; the model can end earlier |
-| Composition / LM seed | Score and semantic choices; pin when comparing composition |
-| Sound / noise seed | Acoustic realization; change for another performance |
-| Steps | Acoustic solver work; more steps take longer and may change the sound |
-| Guidance / CFG | Prompt-conditioning strength; begin with the offered default |
-| Temperature / top-p / top-k | Sampling variety; larger changes can reduce consistency |
+| Duration ceiling | Maximum generation length. The model can end earlier. |
+| Composition / LM seed | Score and semantic choices. Pin when comparing composition. |
+| Sound / noise seed | Acoustic realization. Change for another performance. |
+| Steps | Acoustic solver work. More steps take longer and may change the sound. |
+| Guidance / CFG | Prompt-conditioning strength. Begin with the offered default. |
+| Temperature / top-p / top-k | Sampling variety. Larger changes can reduce consistency. |
 | Batch / variations | More candidates consume more memory and compute |
 
-Start with one song and one variation. Keep model, prompt and seeds fixed when comparing a setting. Export the request/settings alongside the keeper; a title alone does not identify how a version was made.
+Start with one song and one variation. Keep model, prompt and seeds fixed when comparing a setting. Export the request/settings alongside the keeper. A title alone does not identify how a version was made.
 
 **T4 baseline**
 
@@ -147,7 +147,7 @@ ABC IS THE COMPOSITION · AUDIO IS THE PERFORMANCE
 4. Apply the editor’s changes back to the score. Check the score mode and lyrics, then create another performance.
 5. Compare the result with the original. Preserve both versions until the revision is accepted.
 
-ABC notation includes the meter, note-length unit, tempo, key and voice declarations. YuE2 uses its own score conventions; generic notation imported from elsewhere may need adjustment. A malformed score can fail or produce a poor result.
+ABC notation includes the meter, note-length unit, tempo, key and voice declarations. YuE2 uses its own score conventions. Generic notation imported from elsewhere may need adjustment. A malformed score can fail or produce a poor result.
 
 **Register changes**
 
@@ -167,7 +167,7 @@ DRAW · PLAY · IMPORT · APPLY
 
 Open the HTTPS Cloudflare link. AudioWorklet/MIDI functions can depend on a secure browser context and device permission. Click Play once to allow browser audio. A disconnected controller does not stop note drawing or file import.
 
-Keep the original .mid and the exported ABC. MIDI tempo, instrument choices and lyrics do not necessarily transfer perfectly between tools; inspect the imported result before a long render.
+Keep the original .mid and the exported ABC. MIDI tempo, instrument choices and lyrics do not necessarily transfer perfectly between tools. Inspect the imported result before a long render.
 
 ## 10 · Re-render a keeper
 
@@ -191,15 +191,15 @@ ORIGINAL WAV/MP3 · RESUMABLE · NO CONVERSION
 
 1. Choose Upload large WAV in the sidebar. The upload page opens in the same authenticated studio.
 2. Choose your original WAV or MP3, up to 2 GiB, then press Upload / Resume. The notebook cell must remain running.
-3. Wait for Ready in Library. Each 4 MiB piece has a checksum. If the connection fails, choose the same file and resume; previously saved pieces are checked against it.
+3. Wait for Ready in Library. Each 4 MiB piece has a checksum. If the connection fails, choose the same file and resume. Previously saved pieces are checked against it.
 4. Return to Studio and open Library. Select the imported recording before using covers, stems, MIDI, karaoke or processing.
 5. Inspect the source filename and checksum when you need a provenance check. The imported audio has not been transcoded.
 
 **If a transfer pauses**
 
-Pause stops after the current network operation. A completed import is not repeated when you resume the same upload. An incomplete transfer is retained in output storage; it is not a ready library song.
+Pause stops after the current network operation. A completed import is not repeated when you resume the same upload. An incomplete transfer is retained in output storage, but it is not a ready library song.
 
-The studio’s original import control remains available for small files. Use the resumable route for large originals over Cloudflare. The pinned library import supports WAV and MP3; do not rename another format to make it look like one.
+The studio’s original import control remains available for small files. Use the resumable route for large originals over Cloudflare. The pinned library import supports WAV and MP3. Do not rename another format to make it look like one.
 
 ## 12 · Cover or restyle a song
 
@@ -208,14 +208,14 @@ SOURCE MELODY → REVIEWED ABC → NEW PERFORMANCE
 1. Upload your recording and select it in Library. Choose its cover/transcribe-score action.
 2. Let SheetSage2 estimate the melody. Inspect the score and correct obvious errors before generating.
 3. Use Melody mode for a melody-only score. Supply the original lyrics, or new lines with a matching syllable pattern and compatible stresses.
-4. Describe the target arrangement in the style. Check the voice range, tempo and any transposition.
+4. Describe the target arrangement in the style. Check the voice range and also review tempo or any transposition.
 5. Create a new song from that score and listen against the source. Keep the original recording and transcription artifacts.
 
 **A cover is a new performance**
 
-The tool estimates a symbolic melody and re-synthesizes it. Timing, voice, harmony and arrangement can change; extraction is not perfect source separation or an exact audio-to-audio copy.
+The tool estimates a symbolic melody and re-synthesizes it. Timing can change, as can voice, harmony or arrangement. Extraction is not perfect source separation or an exact audio-to-audio copy.
 
-Use recordings you have the necessary rights to use. SheetSage2 and the decoder companion have separate non-commercial terms; YuE2’s individual-creator exception does not automatically extend to them.
+Use recordings you have the necessary rights to use. SheetSage2 and the decoder companion have separate non-commercial terms. YuE2’s individual-creator exception does not automatically extend to them.
 
 ## 13 · Separate six stems
 
@@ -223,7 +223,7 @@ DRUMS · BASS · OTHER · VOCALS · GUITAR · PIANO
 
 1. Select the song in Library and open Stem separation under its tools/actions.
 2. Choose the stems you want to keep. The model predicts all six even when you export fewer.
-3. Begin with the default overlap. Run once and wait for completion; the provided ONNX path uses CPU.
+3. Begin with the default overlap. Run once and wait for completion. The provided ONNX path uses CPU.
 4. Audition isolated parts and the recombined mix. Check difficult vocal tails, guitar/piano overlap and transitions.
 5. Save the useful stems and their source/settings. Use the isolated vocal for subsequent analysis only after listening.
 
@@ -263,7 +263,7 @@ PARAKEET OR WHISPER · REVIEW EVERY LINE
 
 Integrated recognition is not a replacement for the corrected timing workflow and manual REAPER references in your separate Song Timestamp Studio. Recognition success or matched-word percentage is not a measured timing-accuracy bound.
 
-Parakeet has language limits; Whisper may hallucinate over music or omit difficult singing. A different mix or re-render can change timing, so do not reuse old cues without checking them.
+Parakeet has language limits. Whisper may hallucinate over music or omit difficult singing. A different mix or re-render can change timing, so do not reuse old cues without checking them.
 
 ## 16 · Process and master audio
 
@@ -279,17 +279,17 @@ COMPARE BEFORE/AFTER · KEEP THE ORIGINAL
 
 Windows VST hosting is not part of this Linux browser build. Use your local REAPER installation for your own Windows plugins, detailed mixing and final mastering.
 
-Noise reduction and vocal processing can remove desired texture or add artifacts. Reference mastering matches aspects of a sound; it does not establish rights to the reference or guarantee a release-ready result.
+Noise reduction and vocal processing can remove desired texture or add artifacts. Reference mastering matches aspects of a sound. It does not establish rights to the reference or guarantee a release-ready result.
 
 ## 17 · Make a lyric video
 
 FINISH AUDIO FIRST · THEN RENDER
 
 1. Select the approved audio version. Review its lyrics and karaoke timing first.
-2. Open the video/clip tool. Choose landscape 16:9, square 1:1 or vertical 9:16 as offered.
-3. Choose a background/cover you may use. Add title, lyric layers, visualizer and supported effects; keep text readable.
+2. Open the video/clip tool. Choose wide 16:9, square 1:1 or vertical 9:16 as offered.
+3. Choose a background/cover you may use. Add a title and lyric layers, plus the visualizer and supported effects. Keep text readable.
 4. Preview a difficult section: a repeated chorus, a long line and the ending. Then render the clip.
-5. Download/save the video and play the exported file from beginning to end. Check audio sync, text clipping, transitions and final duration.
+5. Download/save the video and play the exported file from beginning to end. Check audio sync and final duration, including text clipping or transitions.
 
 **Where the work happens**
 
@@ -334,8 +334,8 @@ On suitable newer hardware the upstream workflow prepares recordings, lyrics/sty
 MOSS-MUSIC · TEMPO ANALYSIS · EDIT THE RESULT
 
 1. Select a recording and use its Describe style/audio action when available.
-2. The saved pack includes the MOSS audio tower, language model and Beat This! tempo model; its native captioner is built with the other runtime tools.
-3. Wait for the native CPU analysis. A dense track and a large model can take time; keep other heavy jobs idle.
+2. The saved pack includes the MOSS audio tower, language model and Beat This! tempo model. Its native captioner is built with the other runtime tools.
+3. Wait for the native CPU analysis. A dense track and a large model can take time. Keep other heavy jobs idle.
 4. Review the proposed genre, instruments, mood and BPM. Treat them as observations to correct, not authoritative metadata.
 5. Use the useful description in your next style prompt or preparation record.
 
@@ -343,7 +343,7 @@ MOSS-MUSIC · TEMPO ANALYSIS · EDIT THE RESULT
 
 The two MOSS files total about 10.43 GB on disk. That is separate from its runtime memory. Do not compare download size with available VRAM or launch several models simply because there are two T4s.
 
-Describing a track and training a LoRA are separate operations. The captioning tools are included; T4 LoRA training is not. External/cloud description providers are optional and require your own configuration.
+Describing a track and training a LoRA are separate operations. The captioning tools are included, but T4 LoRA training is not. External/cloud description providers are optional and require your own configuration.
 
 ## 21 · Artwork, player and library
 
@@ -353,11 +353,11 @@ ORGANIZE THE WORK · AUDITION THE KEEPER
 | --- | --- |
 | Library / playlists / likes | Name candidates, group a project, mark keepers and inspect source/settings |
 | Cover art / pattern | Choose a deterministic pattern, upload your image, or use supported photo search |
-| Player / equalizer | Audition the selected song; monitor changes at an appropriate volume |
-| Visualizer / Winamp mode | Playback display and browser-player mode; this is not mastering |
+| Player / equalizer | Audition the selected song and monitor changes at an appropriate volume |
+| Visualizer / Winamp mode | Playback display and browser-player mode. This is not mastering. |
 | Metadata / request export | Keep style, lyrics, score, seeds and version history with the audio |
 
-Automatic cover generation starts off. Photo searches and optional generation may use external services. Review source credits and terms; an attractive image does not establish rights. A pattern or your own image avoids relying on a stock result.
+Automatic cover generation starts off. Photo searches and optional generation may use external services. Review source credits and terms. An attractive image does not establish rights. A pattern or your own image avoids relying on a stock result.
 
 **Browser versus desktop**
 
@@ -371,7 +371,7 @@ OPTIONAL MCP AUTOMATION · SAME PRIVATE STUDIO
 2. Connect your own MCP-capable agent to the current HTTPS studio address plus /mcp, using the studio access key as a Bearer authorization header.
 3. Ask the agent to inspect studio status and available tools before changing anything. Tool counts can vary by release.
 4. Give a bounded instruction, such as drafting lyrics or preparing a song for review. Review prompts and settings before generation.
-5. Stop or disconnect the agent when finished. A new notebook startup rotates the URL/key; update the connection then.
+5. Stop or disconnect the agent when finished. A new notebook startup rotates the URL/key. Update the connection then.
 
 **Keep the key private**
 
@@ -387,7 +387,7 @@ MODEL DATASET ≠ SONG LIBRARY
 2. Stop the startup cell before taking a final library snapshot so SQLite can close cleanly.
 3. Save a Kaggle version with output files, or download the library/media you want to retain. A draft or notebook containing logs is not an audio backup.
 4. For a later session, attach that saved output as another Kaggle input alongside the one model Dataset. Startup can restore a single saved Music Studio library into empty working output.
-5. If there are multiple saved libraries, set RESTORE_LIBRARY_PATH to the desired library folder. Existing working libraries are preserved; restore does not overwrite them.
+5. If there are multiple saved libraries, set RESTORE_LIBRARY_PATH to the desired library folder. Existing working libraries are preserved, and restore does not overwrite them.
 
 **What is durable**
 
@@ -401,14 +401,14 @@ READ THE STAGE · KEEP THE EVIDENCE
 
 | Symptom | Next action |
 | --- | --- |
-| No matching Dataset | Attach Music Studio Dataset; the older FP16 dataset is different |
-| Builder authentication failure | Enable the private Kaggle Secret; check DATASET_OWNER if needed |
-| Runtime build failed | Read runtime-build.log; keep the interrupted build for diagnosis |
-| Port busy / low free VRAM | Stop the previous startup cell; unrelated processes are not killed |
-| CUDA engine failed | Read studio.log and runtime-identity.json; do not switch blindly to CPU |
-| Cloudflare link failed | Use the latest link/key; inspect cloudflare.log; keep saved media |
+| No matching Dataset | Attach Music Studio Dataset. The older FP16 dataset is different. |
+| Builder authentication failure | Enable the private Kaggle Secret. Check DATASET_OWNER if needed. |
+| Runtime build failed | Read runtime-build.log. Keep the interrupted build for diagnosis. |
+| Port busy / low free VRAM | Stop the previous startup cell. Unrelated processes are not killed. |
+| CUDA engine failed | Read studio.log and runtime-identity.json. Do not switch blindly to CPU. |
+| Cloudflare link failed | Use the latest link/key. Inspect cloudflare.log and keep saved media. |
 | Upload stopped | Re-select the same source file in Upload large WAV and resume |
-| Recognition is wrong | Review provider/language/audio; keep VAD off for singing |
+| Recognition is wrong | Review provider/language/audio. Keep VAD off for singing. |
 
 Startup status, ready checks and runtime identity are saved with logs under music_studio. Dataset upload diagnostics live under music_studio_dataset. A FutureWarning is not the same as a failed model job.
 
@@ -422,12 +422,12 @@ COMPONENT TERMS · SOURCE VERSIONS · PRACTICAL LIMITS
 
 | Component | Terms / scope |
 | --- | --- |
-| Studio / C++ engines | MIT; retain upstream notices |
+| Studio / C++ engines | MIT. Retain upstream notices. |
 | YuE2 base weights | CC BY-NC plus individual-creator permission under its conditions |
-| SheetSage2 / companion / MuScriptor | Separate CC BY-NC terms; no blanket creator exception |
+| SheetSage2 / companion / MuScriptor | Separate CC BY-NC terms. No blanket creator exception. |
 | Gemma | Google Gemma terms and use policy |
-| HT-Demucs / Whisper / Beat This! | MIT; Parakeet retains CC BY attribution |
-| MOSS / Cloudflared | Apache-2.0; other dependencies retain their terms |
+| HT-Demucs / Whisper / Beat This! | MIT. Parakeet retains CC BY attribution. |
+| MOSS / Cloudflared | Apache-2.0. Other dependencies retain their terms. |
 
 The standard Studio generation path includes the Mothersuperior companion. The complete bundle is therefore not presented as unrestricted commercial use. Keep the model Dataset private and review the terms relevant to your intended work.
 

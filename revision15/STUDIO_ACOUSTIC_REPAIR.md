@@ -20,11 +20,11 @@ isolation or audio loading. Existing acoustic cache keys and frame computations
 are unchanged: the interrupted run's saved frames remain reusable in its session
 after removing the stray bracket. This is a parsing repair, not a measured
 improvement to timing accuracy on the user's recording. The uploaded pip log
-also reports conflicts with preinstalled Gradio/Diffusers requirements; these
+also reports conflicts with preinstalled Gradio/Diffusers requirements. These
 did not trigger the supplied ValueError and are not changed by this repair.
 All 138 local regression checks passed. The actual lyric text embedded in the
 uploaded error report also passes text validation after the parser ignores the
-stray bracket (488 words); this check does not run acoustic inference.
+stray bracket (488 words). This check does not run acoustic inference.
 
 ## Revision 16.1: installed helper import
 
@@ -51,18 +51,18 @@ could also jump to a later lyric when previous estimated intervals overlapped.
 
 The supplied-English-lyrics route now uses an acoustic CTC model and the entire
 provided lyric sequence. A Viterbi path advances through that sequence while
-blank states cover gaps; repeated words remain separate target occurrences.
+blank states cover gaps. Repeated words remain separate target occurrences.
 It does not run the former fuzzy matcher or interpolate unheard lyric timings.
 
 Implementation:
 
 - Pinned `facebook/wav2vec2-base-960h` revision
-  `22aad52d435eb6dbaf354bdad9b0da84ce7d6156`; inference uses the existing PyTorch
+  `22aad52d435eb6dbaf354bdad9b0da84ce7d6156`. Inference uses the existing PyTorch
   CPU/CUDA stack rather than CTranslate2's separate CUDA-12 runtime.
 - Twenty-second inference windows with two seconds of context bound model memory.
   CTC backtrace allocation is capped at 512 MiB. CPU inference uses at most four
   PyTorch threads. Model weights are about 360 MB and download on the Kaggle
-  server on first use; they are stored under working outputs.
+  server on first use. They are stored under working outputs.
 - Cached frame scores are keyed by audio samples, model revision and inference
   settings. Lyric edits reuse frames. Attached saved Studio outputs can supply
   model weights and cached frames without repeating those downloads/inference.
@@ -78,13 +78,13 @@ Implementation:
 - Cut-plan CSV preserves milliseconds and exact durations. Section edges and
   the initial interval are covered without the earlier beat-snapping gaps.
 - A **Download ZIP** button is added to the Export node and follows its latest
-  result. Existing output routes, uploads, logs and diagnostics remain available.
+  result. Existing output routes and uploads remain available. Logs and diagnostics remain available.
 
 Limits and verification:
 
 Supplied-lyric acoustic alignment currently supports English/romanized lyrics.
 The Whisper model selector affects automatic transcription with an empty lyric
-box. Model scores are not calibrated timestamp accuracy; dense singing, growls,
+box. Model scores are not calibrated timestamp accuracy. Dense singing, growls,
 backing voices and text that differs from the performance still require review.
 
 Unit regressions cover repeated targets separated by long blank gaps, repeated

@@ -3,7 +3,7 @@
 The user's next project provided 71 additional manually adjusted marker starts.
 The original 15 references remain unchanged, giving 86 confirmed references.
 Marker 69 was unchanged and was conservatively excluded. The latest project is
-used privately for evaluation; publishing the earlier approved revision-17 ZIP
+used privately for evaluation. Publishing the earlier approved revision-17 ZIP
 does not authorize publishing this new project or its contents.
 
 ## Result on the supplied recording
@@ -30,7 +30,7 @@ The latest fully corrected REAPER project itself is untouched.
 ## Decoder changes
 
 With isolation ON, the decoder now uses the isolated-vocal acoustic scores as
-its primary view. Mix scores remain cached and recorded for diagnostics; the
+its primary view. Mix scores remain cached and recorded for diagnostics. The
 previous equal-geometric mixture is retained as a helper, not the default route.
 Isolation OFF retains the existing single-view route.
 
@@ -39,7 +39,7 @@ Soft state costs distinguish different kinds of gaps:
 - Blanks between letters inside a word cost 0.1 per 20-ms frame.
 - Gaps between words on one lyric line cost 0.02 per frame.
 - Lyric-line boundaries and explicit ellipsis pauses are free.
-- Sustained label self-loops are unpenalized; there is no word-duration cap.
+- Sustained label self-loops are unpenalized. There is no word-duration cap.
 
 This discourages a weak first letter from attaching to noise many seconds before
 the rest of a word. In the actual project, one first-word cue that was 6.49 s
@@ -54,7 +54,7 @@ of lookback, a 2:1 energy contrast, and a threshold 20% above the local floor.
 Very weak words (score below 0.05), continuous energy and indistinct attacks are
 left alone. Refinement cannot cross the previous lyric line's end.
 
-`ctc_start` retains the original acoustic boundary; `timing_source` distinguishes
+`ctc_start` retains the original acoustic boundary. `timing_source` distinguishes
 an adjusted attack from a CTC-only boundary. Word scores describe CTC frames,
 not measured precision of the refined onset.
 
@@ -68,15 +68,15 @@ fixed chorus offsets or positions from the manually corrected project.
 
 Conservative bounds:
 
-- At least three words per identical phrase; single-word loops are skipped.
-- The clearest template must have a first-word acoustic score of at least 0.25;
+- At least three words per identical phrase. Single-word loops are skipped.
+- The clearest template must have a first-word acoustic score of at least 0.25.
   the uncertain target must be below 0.2.
 - Only cue changes between 0.35 and 3 s are considered, with mean cosine distance
   at most 0.55. This distance is a similarity diagnostic, not timing confidence.
 - Templates are limited to 15 s and query windows to 25 s (at most 3.75 million
   DTW cells). Search stays near the target occurrence.
 - At most three leading words can change. Prefix proposals must preserve word
-  order, the stable suffix and the previous lyric line's end; otherwise they are
+  order, the stable suffix and the previous lyric line's end. Otherwise they are
   rejected. No word is compressed to zero duration to force acceptance.
 
 On the supplied recording this adjusted two later chorus cues to within 0.13 s
@@ -89,8 +89,8 @@ original CTC boundaries and the changed prefix. The supplied labels are retained
 The exact 387.52-second analysis waveform was replayed through the production
 engine. All 488 words had positive, ordered intervals. The vocal and both frame
 caches were reused with model loading and separation explicitly blocked in the
-test; no new inference, downloads, or Kaggle GPU time were used. The cached full
-run took about five seconds in this environment; that is not a cold-run or
+test. No new inference, downloads, or Kaggle GPU time were used. The cached full
+run took about five seconds in this environment. That is not a cold-run or
 Kaggle performance guarantee.
 
 Additional regressions exercise detached letters, line/ellipsis gaps, sustained
