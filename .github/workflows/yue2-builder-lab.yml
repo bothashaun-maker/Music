@@ -1,0 +1,88 @@
+name: YuE2 Builder lab
+
+# Cloud test bench for YuE2_Studio_Builder.ipynb. It runs the notebook's real build
+# cell as root on Ubuntu 22.04 (same /kaggle/... paths as Kaggle), stops before the
+# Kaggle upload (no Kaggle credentials here), then checks the outputs and boots the
+# Studio backend for a /health smoke test. A CPU runner has no GPU, so inference
+# itself is not tested.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "YuE2_Studio_Builder.ipynb"
+      - ".github/workflows/yue2-builder-lab.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  builder:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free runner disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /usr/local/share/boost "$AGENT_TOOLSDIRECTORY"
+          df -h /
+
+      - name: Extract the Builder cell (stop before the Kaggle upload)
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          cells = json.load(open("YuE2_Studio_Builder.ipynb"))["cells"]
+          src = "".join(cells[1]["source"])
+          cut = src.index("api = authenticated_api()")
+          checks = '''
+          for asset in catalog["assets"]:
+              assert Path(asset["source"]).is_file(), asset["source"]
+          manifest = json.loads((BUNDLE / "manifest.json").read_text())
+          assert manifest["studio_version"] == "5.0.0" and manifest["tag"] == "v5.0.0", manifest
+          print("LAB CATALOG OK:", len(catalog["assets"]), "assets")
+          '''
+          pathlib.Path("/tmp/builder_lab.py").write_text(src[:cut] + checks)
+          PY
+
+      - name: Run the Builder cell as root
+        run: |
+          set -o pipefail
+          sudo -E env HOME=/root python3 -u /tmp/builder_lab.py 2>&1 | tee /tmp/builder_lab.log
+
+      - name: Smoke-test the bundle and the Studio backend
+        run: |
+          set -euo pipefail
+          B=/kaggle/working/yue2-studio-bundle
+          test -x "$B/music-server"
+          test -x "$B/cloudflared"
+          test -x "$B/yue2-cpp/yue-server"
+          test -f "$B/manifest.json"
+          cat "$B/yue2-cpp/runtime.json"; echo
+          grep -q '"cuda12' "$B/yue2-cpp/runtime.json"
+          grep -q 'vulkan' "$B/yue2-cpp/runtime.json"
+          echo "--- unresolved shared libraries (libcuda.so.1 is the GPU driver: absent on a CPU runner) ---"
+          for f in "$B/music-server" "$B/yue2-cpp/yue-server" "$B"/yue2-cpp/*.so*; do
+            if ldd "$f" 2>/dev/null | grep "not found" | grep -v "libcuda.so.1"; then
+              echo "UNRESOLVED in $f"; exit 1
+            fi
+          done
+          mkdir -p /tmp/studio-data
+          YUE_STUDIO_PORT=8791 YUE_STUDIO_DATA_ROOT=/tmp/studio-data \
+            YUE_ENGINE_BIN="$B/yue2-cpp/yue-server" YUE_ENGINE_ROOT="$B/yue2-cpp" \
+            "$B/music-server" > /tmp/music-server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8791/health; then echo; echo "HEALTH OK"; exit 0; fi
+            sleep 2
+          done
+          echo "backend never became healthy"; cat /tmp/music-server.log; exit 1
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: builder-lab-logs
+          path: |
+            /tmp/builder_lab.log
+            /tmp/music-server.log
+          if-no-files-found: ignore
